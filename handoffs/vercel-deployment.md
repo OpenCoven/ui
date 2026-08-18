@@ -1,0 +1,47 @@
+# Vercel Deployment Ledger
+
+## OpenCoven/ui
+
+- Repository: `/Users/buns/.coven/workspaces/familiars/cody`
+- Branch: `main`
+- Owner: Cody
+- Status: verified
+- Requested deliverables: committed Vercel configuration, production deployment in the personal BunsDev scope, production smoke checks, deployment receipts, and GitHub repository homepage update
+- Changed paths:
+  - `.vercelignore`
+  - `vercel.json`
+  - `docs/superpowers/plans/2026-08-18-vercel-deployment.md`
+  - `handoffs/vercel-deployment.md`
+  - `.gitignore` (pre-existing untracked local file; Vercel Link added the local-only `.vercel` entry)
+- Verification:
+  - Deployment configuration contract: exit 0
+  - Deny-by-default upload allowlist: `PASS deny-by-default deployment allowlist`
+  - Spec compliance review: approved
+  - Code quality review: approved
+  - Exact source export: commit `35de405c91d0eead35e230f7aabda89887560fec`
+  - Vercel upload: 7.0 KB, production build `READY`
+  - `curl --fail --location https://opencoven-ui.vercel.app/`: HTTP 200
+  - `curl --fail --location https://opencoven-ui.vercel.app/Components.dc.html`: HTTP 200
+  - Playwright desktop four-state interaction: exit 0
+  - Playwright 390px horizontal-overflow check: exit 0
+  - `gh repo view OpenCoven/ui --json homepageUrl`: `https://opencoven-ui.vercel.app`
+  - Temporary exported tree removed with `trash`: exit 0
+- Vercel project:
+  - Name: `opencoven-ui`
+  - ID: `prj_g5iBF1ucxTlq567g4DlLeFLvRjRR`
+  - Account login: `bunsdev`
+  - Owner workspace: `0xBuns` (`team_VLpvr923t3nLPeaUaLxABctM`)
+  - Scope note: the authenticated `bunsdev` account is a Vercel Northstar account whose default workspace is `0xBuns`; Vercel CLI does not expose a separate personal project scope
+  - Local link: `.vercel/project.json`
+- Vercel deployment:
+  - Deployment ID: `dpl_8yDaA8UhUt28zVC9UKp2bd3Y8JVq`
+  - Immutable URL: `https://opencoven-dpe3s6en8-0xbuns.vercel.app`
+  - Production URL: `https://opencoven-ui.vercel.app`
+  - Dashboard receipt: `https://vercel.com/0xbuns/opencoven-ui/8yDaA8UhUt28zVC9UKp2bd3Y8JVq`
+  - Saved receipt: `/Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment.json`
+- GitHub:
+  - Repository: `https://github.com/OpenCoven/ui`
+  - Homepage: `https://opencoven-ui.vercel.app`
+  - Configuration commit: `35de405c91d0eead35e230f7aabda89887560fec`
+- Worktree state: deployment paths are ready for the receipt commit; unrelated untracked familiar-workspace files remain untouched
+- Next action: commit and push this verified deployment receipt

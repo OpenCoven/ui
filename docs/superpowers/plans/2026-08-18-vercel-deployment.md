@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Publish the self-contained OpenCoven UI specimen as a production Vercel project in the personal BunsDev account and point the GitHub repository homepage at the verified deployment.
+**Goal:** Publish the self-contained OpenCoven UI specimen as a production Vercel project through the authenticated BunsDev account and point the GitHub repository homepage at the verified deployment.
 
 **Architecture:** Keep `Components.dc.html` as the canonical artifact and route `/` to it with a Vercel rewrite. Use a deny-by-default `.vercelignore`, commit and push the deployment configuration, then deploy an archive exported from that exact commit so unrelated familiar-workspace files cannot enter the upload.
 
@@ -24,7 +24,7 @@
 - Create: `.vercelignore`
 - Create: `docs/superpowers/plans/2026-08-18-vercel-deployment.md`
 
-- [ ] **Step 1: Run the failing deployment contract**
+- [x] **Step 1: Run the failing deployment contract**
 
 Run:
 
@@ -48,7 +48,7 @@ NODE
 
 Expected: FAIL because `vercel.json` does not exist.
 
-- [ ] **Step 2: Add the static Vercel configuration**
+- [x] **Step 2: Add the static Vercel configuration**
 
 Create `vercel.json` with:
 
@@ -73,13 +73,13 @@ Create `.vercelignore` with:
 !vercel.json
 ```
 
-- [ ] **Step 3: Re-run the deployment contract**
+- [x] **Step 3: Re-run the deployment contract**
 
 Run the command from Task 1, Step 1.
 
 Expected: exit 0 with no output.
 
-- [ ] **Step 4: Confirm only the intended files can be uploaded**
+- [x] **Step 4: Confirm only the intended files can be uploaded**
 
 Run:
 
@@ -98,7 +98,7 @@ NODE
 
 Expected: `PASS deny-by-default deployment allowlist`.
 
-- [ ] **Step 5: Commit and push the deployment configuration**
+- [x] **Step 5: Commit and push the deployment configuration**
 
 Run:
 
@@ -110,13 +110,13 @@ git push origin main
 
 Expected: commit succeeds and `main` matches `origin/main`.
 
-### Task 2: Create and link the personal Vercel project
+### Task 2: Create and link the BunsDev Vercel project
 
 **Files:**
 - Create locally: `.vercel/project.json`
-- Modify remotely: personal BunsDev Vercel project `opencoven-ui`
+- Modify remotely: authenticated BunsDev account's default Vercel workspace project `opencoven-ui`
 
-- [ ] **Step 1: Create the project in the authenticated personal account**
+- [x] **Step 1: Create the project in the authenticated BunsDev account**
 
 Run:
 
@@ -125,9 +125,9 @@ test "$(vercel whoami)" = "bunsdev"
 vercel project add opencoven-ui
 ```
 
-Expected: the account check exits 0 and Vercel creates `opencoven-ui`.
+Expected: the account check exits 0 and Vercel creates `opencoven-ui` in the account's default workspace. For this Northstar account, Vercel resolves `bunsdev` to the `0xBuns` workspace.
 
-- [ ] **Step 2: Link the checkout non-interactively**
+- [x] **Step 2: Link the checkout non-interactively**
 
 Run:
 
@@ -135,9 +135,9 @@ Run:
 vercel link --yes --project opencoven-ui
 ```
 
-Expected: `.vercel/project.json` identifies the `opencoven-ui` project in the personal BunsDev account.
+Expected: `.vercel/project.json` identifies the `opencoven-ui` project in the authenticated BunsDev account's default workspace.
 
-- [ ] **Step 3: Record the project receipt**
+- [x] **Step 3: Record the project receipt**
 
 Run:
 
@@ -155,7 +155,7 @@ Expected: Vercel reports the project and the local project metadata includes bot
 - Create: `/Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment-url.txt`
 - Create: `/Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment.json`
 
-- [ ] **Step 1: Verify the committed source ref**
+- [x] **Step 1: Verify the committed source ref**
 
 Run:
 
@@ -167,7 +167,7 @@ git diff --cached --quiet
 
 Expected: all commands exit 0.
 
-- [ ] **Step 2: Export the exact commit and attach only project metadata**
+- [x] **Step 2: Export the exact commit and attach only project metadata**
 
 Run:
 
@@ -181,7 +181,7 @@ printf '%s\n' "$DEPLOY_DIR" > /Users/buns/.copilot/session-state/ebd35dd8-5bb9-4
 
 Expected: the export contains the committed tree plus `.vercel/project.json`, with no unrelated workspace files.
 
-- [ ] **Step 3: Deploy production and save the URL**
+- [x] **Step 3: Deploy production and save the URL**
 
 Run:
 
@@ -190,6 +190,17 @@ DEPLOY_DIR="$(cat /Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4af
 vercel deploy "$DEPLOY_DIR" --prod --yes --archive=tgz > /Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment-url.txt
 DEPLOYMENT_URL="$(tail -n 1 /Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment-url.txt)"
 vercel inspect "$DEPLOYMENT_URL" --wait --timeout 180s --format=json > /Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment.json
+node - <<'NODE'
+const fs = require("fs");
+const receipt = JSON.parse(fs.readFileSync(
+  "/Users/buns/.copilot/session-state/ebd35dd8-5bb9-47cb-be9a-4afe846d2fa8/files/vercel-deployment.json",
+  "utf8",
+));
+if (receipt.readyState !== "READY") throw new Error(`deployment is ${receipt.readyState}`);
+if (!receipt.aliases.includes("opencoven-ui.vercel.app")) {
+  throw new Error("production alias missing");
+}
+NODE
 ```
 
 Expected: the production deployment reaches `READY` and receives the project production alias.
@@ -200,7 +211,7 @@ Expected: the production deployment reaches `READY` and receives the project pro
 - Modify remotely: GitHub repository homepage for `OpenCoven/ui`
 - Modify: `handoffs/vercel-deployment.md`
 
-- [ ] **Step 1: Verify root and canonical HTTP routes**
+- [x] **Step 1: Verify root and canonical HTTP routes**
 
 Run:
 
@@ -217,7 +228,7 @@ root 200
 artifact 200
 ```
 
-- [ ] **Step 2: Verify desktop interaction and mobile overflow in production**
+- [x] **Step 2: Verify desktop interaction and mobile overflow in production**
 
 Run:
 
@@ -251,7 +262,7 @@ NODE
 
 Expected: `PASS production interaction and 390px overflow`.
 
-- [ ] **Step 3: Update and verify the GitHub repository homepage**
+- [x] **Step 3: Update and verify the GitHub repository homepage**
 
 Run:
 
@@ -262,7 +273,7 @@ test "$(gh repo view OpenCoven/ui --json homepageUrl --jq .homepageUrl)" = "http
 
 Expected: both commands exit 0.
 
-- [ ] **Step 4: Record and commit the deployment handoff**
+- [x] **Step 4: Record and commit the deployment handoff**
 
 Update `handoffs/vercel-deployment.md` with the branch, changed paths, project ID, deployment ID, production and immutable URLs, commit SHA, HTTP results, browser result, GitHub homepage receipt, and exact verification commands.
 
@@ -277,7 +288,7 @@ test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
 
 Expected: the handoff commit is pushed and local/remote refs match.
 
-- [ ] **Step 5: Remove the temporary deployment export**
+- [x] **Step 5: Remove the temporary deployment export**
 
 Run:
 
