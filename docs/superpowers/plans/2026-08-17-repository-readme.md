@@ -250,7 +250,7 @@ Expected: exit 0 with no output.
 - Create: `README.md`
 - Create: `docs/superpowers/plans/2026-08-17-repository-readme.md`
 
-- [ ] **Step 1: Stage only the README deliverables**
+- [x] **Step 1: Stage only the README deliverables**
 
 Run:
 
@@ -262,7 +262,7 @@ git diff --cached --stat
 Expected: only `README.md` and
 `docs/superpowers/plans/2026-08-17-repository-readme.md` are staged.
 
-- [ ] **Step 2: Commit the README**
+- [x] **Step 2: Commit the README**
 
 Run:
 
@@ -273,7 +273,7 @@ git commit -m "docs: add repository README" \
 
 Expected: one commit adding the two planned files.
 
-- [ ] **Step 3: Push `main`**
+- [x] **Step 3: Push `main`**
 
 Run:
 
@@ -283,7 +283,7 @@ git push origin main
 
 Expected: `main` advances on `https://github.com/OpenCoven/ui`.
 
-- [ ] **Step 4: Verify the remote receipt**
+- [x] **Step 4: Verify the remote receipt**
 
 Run:
 
