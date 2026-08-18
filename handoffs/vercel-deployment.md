@@ -43,6 +43,7 @@
   - Repository: `https://github.com/OpenCoven/ui`
   - Homepage: `https://opencoven-ui.vercel.app`
   - Configuration commit: `35de405c91d0eead35e230f7aabda89887560fec`
--   - Receipt commit: `ac2d287880072ed7e3b75e03fe24043e661895ff`
+ - Receipt commit: `ac2d287880072ed7e3b75e03fe24043e661895ff`
+ - Receipt finalization commit: `94f5ac5437e2705390a2af4c6bf109e224f6da8b`
 - Worktree state: all deployment changes are committed and pushed; HEAD equals origin/main; unrelated untracked familiar-workspace files remain untouched
 - Next action: none
