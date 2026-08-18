@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coven Cave Components</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #0b0b0d;
+      --panel: #131315;
+      --rail: #19191c;
+      --raised: #202024;
+      --line: #35343b;
+      --line-soft: #29282e;
+      --text: #f1eff4;
+      --text-secondary: #bbb7c1;
+      --text-muted: #7d7883;
+      --accent: #9386d0;
+      --accent-soft: rgba(147, 134, 208, 0.14);
+      --success: #86b39a;
+      --danger: #c77882;
+      --shadow: 0 36px 100px rgba(0, 0, 0, 0.58);
+      --radius-window: 28px;
+      --radius-card: 14px;
+      --font-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      overflow-x: hidden;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(147, 134, 208, 0.055), transparent 32rem),
+        var(--ink);
+      color: var(--text);
+      font-family: var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .component-window {
+      width: min(1080px, calc(100vw - 48px));
+      min-height: 700px;
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-window);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .component-rail {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 38px 28px 28px;
+      border-right: 1px solid var(--line-soft);
+      background: var(--rail);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 38px;
+      color: var(--accent);
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(147, 134, 208, 0.42);
+      border-radius: 9px;
+      background: var(--accent-soft);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .brand-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .rail-label {
+      margin: 0 0 10px 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .component-nav {
+      display: grid;
+      gap: 5px;
+    }
+
+    .nav-item {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-muted);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        color 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease,
+        transform 150ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .nav-item[aria-selected="true"] {
+      position: relative;
+      border-color: rgba(147, 134, 208, 0.17);
+      background:
+        linear-gradient(90deg, rgba(147, 134, 208, 0.16), rgba(147, 134, 208, 0.07));
+      color: var(--accent);
+    }
+
+    .nav-item[aria-selected="true"]::before {
+      position: absolute;
+      left: -1px;
+      width: 2px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(147, 134, 208, 0.5);
+      content: "";
+    }
+
+    .nav-item:active {
+      transform: translateY(1px);
+    }
+
+    .nav-icon,
+    .preview-icon,
+    .control-icon {
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .nav-icon svg,
+    .preview-icon svg,
+    .control-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.7;
+    }
+
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .nav-name {
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 590;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-count {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 9px;
+    }
+
+    .rail-note {
+      margin-top: auto;
+      padding: 16px;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .rail-note strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .rail-note p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .component-stage {
+      position: relative;
+      min-width: 0;
+      padding: 46px 48px 38px;
+      background:
+        radial-gradient(circle at 82% 16%, rgba(147, 134, 208, 0.055), transparent 19rem),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.016), transparent 46%),
+        var(--panel);
+    }
+
+    .component-stage::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 1px;
+      background: linear-gradient(180deg, transparent 4%, rgba(147, 134, 208, 0.4) 24%, transparent 67%);
+      content: "";
+    }
+
+    .stage-heading {
+      min-height: 116px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .heading-copy {
+      min-width: 0;
+    }
+
+    .stage-marker {
+      display: grid;
+      justify-items: end;
+      gap: 7px;
+      padding-top: 1px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .stage-marker strong {
+      color: var(--text-secondary);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+
+    .stage-marker span {
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 3vw, 31px);
+      font-weight: 630;
+      letter-spacing: -0.035em;
+      line-height: 1.08;
+    }
+
+    .stage-description {
+      max-width: 550px;
+      margin: 14px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .preview-shell {
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background: #0c0c0e;
+      box-shadow:
+        0 22px 46px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    }
+
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .preview-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .preview-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .preview-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 156px;
+      min-height: 262px;
+    }
+
+    .preview-canvas {
+      position: relative;
+      min-height: 262px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: 34px;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+
+    .preview-canvas::before {
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(147, 134, 208, 0.045);
+      filter: blur(60px);
+      content: "";
+      pointer-events: none;
+    }
+
+    .preview-anatomy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 19px;
+      padding: 24px 20px;
+      border-left: 1px solid var(--line-soft);
+      background: rgba(255, 255, 255, 0.012);
+    }
+
+    .anatomy-label {
+      position: relative;
+      display: grid;
+      gap: 4px;
+      padding-left: 18px;
+    }
+
+    .anatomy-label::before {
+      position: absolute;
+      top: 4px;
+      left: 1px;
+      width: 7px;
+      height: 7px;
+      border: 1px solid rgba(147, 134, 208, 0.66);
+      background: var(--panel);
+      content: "";
+      transform: rotate(45deg);
+    }
+
+    .anatomy-label strong {
+      color: var(--text-secondary);
+      font-size: 9px;
+      font-weight: 620;
+    }
+
+    .anatomy-label span {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 7px;
+      line-height: 1.45;
+    }
+
+    .sample {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 470px);
+      animation: sample-in 260ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+    }
+
+    .composer {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--raised) 92%, var(--accent) 8%);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    }
+
+    .composer-input {
+      min-height: 78px;
+      padding: 16px 17px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .composer-input span {
+      color: var(--text-muted);
+    }
+
+    .composer-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 10px;
+      border-top: 1px solid var(--line-soft);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .icon-button,
+    .send-button {
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .icon-button {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: #151515;
+      color: var(--text-muted);
+    }
+
+    .icon-button:hover {
+      border-color: rgba(147, 134, 208, 0.48);
+      color: var(--text-secondary);
+    }
+
+    .control-icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    .model-chip {
+      display: inline-flex;
+      min-width: 0;
+      align-items: center;
+      gap: 7px;
+      padding: 0 10px;
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 9px;
+    }
+
+    .model-chip::before {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--success);
+      content: "";
+    }
+
+    .actions-spacer {
+      flex: 1;
+    }
+
+    .send-button {
+      width: 30px;
+      height: 30px;
+      border-color: rgba(147, 134, 208, 0.45);
+      border-radius: 10px;
+      background: var(--accent);
+      color: #111014;
+    }
+
+    .message-editorial {
+      max-width: 500px;
+      color: var(--text-secondary);
+    }
+
+    .message-editorial__rule {
+      height: 1px;
+      margin-bottom: 18px;
+      background: linear-gradient(90deg, var(--accent) 0 42px, var(--line) 42px);
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(147, 134, 208, 0.34);
+      border-radius: 11px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .message-editorial__header {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+    }
+
+    .message-editorial__identity {
+      display: grid;
+      gap: 4px;
+    }
+
+    .message-editorial__identity strong {
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .message-editorial__identity span {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      letter-spacing: 0.07em;
+    }
+
+    .message-editorial__response {
+      margin: 14px 0 0 46px;
+      color: color-mix(in srgb, var(--text) 78%, var(--text-secondary));
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .message-editorial__utilities {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 14px 0 0 46px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .context-list,
+    .action-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .context-row,
+    .action-row {
+      display: grid;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: var(--raised);
+    }
+
+    .context-row {
+      grid-template-columns: 32px minmax(0, 1fr) auto;
+      gap: 11px;
+      min-height: 52px;
+      padding: 9px 12px;
+      border-radius: 12px;
+    }
+
+    .context-symbol {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .context-copy strong,
+    .action-copy strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 11px;
+      font-weight: 620;
+    }
+
+    .context-copy span,
+    .action-copy span {
+      display: block;
+      overflow: hidden;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .context-state {
+      padding: 4px 7px;
+      border: 1px solid rgba(134, 179, 154, 0.25);
+      border-radius: 999px;
+      color: var(--success);
+      font-family: var(--font-mono);
+      font-size: 8px;
+    }
+
+    .action-row {
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      gap: 12px;
+      min-height: 56px;
+      padding: 9px 10px 9px 13px;
+      border-radius: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .action-row:hover {
+      border-color: rgba(147, 134, 208, 0.42);
+    }
+
+    .action-row .preview-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+    }
+
+    .action-key {
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+    }
+
+    .token-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .token {
+      min-width: 0;
+      padding: 9px;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .swatch {
+      position: relative;
+      height: 20px;
+      margin-bottom: 7px;
+      border-radius: 6px;
+    }
+
+    .token span {
+      display: block;
+      overflow: hidden;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 7.5px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stage-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status::before {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 3px rgba(134, 179, 154, 0.08);
+      content: "";
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    @keyframes sample-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        display: block;
+        padding: 0;
+      }
+
+      .component-window {
+        width: 100%;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        border: 0;
+        border-radius: 0;
+      }
+
+      .component-rail {
+        padding: 22px 20px 14px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .brand {
+        margin-bottom: 18px;
+      }
+
+      .rail-label,
+      .rail-note,
+      .nav-count {
+        display: none;
+      }
+
+      .component-nav {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .nav-item {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 6px;
+        padding: 9px 5px;
+        text-align: center;
+      }
+
+      .nav-name {
+        font-size: 10px;
+      }
+
+      .component-stage {
+        padding: 32px 20px;
+      }
+
+      .stage-heading {
+        min-height: 0;
+        grid-template-columns: 1fr;
+      }
+
+      .stage-marker {
+        display: none;
+      }
+
+      .preview-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-canvas {
+        padding: 20px 14px;
+      }
+
+      .preview-anatomy {
+        display: none;
+      }
+
+      .token-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="component-window" aria-label="Coven Cave component browser">
+    <aside class="component-rail">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="M12 3 16.5 8 12 21 7.5 8 12 3Z"></path>
+            <path d="m7.5 8 4.5 3 4.5-3"></path>
+          </svg>
+        </span>
+        <span class="brand-name">Cave components</span>
+      </div>
+
+      <p class="rail-label">Chat system</p>
+      <nav class="component-nav" aria-label="Component families">
+        <button class="nav-item" type="button" data-view="composer" aria-selected="true">
+          <span class="nav-icon" data-icon="composer" aria-hidden="true"></span>
+          <span class="nav-name">Composer</span>
+          <span class="nav-count">04</span>
+        </button>
+        <button class="nav-item" type="button" data-view="messages" aria-selected="false">
+          <span class="nav-icon" data-icon="messages" aria-hidden="true"></span>
+          <span class="nav-name">Messages</span>
+          <span class="nav-count">06</span>
+        </button>
+        <button class="nav-item" type="button" data-view="context" aria-selected="false">
+          <span class="nav-icon" data-icon="context" aria-hidden="true"></span>
+          <span class="nav-name">Context</span>
+          <span class="nav-count">03</span>
+        </button>
+        <button class="nav-item" type="button" data-view="actions" aria-selected="false">
+          <span class="nav-icon" data-icon="actions" aria-hidden="true"></span>
+          <span class="nav-name">Actions</span>
+          <span class="nav-count">05</span>
+        </button>
+      </nav>
+
+      <div class="rail-note">
+        <strong>Material rule</strong>
+        <p>One violet signal. Quiet graphite surfaces. State is communicated before decoration.</p>
+      </div>
+    </aside>
+
+    <section class="component-stage" aria-live="polite">
+      <header class="stage-heading">
+        <div class="heading-copy">
+          <p class="eyebrow" id="view-eyebrow">Input / primary</p>
+          <h1 id="view-title">Composer controls</h1>
+          <p class="stage-description" id="view-description">
+            A compact writing surface that keeps model, context, and send state visible without competing with the draft.
+          </p>
+        </div>
+        <div class="stage-marker" aria-hidden="true">
+          <strong id="stage-code">CHAT·01</strong>
+          <span>Interface specimen</span>
+        </div>
+      </header>
+
+      <div class="preview-shell">
+        <div class="preview-toolbar">
+          <span id="preview-label">Default · ready</span>
+          <span class="preview-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        </div>
+        <div class="preview-layout">
+          <div class="preview-canvas" id="preview-canvas"></div>
+          <aside class="preview-anatomy" id="preview-anatomy" aria-label="Component anatomy"></aside>
+        </div>
+      </div>
+
+      <div class="token-strip" aria-label="Design tokens">
+        <div class="token"><div class="swatch" style="background:#9386d0"></div><span>presence / #9386d0</span></div>
+        <div class="token"><div class="swatch" style="background:#1b1b1b"></div><span>raised / #1b1b1b</span></div>
+        <div class="token"><div class="swatch" style="background:#2f2f2f"></div><span>line / #2f2f2f</span></div>
+        <div class="token"><div class="swatch" style="background:#ececec"></div><span>text / #ececec</span></div>
+      </div>
+
+      <footer class="stage-footer">
+        <span class="status">Interactive component</span>
+        <span id="component-index">01 / 04</span>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const icons = {
+      composer: '<svg viewBox="0 0 24 24"><path d="M5 4.5h14v12H9l-4 3v-15Z"/><path d="M8.5 9h7M8.5 12.5h4.5"/></svg>',
+      messages: '<svg viewBox="0 0 24 24"><path d="M4 5h12v10H8l-4 3V5Z"/><path d="M16 8h4v10l-3-2h-5"/></svg>',
+      context: '<svg viewBox="0 0 24 24"><path d="M4 7.5 12 3l8 4.5-8 4.5-8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16.5l8 4.5 8-4.5"/></svg>',
+      actions: '<svg viewBox="0 0 24 24"><path d="M12 3v5M12 16v5M3 12h5M16 12h5M5.6 5.6l3.5 3.5M14.9 14.9l3.5 3.5M18.4 5.6l-3.5 3.5M9.1 14.9l-3.5 3.5"/></svg>',
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h13M13 7l5 5-5 5"/></svg>',
+      bolt: '<svg viewBox="0 0 24 24"><path d="m13.5 2-8 11h6l-1 9 8-12h-6l1-8Z"/></svg>',
+      branch: '<svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10M8 10h4a6 6 0 0 0 6-1"/></svg>'
+    };
+
+    const views = {
+      composer: {
+        eyebrow: "Input / primary",
+        title: "Composer controls",
+        description: "A compact writing surface that keeps model, context, and send state visible without competing with the draft.",
+        label: "Default · ready",
+        index: "01 / 04",
+        code: "CHAT·01",
+        anatomy: [
+          ["Draft field", "Grows with the message"],
+          ["Tool edge", "Context stays one tap away"],
+          ["Send state", "Primary action holds the corner"]
+        ],
+        render: () => `
+          <div class="sample composer">
+            <div class="composer-input">Ask Cody to review the changed files… <span aria-hidden="true">|</span></div>
+            <div class="composer-actions">
+              <button class="icon-button" type="button" aria-label="Add context"><span class="control-icon">${icons.plus}</span></button>
+              <button class="icon-button" type="button" aria-label="Enhance prompt"><span class="control-icon">${icons.bolt}</span></button>
+              <span class="model-chip">GPT-5.6 Sol</span>
+              <span class="actions-spacer"></span>
+              <button class="send-button" type="button" aria-label="Send message"><span class="control-icon">${icons.arrow}</span></button>
+            </div>
+          </div>`
+      },
+      messages: {
+        eyebrow: "Transcript / familiar",
+        title: "Message surfaces",
+        description: "Identity leads the response while the message body stays quiet, readable, and visually connected to its familiar.",
+        label: "Assistant · complete",
+        index: "02 / 04",
+        code: "CHAT·02",
+        anatomy: [
+          ["Identity", "Familiar leads the reading order"],
+          ["Provenance", "Runtime stays quiet but visible"],
+          ["Response", "Long-form copy owns the space"]
+        ],
+        render: () => `
+          <article class="sample message-editorial">
+            <div class="message-editorial__rule" aria-hidden="true"></div>
+            <header class="message-editorial__header">
+              <div class="avatar" aria-hidden="true">CO</div>
+              <div class="message-editorial__identity">
+                <strong>Cody</strong>
+                <span>CODE FAMILIAR · GPT-5.6 SOL · NOW</span>
+              </div>
+            </header>
+            <p class="message-editorial__response">
+              The composer state is now explicit. Model selection, linked context, and send readiness remain visible without interrupting the writing flow.
+            </p>
+            <div class="message-editorial__utilities" aria-label="Message utilities">
+              <span>Reply</span>
+              <span>Copy</span>
+              <span>1.8K tokens</span>
+            </div>
+          </article>`
+      },
+      context: {
+        eyebrow: "Context / attached",
+        title: "Context rows",
+        description: "Project and source context read as durable inputs, with provenance and access state visible before a run begins.",
+        label: "Two sources · available",
+        index: "03 / 04",
+        code: "CHAT·03",
+        anatomy: [
+          ["Source", "Repository or linked work"],
+          ["Provenance", "Branch and path stay explicit"],
+          ["Access", "Permission is never implied"]
+        ],
+        render: () => `
+          <div class="sample context-list">
+            <div class="context-row">
+              <span class="context-symbol">GH</span>
+              <span class="context-copy"><strong>OpenCoven / coven-cave</strong><span>main · src/components/chat-view.tsx</span></span>
+              <span class="context-state">read + write</span>
+            </div>
+            <div class="context-row">
+              <span class="context-symbol">#</span>
+              <span class="context-copy"><strong>Composer polish</strong><span>Issue #4621 · linked task</span></span>
+              <span class="context-state">linked</span>
+            </div>
+          </div>`
+      },
+      actions: {
+        eyebrow: "Command / explicit",
+        title: "Action menu",
+        description: "Actions use plain verbs and reveal their target. Keyboard cues are secondary, never a substitute for a clear label.",
+        label: "Menu · keyboard ready",
+        index: "04 / 04",
+        code: "CHAT·04",
+        anatomy: [
+          ["Verb", "Names the exact operation"],
+          ["Consequence", "Explains what enters the run"],
+          ["Shortcut", "Secondary acceleration only"]
+        ],
+        render: () => `
+          <div class="sample action-list">
+            <button class="action-row" type="button">
+              <span class="preview-icon">${icons.branch}</span>
+              <span class="action-copy"><strong>Attach changed files</strong><span>Include the current git diff as context</span></span>
+              <span class="action-key">⌘ D</span>
+            </button>
+            <button class="action-row" type="button">
+              <span class="preview-icon">${icons.bolt}</span>
+              <span class="action-copy"><strong>Enhance prompt</strong><span>Clarify intent without changing scope</span></span>
+              <span class="action-key">⌘ E</span>
+            </button>
+          </div>`
+      }
+    };
+
+    function renderIconSlots() {
+      document.querySelectorAll("[data-icon]").forEach((slot) => {
+        slot.innerHTML = icons[slot.dataset.icon] || "";
+      });
+    }
+
+    function selectView(name, { focus = false } = {}) {
+      const view = views[name];
+      if (!view) return;
+
+      document.querySelectorAll(".nav-item").forEach((button) => {
+        const selected = button.dataset.view === name;
+        button.setAttribute("aria-selected", String(selected));
+        if (selected && focus) button.focus();
+      });
+
+      document.getElementById("view-eyebrow").textContent = view.eyebrow;
+      document.getElementById("view-title").textContent = view.title;
+      document.getElementById("view-description").textContent = view.description;
+      document.getElementById("preview-label").textContent = view.label;
+      document.getElementById("component-index").textContent = view.index;
+      document.getElementById("stage-code").textContent = view.code;
+      document.getElementById("preview-canvas").innerHTML = view.render();
+      document.getElementById("preview-anatomy").innerHTML = view.anatomy
+        .map(([name, detail]) => `<div class="anatomy-label"><strong>${name}</strong><span>${detail}</span></div>`)
+        .join("");
+    }
+
+    const navItems = Array.from(document.querySelectorAll(".nav-item"));
+    navItems.forEach((button, index) => {
+      button.addEventListener("click", () => selectView(button.dataset.view));
+      button.addEventListener("keydown", (event) => {
+        if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(event.key)) return;
+        event.preventDefault();
+        const delta = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+        const next = (index + delta + navItems.length) % navItems.length;
+        selectView(navItems[next].dataset.view, { focus: true });
+      });
+    });
+
+    renderIconSlots();
+    selectView("composer");
+  </script>
+</body>
+</html>
