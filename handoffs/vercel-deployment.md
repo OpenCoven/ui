@@ -276,3 +276,48 @@
   2026-08-20T16:03:30Z, squash commit
   `fb1140a5e99cedf70570103518d95a5984ca4399`. Branch deleted; local `main`
   clean at `fb1140a`.
+
+## Landing browser tests — hard-wait audit
+
+- Scope: every timing assumption in
+  `/Users/buns/Documents/GitHub/OpenCoven/coven-landing/tests/redesign.spec.ts`
+  plus `scripts/verify-static.mjs`. One fixed sleep remained after the de-flake;
+  it was concealing a coverage gap rather than merely costing time.
+- Finding 1 — `no unexpected console errors` never watched console errors. It
+  subscribed only to `pageerror` (uncaught exceptions). Proven by mutation:
+  adding `console.error('MUTATION probe')` to `initTheme()` left the pre-audit
+  test **passing** (1 passed, 5.2s). The test now also watches console
+  messages, excluding `/api/` URLs the preview server genuinely does not serve
+  (`/api/site-stats` 404s at ~630ms). The mutated build now fails with
+  `console: MUTATION probe`.
+- Finding 2 — the 4s sleep under-covered the slowest subsystem. Instrumented
+  boot: `+631ms` api 404, `+762ms` goto resolved (`waitUntil: 'load'`),
+  `+5499ms` braid canvas attached. The sleep returned 1.5s before braid boot
+  even began, so errors thrown there were outside the window. Replaced with
+  `toBeAttached()` on `warded-braid canvas`: deterministic, covers braid boot,
+  ~1.5s warm and longer under load.
+- Finding 3 — the Windows tab assertion could silently skip. It was guarded by
+  `if (await winTab.count())` against `win` / `win-x64`, spellings the markup
+  never emits; `dist/index.html` only ever contains `data-dl-plat="windows"`.
+  Now unconditional; mutating the attribute to `win-x64` fails the test
+  (`locator.click: Test timeout`) instead of skipping it.
+- Deliberately unchanged: the theme test's one-shot `getAttribute` reads are
+  safe because `page.goto` defaults to `waitUntil: 'load'` and module scripts
+  execute before `load`, so the delegated handler is always registered before
+  the click, and the handler is synchronous. The 15s `toBeAttached` timeouts
+  are retrying web-first assertions, harmless.
+- Verification: full suite 8 passed 34.9s; `--repeat-each=4` **32/32** passed
+  2.0m; both mutations killed and the pre-audit test proven to survive
+  mutation 1; `pnpm check` and `pnpm build` pass;
+  `grep -rn "waitForTimeout\|setTimeout\|sleep(" tests/ scripts/` returns **0**.
+  Linux CI `build-and-check` pass 2m2s with `8 passed (1.2m)` and no retry or
+  flaky marker in the log
+  (https://github.com/OpenCoven/coven-landing/actions/runs/32394773631).
+- PR: https://github.com/OpenCoven/coven-landing/pull/60 — MERGED
+  2026-08-20T16:58:27Z, squash commit
+  `545dd60edb8c7698e08be91e3dd5091f9d543513`. Branch deleted; local `main`
+  clean at `545dd60`. `origin/main:tests/redesign.spec.ts` contains zero
+  `waitForTimeout` occurrences.
+- Lesson worth keeping: a fixed sleep in a *negative* assertion cannot fail
+  randomly, so it never looks flaky — it silently false-passes instead. Audit
+  those by mutation, not by watching for red runs.
