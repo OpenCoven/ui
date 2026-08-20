@@ -57,8 +57,14 @@
     contradicted its own `domains add domain project` help text. Fixed by
     vercel/vercel PR #16795 (merged 2026-06-25), which replaced
     `if (project && args.length !== 1)` with `args.length < 1 || args.length > 2`.
-    First released in 54.18.0 (2026-06-26); local 52.2.1 dates to 2026-04-30.
-    Remedy is to upgrade the CLI, not to file an issue.
+    First released in 54.18.0 (2026-06-26); local 52.2.1 dated 2026-04-30.
+    Resolved on 2026-08-20 by installing `vercel@latest` (59.1.4) into the Cave
+    toolchain npm prefix at
+    `/Users/buns/Library/Application Support/OpenCoven/CovenCave/toolchains/npm`,
+    which is first on `PATH` and shadows the stale nvm-managed 52.2.1 binary.
+    Post-upgrade, `vercel domains add ui.opencoven.ai opencoven-ui` succeeds and
+    reports the domain is already assigned; `vercel whoami` still returns
+    `bunsdev`, and the project domain list is unchanged.
   - Required DNS record at Namecheap (`opencoven.ai` uses
     `pdns1/pdns2.registrar-servers.com`):
     - Type `CNAME`, Host `ui`, Value `37644e98f1c1fdba.vercel-dns-016.com.`
