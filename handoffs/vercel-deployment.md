@@ -49,8 +49,16 @@
   - Status: verified on public DNS, TLS, and HTTPS
   - Attached: 2026-08-20 via `POST /v10/projects/opencoven-ui/domains`
   - API response: `{"name":"ui.opencoven.ai","apexName":"opencoven.ai","projectId":"prj_g5iBF1ucxTlq567g4DlLeFLvRjRR","verified":true}`
-  - CLI note: `vercel domains add ui.opencoven.ai opencoven-ui` fails with
-    "expects one argument" in CLI 52.2.1; the REST API is the working path
+  - CLI note: `vercel domains add ui.opencoven.ai opencoven-ui` failed with
+    "expects one argument" on the locally installed CLI 52.2.1, so the REST API
+    was used instead. This is not an upstream defect: it is a known bug that was
+    already fixed and released. Pre-fix, `domains add` required exactly one
+    argument whenever the working directory was linked to a project, which
+    contradicted its own `domains add domain project` help text. Fixed by
+    vercel/vercel PR #16795 (merged 2026-06-25), which replaced
+    `if (project && args.length !== 1)` with `args.length < 1 || args.length > 2`.
+    First released in 54.18.0 (2026-06-26); local 52.2.1 dates to 2026-04-30.
+    Remedy is to upgrade the CLI, not to file an issue.
   - Required DNS record at Namecheap (`opencoven.ai` uses
     `pdns1/pdns2.registrar-servers.com`):
     - Type `CNAME`, Host `ui`, Value `37644e98f1c1fdba.vercel-dns-016.com.`
