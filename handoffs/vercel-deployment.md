@@ -254,3 +254,25 @@
   `--repeat-each` and no `--workers=1` fans out to CPU/2 browsers, saturates
   the single `pnpm preview` server, and fails every test. Harmless for CI
   today; worth pinning `workers: 1` if a second spec file is ever added.
+
+## Landing browser tests — pinned Playwright to one worker
+
+- Closes the open item recorded above. `fullyParallel: false` only serializes
+  tests *within* a file, so the suite stayed serial by accident: one spec file.
+  A second spec file, or any `--repeat-each` run, fans out to CPU/2 browsers
+  against the single `pnpm preview` server, saturates it, and times out tests
+  that pass alone.
+- Change: `workers: 1` in
+  `/Users/buns/Documents/GitHub/OpenCoven/coven-landing/playwright.config.ts`
+  (+5 lines, comment included). CI already defaults to one worker, so this
+  changes local behavior only.
+- Verification: `playwright test -g "download menu opens|familiar inspector
+  window" --repeat-each=6` **without** `--workers=1` previously failed 12/12;
+  it now reports `Running 12 tests using 1 worker` and passes **12/12** in
+  46.1s. Full `pnpm check:browser` 8 passed in 21.6s. `pnpm check` and
+  `pnpm build` pass. Linux CI `build-and-check` pass, 2m2s
+  (https://github.com/OpenCoven/coven-landing/actions/runs/32389590938).
+- PR: https://github.com/OpenCoven/coven-landing/pull/59 — MERGED
+  2026-08-20T16:03:30Z, squash commit
+  `fb1140a5e99cedf70570103518d95a5984ca4399`. Branch deleted; local `main`
+  clean at `fb1140a`.
