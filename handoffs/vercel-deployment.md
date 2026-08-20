@@ -45,5 +45,23 @@
   - Configuration commit: `35de405c91d0eead35e230f7aabda89887560fec`
   - Receipt commit: `ac2d287880072ed7e3b75e03fe24043e661895ff`
   - Receipt finalization commit: `94f5ac5437e2705390a2af4c6bf109e224f6da8b`
+- Custom domain `ui.opencoven.ai`:
+  - Status: attached to the project, blocked on registrar DNS
+  - Attached: 2026-08-20 via `POST /v10/projects/opencoven-ui/domains`
+  - API response: `{"name":"ui.opencoven.ai","apexName":"opencoven.ai","projectId":"prj_g5iBF1ucxTlq567g4DlLeFLvRjRR","verified":true}`
+  - CLI note: `vercel domains add ui.opencoven.ai opencoven-ui` fails with
+    "expects one argument" in CLI 52.2.1; the REST API is the working path
+  - Required DNS record at Namecheap (`opencoven.ai` uses
+    `pdns1/pdns2.registrar-servers.com`):
+    - Type `CNAME`, Host `ui`, Value `37644e98f1c1fdba.vercel-dns-016.com.`
+  - Current DNS: `ui.opencoven.ai` resolves to `192.64.119.254` (registrar
+    parking); `GET /v6/domains/ui.opencoven.ai/config` reports
+    `misconfigured: true`
+  - Blocker: no Namecheap API credentials are configured on this machine, and
+    the Namecheap `setHosts` API replaces the entire record set for a domain,
+    which would endanger the ten existing `opencoven.ai` subdomains
+  - Pending after DNS propagates: `curl https://ui.opencoven.ai/` returns 200,
+    `misconfigured: false`, README live-demo link, GitHub `homepageUrl` update
 - Worktree state: all deployment changes are committed and pushed; HEAD equals origin/main; unrelated untracked familiar-workspace files remain untouched
-- Next action: none
+- Next action: add the `CNAME ui -> 37644e98f1c1fdba.vercel-dns-016.com.` record
+  in the Namecheap dashboard for `opencoven.ai`, then re-run verification
