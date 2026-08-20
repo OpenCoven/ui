@@ -153,3 +153,36 @@
   Branch `docs/cross-link-ui-opencoven-ai` deleted on origin and locally.
   `git show origin/main:README.md` contains the `ui.opencoven.ai` link at
   line 180. Cave cross-linking is complete; no open lane remains here.
+
+## Landing-site footer link (coven-landing)
+
+- Repo: `/Users/buns/Documents/GitHub/OpenCoven/coven-landing`, base `e5e40e6`.
+- Changed paths (2 files, +2 lines):
+  - `src/components/redesign/RedesignFooter.astro` — "Component browser" ->
+    `https://ui.opencoven.ai` in the Project column. This footer renders on
+    `/`, `/how-it-works`, `/privacy`, `/terms`.
+  - `src/components/Footer.astro` — same link in the legacy footer's Project
+    nav, which renders on `/github` and `/quickstart`, so both footers agree.
+- Incidental fix: `node_modules` was stale and `pnpm build` failed on
+  `@fontsource/eb-garamond` (declared in `package.json`, not installed).
+  `pnpm install` resolved it; `pnpm-lock.yaml` was not modified.
+- Verification:
+  - `pnpm build` -> 6 pages built, complete.
+  - `pnpm check` (`scripts/verify-static.mjs`) -> all contracts pass, including
+    the hidden-Product-column rule.
+  - Built HTML contains the link exactly once on each of the 6 pages.
+  - `pnpm check:browser` -> 7 passed including "footer hides the Product column
+    until those pages exist". One failure, "adapts the download button", is
+    pre-existing and environment-specific: it asserts
+    `Download Cave for Linux` while this macOS machine reports macOS. Proven
+    pre-existing by re-running it with my changes stashed on a clean tree.
+  - CI on PR: `build-and-check` pass (2m5s), Vercel `coven` and
+    `coven-landing` deployments pass.
+- PR: https://github.com/OpenCoven/coven-landing/pull/56 — MERGED
+  2026-08-20T14:02:55Z by BunsDev, squash commit
+  `eb11314463463eca6299e597901d840c1ef16f96`. Branch deleted; local repo back
+  on `main` with a clean working tree.
+- Live receipt: `curl https://opencoven.ai/` returns HTTP 200 and contains
+  `https://ui.opencoven.ai`.
+- Remaining: `coven-docs` stays unlinked; its nav covers the runtime, daemon,
+  CLI, harnesses, and local API, with no truthful slot for a specimen browser.
