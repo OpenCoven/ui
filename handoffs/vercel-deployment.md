@@ -186,3 +186,30 @@
   `https://ui.opencoven.ai`.
 - Remaining: `coven-docs` stays unlinked; its nav covers the runtime, daemon,
   CLI, harnesses, and local API, with no truthful slot for a specimen browser.
+
+## Platform-dependent download-button test (coven-landing)
+
+- Root cause: `tests/redesign.spec.ts` asserted `Download Cave for Linux` and
+  `/stream/linux` unconditionally, but that value is produced by `detectOs()`
+  in `src/scripts/redesign/downloads.js`, which reads `navigator.platform`.
+  The expectation was therefore decided by the machine running the suite:
+  it passed on Linux CI and failed on a macOS workstation reporting macOS.
+- Fix: emulate `navigator.platform` via `page.addInitScript` before navigation,
+  so the test asserts the retargeting contract instead of the host. Assertion
+  values unchanged. Test-only; no source or markup changes.
+- Changed path: `tests/redesign.spec.ts` (+7/-2).
+- Verification:
+  - macOS before: 1 failed, 7 passed (got `Download Cave for macOS`).
+  - macOS after: `pnpm check:browser` -> 8 passed, twice (1.2m, then 29.9s).
+  - Linux CI `build-and-check` (which runs `pnpm check:browser`) pass, 2m11s.
+    Green on both host OSes is the actual proof the dependence is gone.
+- Rejected intermediate design: a three-platform matrix (macOS/Windows/Linux)
+  passed, but its two extra page loads raised suite runtime ~1.0m -> ~2.7m and
+  intermittently tipped the slower timing-sensitive tests ("download menu
+  opens...", "clicking a session cell...") past their timeouts. Reverted to a
+  single page load to hold suite cost and stability flat. Broader platform
+  coverage needs those tests de-flaked first.
+- PR: https://github.com/OpenCoven/coven-landing/pull/57 — MERGED
+  2026-08-20T14:29:17Z by BunsDev, squash commit
+  `b28a9dd61210d8cdaa7e99c93e8ac33014db33da`. Branch deleted; local `main`
+  clean.
