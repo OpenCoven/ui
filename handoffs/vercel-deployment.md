@@ -84,3 +84,40 @@
 - README live-demo link added pointing at `https://ui.opencoven.ai`
 - Worktree state: all deployment changes are committed and pushed; HEAD equals origin/main; unrelated untracked familiar-workspace files remain untouched
 - Next action: none for DNS; let the local resolver cache expire naturally
+
+## Cross-linking from OpenCoven published surfaces (option A)
+
+- Repo: `/Users/buns/Documents/GitHub/OpenCoven/coven-cave`, branch `main`,
+  baseline commit `a905b70790`.
+- Changed paths (uncommitted — Val has not authorized a commit in coven-cave):
+  - `README.md` — added a paragraph after the design-context pointer in
+    "Repository layout" linking `https://ui.opencoven.ai` and
+    `https://github.com/OpenCoven/ui`, stating explicitly that the specimen
+    browser is an exploration workspace and is not canonical for
+    `src/components/`.
+  - `docs/coven-design-language.md` — appended `ui.opencoven.ai` to the trailing
+    *Related* line, labelled "exploratory direction only, never authoritative
+    over shipped code", preserving the document's code-is-authoritative stance.
+- Verification (run from the coven-cave root):
+  - `node scripts/docs-index.test.mjs` → exit 0,
+    "index ok (49 documents classified, 62 links resolved)".
+  - `node scripts/ui-consistency.test.mjs` → exit 0,
+    "contract, scanner, and baseline ok (12 palettes, 334 icons)". This is the
+    CI job that pins factual claims in `docs/coven-design-language.md`.
+  - Link targets: `https://ui.opencoven.ai` → HTTP 200 (via
+    `curl --resolve ui.opencoven.ai:443:216.150.1.129`, working around this
+    Mac's stale resolver cache); `https://github.com/OpenCoven/ui` → HTTP 200.
+- Deliberately NOT changed, with reasons:
+  - `coven-docs` (docs.opencoven.ai) documents the Coven runtime, daemon, CLI,
+    harnesses, and local API. Its `content/docs/meta.json` nav has no design or
+    UI section, so a specimen browser has no truthful home in that information
+    architecture. Adding one would be link-spraying.
+  - `coven-landing` (opencoven.ai) is the public marketing site. Its footer
+    "Project" nav and `#products` section are user-visible product surfaces;
+    listing an exploration workspace as a product would be inaccurate, and the
+    placement is a material product decision for Val, not an inferable one.
+- Worktree state: `coven-cave` is dirty. My two files are the only ones I
+  touched; pre-existing unrelated modifications (`.beads/interactions.jsonl`,
+  `public/icons/*.png`) were already present at baseline and are not mine.
+- Next action: await Val's decision on (a) committing the coven-cave change and
+  (b) whether the landing site should carry a link at all.
