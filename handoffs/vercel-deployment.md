@@ -121,3 +121,27 @@
   `public/icons/*.png`) were already present at baseline and are not mine.
 - Next action: await Val's decision on (a) committing the coven-cave change and
   (b) whether the landing site should carry a link at all.
+
+### Commit + PR receipt (2026-08-20)
+
+- Val authorized the coven-cave commit. Direct pushes to `main` are blocked by
+  branch protection (required check `Frontend build`), so the change went through
+  the repo's normal PR path rather than a direct push.
+- Branch: `docs/cross-link-ui-opencoven-ai`, from base `a905b70790`.
+- Commit: `6ffeb4a9196e1be6daf296f17abeeb4ae89e5277`
+  ("docs: cross-link the OpenCoven UI specimen browser"), 2 files changed,
+  11 insertions, 1 deletion. Only `README.md` and
+  `docs/coven-design-language.md` were staged; the repo's pre-existing unrelated
+  modifications (memory-file-inventory work, `.beads/interactions.jsonl`,
+  `public/icons/*`) stayed on `main` and were not included.
+- Pushed: `git ls-remote origin docs/cross-link-ui-opencoven-ai` returns
+  `6ffeb4a9196e1be6daf296f17abeeb4ae89e5277`.
+- PR: https://github.com/OpenCoven/coven-cave/pull/4754 — OPEN, MERGEABLE,
+  base `main`.
+- CI on run 32376434184: required `Frontend build` pass (30s),
+  `Select validation` pass (14s); bundle/validation/iOS jobs correctly skipped
+  for a docs-only change.
+- Local repo returned to `main`; the working tree still carries only the
+  pre-existing unrelated modifications.
+- Next action: merge PR #4754 when Val is ready. `coven-docs` and
+  `coven-landing` remain deliberately unlinked (see reasons above).
