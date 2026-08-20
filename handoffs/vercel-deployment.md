@@ -145,3 +145,11 @@
   pre-existing unrelated modifications.
 - Next action: merge PR #4754 when Val is ready. `coven-docs` and
   `coven-landing` remain deliberately unlinked (see reasons above).
+- Merged: PR #4754 squash-merged into `coven-cave` `main` at
+  2026-08-20T13:51:40Z by BunsDev. Merge commit
+  `4a2983e643693c0531dfa9457bcf93b8d327400f`
+  ("docs: cross-link the OpenCoven UI specimen browser (#4754)"), touching
+  exactly `README.md` and `docs/coven-design-language.md`.
+  Branch `docs/cross-link-ui-opencoven-ai` deleted on origin and locally.
+  `git show origin/main:README.md` contains the `ui.opencoven.ai` link at
+  line 180. Cave cross-linking is complete; no open lane remains here.
