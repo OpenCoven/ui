@@ -213,3 +213,44 @@
   2026-08-20T14:29:17Z by BunsDev, squash commit
   `b28a9dd61210d8cdaa7e99c93e8ac33014db33da`. Branch deleted; local `main`
   clean.
+
+## Landing browser tests — de-flaked the two slow interaction tests
+
+- Symptom: `download menu opens, switches platform tabs, and closes on Escape`
+  and `clicking a session cell opens the familiar inspector window` in
+  `/Users/buns/Documents/GitHub/OpenCoven/coven-landing/tests/redesign.spec.ts`
+  intermittently exhausted Playwright's whole 30s per-test budget. Durations
+  swung from ~5s to 37.6s. Both passed in isolation.
+- Root cause, from a retained trace of a real failure (`trace.zip` step
+  timings): `0.3s goto / 4.0s waitForTimeout / 1.4s expect / 20.6s click`.
+  Playwright's actionability check holds a `click()` until the target stops
+  moving for two consecutive animation frames. Both clicks aim into the
+  landing page's running demo — `motion.js` scroll reveals, `runBoard` swapping
+  session log lines for ~6s, `runTicks` animating diff counters — so on a
+  loaded machine the target may never settle inside the budget. Not a product
+  bug; a test racing decorative motion.
+- Fix: moved both tests into a `test.describe` using
+  `test.use({ reducedMotion: 'reduce' })`. The redesign scripts already branch
+  on that preference (`board.js:338/1773/2449`, `motion.js:12`, `hero.js:84`,
+  `hiw.js`), so the assertions still exercise shipped code while the layout
+  settles at once. Also dropped the 4s sleep in the session-cell test:
+  `initWindows()` stamps `data-fam` as the module boots, so the existing
+  `toHaveAttribute` assertion already waits for the click wiring. No source
+  files changed.
+- Verification:
+  - `--repeat-each=6 --workers=1` on both tests: before 1 failed / 11 passed in
+    3.7m, slowest 37.6s; after **12 passed** in 53.9s, slowest 5.8s.
+  - Full `pnpm check:browser` on macOS: **8 passed** twice, 21.0s and 23.5s
+    (was ~1.0-1.2m).
+  - `pnpm check` and `pnpm build` pass.
+  - Linux CI `build-and-check` pass, 2m29s
+    (https://github.com/OpenCoven/coven-landing/actions/runs/32386856736).
+- PR: https://github.com/OpenCoven/coven-landing/pull/58 — MERGED
+  2026-08-20T15:36:18Z by BunsDev, squash commit
+  `ee239deddecff032523c88a956a862a4e926dd35`. Branch deleted; local `main`
+  clean at `ee239de`.
+- Open, not shipped: `playwright.config.ts` sets no `workers`, relying on
+  `fullyParallel: false` plus a single spec file to stay serial. Running with
+  `--repeat-each` and no `--workers=1` fans out to CPU/2 browsers, saturates
+  the single `pnpm preview` server, and fails every test. Harmless for CI
+  today; worth pinning `workers: 1` if a second spec file is ever added.
