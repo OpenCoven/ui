@@ -321,3 +321,59 @@
 - Lesson worth keeping: a fixed sleep in a *negative* assertion cannot fail
   randomly, so it never looks flaky — it silently false-passes instead. Audit
   those by mutation, not by watching for red runs.
+
+## Landing browser tests — /quickstart coverage
+
+- Scope: extend the Playwright suite to `/quickstart`, which had **zero**
+  browser coverage. Repo `/Users/buns/Documents/GitHub/OpenCoven/coven-landing`,
+  branch `test/quickstart-browser-coverage`.
+- Gap found: `scripts/verify-static.mjs` already pins the page's markup, copy,
+  canonical links, JSON-LD, and list semantics against the built HTML, so
+  re-asserting structure would have added nothing. The untested surface was
+  runtime behavior — `wireCopyControls()` in `src/scripts/main.js` (~95 lines
+  wiring 24 copy buttons plus a manual-copy fallback). `grep -rn
+  "qs-copy\|clipboard" tests/ scripts/verify-static.mjs` returned **no
+  matches**: the subsystem had no coverage of any kind.
+- Change: new file
+  `/Users/buns/Documents/GitHub/OpenCoven/coven-landing/tests/quickstart.spec.ts`
+  (+199, 6 tests). No source files touched.
+  1. A copy button writes exactly its own command; the clipboard is read back
+     rather than trusting the check icon. Live region announces
+     `Copied: <cmd>`.
+  2. The copied state reverts on its 1.4s timer so a second command can be
+     copied — retrying assertion, not a sleep.
+  3. Manual-copy fallback, both refusal modes (clipboard object absent; write
+     rejected): command is selected, guidance names the shortcut, live region
+     announces it, and a second failure *moves* the guidance rather than
+     leaving a stale one. Never previously exercised.
+  4. `.onboard-product { scroll-margin-top: 96px }` keeps a chosen product
+     clear of the `position: sticky` header. Asserted on the settled position
+     (article y goes 5126 -> 96, header height 61) because "below the header"
+     is trivially true before the click.
+  5. No console errors / uncaught exceptions while driving the page's async
+     paths (reveal observers, async click handler, deferred reset).
+- Facts pinned by probe before writing assertions: 24 copy buttons, 1 live
+  region, 24 guidance nodes; no braid/canvas on quickstart; `js-on motion-on
+  mobile-nav-on reveal-ready` stamped at boot; the install command appears
+  **4x** and `coven doctor` **2x** page-wide, so all selectors are scoped to
+  `article#coven-cli` where every command is unique.
+- Mutation testing — all six killed: `writeText('')`; reset timer
+  `1_400 -> 1_400_000`; `selectCommand()` no-op; `hideGuidance()` removed;
+  `scroll-margin-top: 96px -> 0px`; `console.error('MUTATION probe')`. Each
+  failed exactly the matching test; sources restored via `git checkout --`.
+- Verification: new spec 6 passed 8.2s; `--repeat-each=4` **24/24** 31.3s;
+  full suite across both spec files **14 passed** 27.5s; `pnpm check` and
+  `pnpm build` pass; zero `waitForTimeout` added.
+- First second spec file in the repo — the exact fan-out case the `workers: 1`
+  pin from #60/#59 was added for. Confirmed serial: "Running 14 tests using 1
+  worker".
+- Environment hazard found (NOT fixed here): `127.0.0.1:4173` was occupied by
+  an unrelated Vite dev server from `/Users/buns/Documents/GitHub/OpenCoven/chat`
+  (pid 88875, up 2h28m). `astro preview` silently fell back to 4174, and
+  `playwright.config.ts` has `reuseExistingServer: !process.env.CI` against a
+  hardcoded 4173 — so a local `pnpm check:browser` will silently adopt whatever
+  app answers on that port and test the wrong site. Local verification here was
+  run against 4174 via a throwaway config; CI on Linux runs the canonical
+  `pnpm check:browser` on a clean port. Worth pinning the port or asserting the
+  served site's identity before the suite runs.
+- PR: https://github.com/OpenCoven/coven-landing/pull/61 — MERGED 2026-08-21T09:55:06Z, squash commit `cc53bd26f5162a72ae089fdf11386d750d4b5285`. Branch deleted; local `main` clean. Linux CI `build-and-check` pass 2m6s, `14 passed (1.2m)`, "Running 14 tests using 1 worker", no retry or flaky marker (https://github.com/OpenCoven/coven-landing/actions/runs/32469966541).
