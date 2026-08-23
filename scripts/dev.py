@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Serve the component browser locally with the production root rewrite.
+"""Serve the component library locally with the production rewrites.
 
-Mirrors the `vercel.json` rewrite so `/` resolves to `Components.dc.html`
-locally exactly as it does on https://ui.opencoven.ai.
+Mirrors `vercel.json`: `/` resolves to `index.html` (the component library)
+and `/lab` to `Components.dc.html` (the specimen lab), exactly as on
+https://ui.opencoven.ai.
 
 Usage:
     python3 scripts/dev.py [port]
@@ -17,7 +18,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-ENTRY = "/Components.dc.html"
+ENTRY = "/index.html"
+LAB = "/Components.dc.html"
 DEFAULT_PORT = 4321
 
 
@@ -25,6 +27,8 @@ class ComponentBrowserHandler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path: str) -> str:
         if path in ("/", "/index.html"):
             path = ENTRY
+        elif path == "/lab":
+            path = LAB
         return super().translate_path(path)
 
     def end_headers(self) -> None:

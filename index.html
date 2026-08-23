@@ -1468,5 +1468,899 @@
   </div>
 
   <div class="toast" id="toast" role="status"></div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var esc = function (s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+
+    var dedent = function (s) {
+      var lines = s.replace(/^\n+|\s+$/g, "").split("\n");
+      var indent = Infinity;
+      lines.forEach(function (l) {
+        if (!l.trim()) return;
+        indent = Math.min(indent, l.match(/^ */)[0].length);
+      });
+      return lines.map(function (l) { return l.slice(indent); }).join("\n");
+    };
+
+    /* ---------- demos ---------- */
+
+    var D = {};
+
+    D.modeSwitch = dedent('\n\
+      <div class="cv-seg" role="group" aria-label="Composer mode">\n\
+        <button aria-pressed="false">Chat</button>\n\
+        <button aria-pressed="true">Do</button>\n\
+        <button aria-pressed="false">Plan</button>\n\
+      </div>');
+
+    D.sendControl = dedent('\n\
+      <div class="cv-send" data-demo="send">\n\
+        <button class="main">Send<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10V2M2.5 5.5 6 2l3.5 3.5"/></svg></button>\n\
+        <button class="alt" aria-label="Send options"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m2 3.5 3 3 3-3"/></svg></button>\n\
+      </div>\n\
+      <div class="cv-send stopping">\n\
+        <button class="main"><span class="cv-pulse" aria-hidden="true"></span>Stop run</button>\n\
+        <button class="alt" hidden></button>\n\
+      </div>');
+
+    D.palette = dedent('\n\
+      <div class="cv-palette" role="listbox" aria-label="Slash commands">\n\
+        <div class="cv-palette-head">Slash commands</div>\n\
+        <div class="cv-palette-item" role="option" aria-selected="true">\n\
+          <span class="k">/plan</span><span class="d">Draft a plan before acting</span><kbd>↵</kbd>\n\
+        </div>\n\
+        <div class="cv-palette-item" role="option" aria-selected="false">\n\
+          <span class="k">/handoff</span><span class="d">Write a continuation handoff</span>\n\
+        </div>\n\
+        <div class="cv-palette-item" role="option" aria-selected="false">\n\
+          <span class="k">/research</span><span class="d">Start a bounded research mission</span>\n\
+        </div>\n\
+      </div>');
+
+    D.chip = dedent('\n\
+      <div class="cv-chips">\n\
+        <span class="cv-chip">\n\
+          <span class="ico"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 1h4l2.5 2.5V11H3z"/><path d="M7 1v3h3"/></svg></span>\n\
+          <span class="name">spec-cards.md</span><span class="meta">4.2 KB</span>\n\
+          <button class="x" aria-label="Remove spec-cards.md">&#215;</button>\n\
+        </span>\n\
+        <span class="cv-chip uploading">\n\
+          <span class="ico"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.5" y="2.5" width="9" height="7" rx="1"/><path d="m1.5 7.5 2.5-2 3 3 2-1.5 1.5 1"/></svg></span>\n\
+          <span class="name">render-preview.png</span>\n\
+          <span class="bar" role="progressbar" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" aria-label="Uploading"></span>\n\
+        </span>\n\
+        <span class="cv-chip failed">\n\
+          <span class="ico"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 1h4l2.5 2.5V11H3z"/><path d="M7 1v3h3"/></svg></span>\n\
+          <span class="name">trace.har</span><span class="meta">too large</span>\n\
+          <button class="x" aria-label="Remove trace.har">&#215;</button>\n\
+        </span>\n\
+      </div>');
+
+    D.stats = dedent('\n\
+      <div class="cv-stats">\n\
+        <div><div class="n">12.4<small>k</small></div><div class="l">Tokens</div></div>\n\
+        <div><div class="n up">8</div><div class="l">Files touched</div></div>\n\
+        <div><div class="n">2:14</div><div class="l">Elapsed</div></div>\n\
+      </div>');
+
+    D.plan = dedent('\n\
+      <div class="cv-plan">\n\
+        <div class="cv-plan-row done"><span class="cv-plan-dot"></span><span class="t">Read failing test and trace the regression</span><span class="m">0:41</span></div>\n\
+        <div class="cv-plan-row done"><span class="cv-plan-dot"></span><span class="t">Patch parser to keep escaped delimiters</span><span class="m">1:07</span></div>\n\
+        <div class="cv-plan-row active"><span class="cv-plan-dot"></span><span class="t">Run the suite and check coverage delta</span><span class="m">now</span></div>\n\
+        <div class="cv-plan-row"><span class="cv-plan-dot"></span><span class="t">Write the changelog entry</span><span class="m">&mdash;</span></div>\n\
+      </div>');
+
+    D.timeline = dedent('\n\
+      <div class="cv-timeline">\n\
+        <div class="cv-tl-row tl-read"><span class="cv-tl-dot"></span><span class="verb">read</span><span class="obj">src/parser/tokenizer.ts</span><span class="dur">0.3s</span></div>\n\
+        <div class="cv-tl-row tl-exec"><span class="cv-tl-dot"></span><span class="verb">exec</span><span class="obj">pnpm vitest run tokenizer</span><span class="dur">6.1s</span></div>\n\
+        <div class="cv-tl-row tl-write"><span class="cv-tl-dot"></span><span class="verb">write</span><span class="obj">src/parser/tokenizer.ts</span><span class="dur">0.2s</span></div>\n\
+        <div class="cv-tl-row tl-net running"><span class="cv-tl-dot"></span><span class="verb">net</span><span class="obj">push branch fix/tokenizer-escapes</span><span class="dur"></span></div>\n\
+      </div>');
+
+    D.files = dedent('\n\
+      <div class="cv-files">\n\
+        <div class="cv-file"><span class="op m">M</span><span class="path"><bdi>src/parser/tokenizer.ts</bdi></span><span class="diff"><span class="add">+34</span><span class="del">&minus;9</span></span></div>\n\
+        <div class="cv-file"><span class="op a">A</span><span class="path"><bdi>src/parser/__tests__/escapes.test.ts</bdi></span><span class="diff"><span class="add">+61</span><span class="del">&minus;0</span></span></div>\n\
+        <div class="cv-file"><span class="op d">D</span><span class="path"><bdi>src/parser/legacy-scanner.ts</bdi></span><span class="diff"><span class="add">+0</span><span class="del">&minus;118</span></span></div>\n\
+      </div>');
+
+    D.mix = dedent('\n\
+      <div class="cv-mix">\n\
+        <div class="cv-mix-bar" role="img" aria-label="Tool mix: read 38 percent, exec 27 percent, write 24 percent, net 11 percent">\n\
+          <span style="width:38%;background:var(--hue-read)"></span>\n\
+          <span style="width:27%;background:var(--hue-exec)"></span>\n\
+          <span style="width:24%;background:var(--hue-write)"></span>\n\
+          <span style="width:11%;background:var(--hue-net)"></span>\n\
+        </div>\n\
+        <div class="cv-mix-legend">\n\
+          <span class="key tl-read">Read <b>38%</b></span>\n\
+          <span class="key tl-exec">Exec <b>27%</b></span>\n\
+          <span class="key tl-write">Write <b>24%</b></span>\n\
+          <span class="key tl-net">Net <b>11%</b></span>\n\
+        </div>\n\
+      </div>');
+
+    D.fail = dedent('\n\
+      <div class="cv-fail">\n\
+        <div class="cv-fail-head"><span class="badge">exit 1</span><span class="t">pnpm vitest run tokenizer</span></div>\n\
+        <pre>FAIL  src/parser/__tests__/escapes.test.ts\n  &#215; keeps escaped pipe inside table cell (12 ms)\n    AssertionError: expected 3 cells, got 4</pre>\n\
+        <div class="cv-fail-foot">\n\
+          <button class="btn-ghost">Retry</button>\n\
+          <button class="btn-ghost">Open test</button>\n\
+          <button class="btn-ghost">Copy stderr</button>\n\
+        </div>\n\
+      </div>');
+
+    D.meter = dedent('\n\
+      <div class="cv-meter">\n\
+        <div class="cv-meter-head"><span>Context</span><b>41% &middot; 82k / 200k</b></div>\n\
+        <div class="cv-meter-track"><span class="cv-meter-fill" style="width:41%"></span><span class="cv-meter-tick" style="left:80%"></span></div>\n\
+      </div>\n\
+      <div class="cv-meter hot">\n\
+        <div class="cv-meter-head"><span>Context</span><b>86% &middot; 172k / 200k</b></div>\n\
+        <div class="cv-meter-track"><span class="cv-meter-fill" style="width:86%"></span><span class="cv-meter-tick" style="left:80%"></span></div>\n\
+      </div>');
+
+    D.pill = dedent('\n\
+      <div class="cv-pills">\n\
+        <span class="cv-pill"><span class="dot"></span>$0.41 / $5.00</span>\n\
+        <span class="cv-pill hot"><span class="dot"></span>$4.12 / $5.00</span>\n\
+        <span class="cv-pill over"><span class="dot"></span>$5.37 / $5.00</span>\n\
+      </div>');
+
+    D.composerBlock = dedent('\n\
+      <div class="cv-composer">\n\
+        <textarea rows="2" placeholder="Describe the change, attach context, pick a mode&hellip;" aria-label="Message"></textarea>\n\
+        <div class="cv-chips">\n\
+          <span class="cv-chip">\n\
+            <span class="ico"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M3 1h4l2.5 2.5V11H3z"/><path d="M7 1v3h3"/></svg></span>\n\
+            <span class="name">spec-cards.md</span><span class="meta">4.2 KB</span>\n\
+            <button class="x" aria-label="Remove">&#215;</button>\n\
+          </span>\n\
+        </div>\n\
+        <div class="cv-composer-foot">\n\
+          <div class="cv-seg" role="group" aria-label="Mode">\n\
+            <button aria-pressed="false">Chat</button>\n\
+            <button aria-pressed="true">Do</button>\n\
+            <button aria-pressed="false">Plan</button>\n\
+          </div>\n\
+          <span class="spacer"></span>\n\
+          <div class="cv-send" data-demo="send">\n\
+            <button class="main">Send<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10V2M2.5 5.5 6 2l3.5 3.5"/></svg></button>\n\
+            <button class="alt" aria-label="Send options"><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m2 3.5 3 3 3-3"/></svg></button>\n\
+          </div>\n\
+        </div>\n\
+      </div>');
+
+    D.runRailBlock = dedent('\n\
+      <div class="cv-runrail">\n\
+        <p class="rail-sec">Run</p>' + D.stats.replace(/^/gm, "  ") + '\n\
+        <p class="rail-sec">Activity</p>' + D.timeline.replace(/^/gm, "  ") + '\n\
+        <p class="rail-sec">Budget</p>\n\
+        <div class="cv-meter">\n\
+          <div class="cv-meter-head"><span>Context</span><b>41% &middot; 82k / 200k</b></div>\n\
+          <div class="cv-meter-track"><span class="cv-meter-fill" style="width:41%"></span><span class="cv-meter-tick" style="left:80%"></span></div>\n\
+        </div>\n\
+      </div>');
+
+    D.turn = dedent('\n\
+      <div class="cv-turn">\n\
+        <span class="avatar" aria-hidden="true">CY</span>\n\
+        <div class="cv-turn-body">\n\
+          <div class="cv-turn-head"><span class="who">Cody</span><span class="when">22:41</span></div>\n\
+          <p class="cv-turn-prose">Patched <code>tokenizer.ts</code> so escaped pipes survive table cells, added a regression test, and re-ran the suite &mdash; all green. Files touched below.</p>' + D.files.replace(/^/gm, "    ") + '\n\
+        </div>\n\
+      </div>');
+
+    D.session = dedent('\n\
+      <div class="cv-session">\n\
+        <span class="t">fix/tokenizer-escapes &mdash; keep escaped delimiters</span>\n\
+        <span class="chip live"><span class="dot"></span>running</span>\n\
+        <span class="cv-pill"><span class="dot"></span>$0.41 / $5.00</span>\n\
+      </div>');
+
+    /* ---------- prompt specs ---------- */
+
+    var HOUSE_RULES = [
+      "Greys carry structure, colour carries meaning. Never colour something for decoration.",
+      "The four tool-class hues (read, write, exec, net) mean the same thing in every chart, list and tree.",
+      "One filled button per surface at most. Filled = the single primary action.",
+      "Any number that can be compared to another number is mono and tabular.",
+      "Detail on hover rises OVER the content above it. Layout must not shift.",
+      "One radius scale (4 / 8 / 12 / 16px), applied by size of thing, never by taste.",
+      "State must be legible without colour: shape, weight or motion always changes too.",
+      "Respect prefers-reduced-motion: pulses and slides collapse to opacity."
+    ];
+
+    function prompt(name, spec) {
+      return "Build the \u201c" + name + "\u201d component for a dark, quiet agent workspace.\n\n" +
+        spec + "\n\nHouse rules (non-negotiable):\n" +
+        HOUSE_RULES.map(function (r, i) { return (i + 1) + ". " + r; }).join("\n") +
+        "\n\nTokens: bg #0b0b0d, panel #131315, raised #1a1a1e, line #2a2930, text #f1eff4, " +
+        "muted #7d7883, accent #9386d0, read #7fa5c9, write #86b39a, exec #c9a86a, net #c77882. " +
+        "UI face Inter, numbers and code in a mono face. No frameworks, no external CSS.";
+    }
+
+    /* ---------- page registry ---------- */
+
+    function specimen(demoKey, promptText, label) {
+      var demo = D[demoKey];
+      return '<div class="specimen" data-tab="preview">' +
+        '<div class="specimen-tabs" role="tablist" aria-label="' + (label || "Specimen") + '">' +
+        '<button class="specimen-tab" role="tab" data-tab="preview" aria-selected="true">Preview</button>' +
+        '<button class="specimen-tab" role="tab" data-tab="code" aria-selected="false">Code</button>' +
+        '<button class="specimen-tab" role="tab" data-tab="prompt" aria-selected="false">Prompt</button>' +
+        '<button class="copy-btn" data-copy-tab aria-label="Copy active tab">' +
+        '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg>' +
+        '</button></div>' +
+        '<div class="specimen-stage" role="tabpanel"><div class="demo-col">' + demo + '</div></div>' +
+        '<pre class="specimen-code code" role="tabpanel" hidden aria-label="Markup">' + esc(demo) + '</pre>' +
+        '<pre class="specimen-code prompt" role="tabpanel" hidden aria-label="Prompt spec">' + esc(promptText) + '</pre>' +
+        '</div>';
+    }
+
+    function componentPage(o) {
+      var p = prompt(o.title, o.spec);
+      return '<p class="eyebrow">' + o.section + '</p><h1>' + o.title + '</h1>' +
+        '<p class="lede">' + o.lede + '</p>' +
+        '<h2 id="sec-preview">Preview</h2>' + specimen(o.demo, p, o.title) +
+        '<h2 id="sec-anatomy">Anatomy</h2>' + o.anatomy +
+        '<h2 id="sec-usage">Usage</h2>' + o.usage;
+    }
+
+    function ul(items) {
+      return "<ul>" + items.map(function (i) { return "<li>" + i + "</li>"; }).join("") + "</ul>";
+    }
+
+    var PAGES = {};
+
+    PAGES.overview = {
+      title: "Overview", kicker: "Component reference", keywords: "start intro home agent surface",
+      html: function () {
+        return '<p class="eyebrow">Component reference</p><h1>The agent surface</h1>' +
+          '<p class="lede">Every part of the Coven Cave chat workspace, isolated and live. Twelve components across two surfaces &mdash; the <strong>composer</strong> that takes intent, and the <strong>run rail</strong> that reports what the agent did with it. Copy the values, not the screenshots.</p>' +
+          '<div class="stat-strip">' +
+          '<div><div class="n">12</div><div class="l">Components</div></div>' +
+          '<div><div class="n a">4</div><div class="l">Blocks</div></div>' +
+          '<div><div class="n w">16</div><div class="l">Themes</div></div>' +
+          '<div><div class="n">0</div><div class="l">Stylesheets</div></div>' +
+          '</div>' +
+          '<h2 id="sec-surfaces">Two surfaces</h2>' +
+          '<p><strong>Composer</strong> components live where intent enters: the mode switch, the send control, the completion palette, the attachment chip. <strong>Run rail</strong> components live where the agent reports back: stats, plans, timelines, files, tool mix, failures, budgets.</p>' +
+          '<p>Four <strong>blocks</strong> compose them into shippable regions, and four <strong>foundation</strong> pages define the material they all share. Every theme is a product of two schemes, four accents and two densities &mdash; sixteen combinations, driven entirely by three <code>data-</code> attributes on the root element.</p>' +
+          '<h2 id="sec-rules">House rules</h2>' +
+          '<div class="rules-card"><div class="rules-head"><p class="eyebrow">Start here &middot; paste into your agent</p>' +
+          '<button class="btn" data-copy-rules><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg>Copy the house rules</button></div>' +
+          '<ol>' + HOUSE_RULES.map(function (r) {
+            return "<li>" + r.replace(/^([^,.]+[,.])/, "<strong>$1</strong>") + "</li>";
+          }).join("") + '</ol></div>' +
+          '<h2 id="sec-lab">The specimen lab</h2>' +
+          '<p>The original four-state specimen browser that seeded this library still ships alongside it &mdash; open <a href="/Components.dc.html" style="color:var(--accent)">the lab</a> to walk Composer, Messages, Context, Actions and Cards as full assembled scenes.</p>';
+      }
+    };
+
+    PAGES["using-these"] = {
+      title: "Using these", kicker: "Getting started", keywords: "install cli npm init add copy prompt",
+      html: function () {
+        var cmd = function (n, t, c, note) {
+          return '<div class="step"><span class="step-n">' + n + '</span><div class="step-body"><strong>' + t + '</strong>' +
+            '<div class="cmd"><span class="ps">$</span><code>' + c + '</code>' +
+            '<button class="copy-btn" data-copy="' + c.replace(/&#8209;/g, "-") + '" aria-label="Copy command">' +
+            '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg></button></div>' +
+            '<p class="step-note">' + note + '</p></div></div>';
+        };
+        return '<p class="eyebrow">Getting started</p><h1>Using these</h1>' +
+          '<p class="lede">Two ways in. Run the CLI to copy components into your repo as source you own, or hand your agent the brief &mdash; every component below has a <strong>Prompt</strong> tab with a paste-ready spec.</p>' +
+          '<h2 id="sec-cli">The CLI path</h2>' +
+          cmd(1, "Install the CLI", "npm i -g @opencoven/ui", "Node 20+. Also on Homebrew: brew install opencoven/tap/coven-ui") +
+          cmd(2, "Point it at your project", "coven-ui init --tokens src/styles/tokens.css", "Writes the token block if the file is missing; merges if it exists.") +
+          cmd(3, "Add what you need", "coven-ui add send-control timeline plan-row", "Names match the ids in the sidebar. Deps resolve automatically.") +
+          cmd(4, "Or take a whole block", "coven-ui add block:composer block:run-rail", "A block pulls in every component it composes.") +
+          '<h2 id="sec-prompt">The prompt path</h2>' +
+          '<p>No install required. Open any component, switch its specimen to the <strong>Prompt</strong> tab, and copy. Each prompt carries the component contract, the house rules, and the token values &mdash; enough for any competent coding agent to reproduce the component in your stack without seeing this site.</p>' +
+          '<p>Start every session by pasting the house rules from the <a href="#overview" style="color:var(--accent)">overview</a> so the agent holds the whole material, not just one part.</p>';
+      }
+    };
+
+    var COMPONENTS = [
+      { id: "mode-switch", section: "Composer", title: "Mode switch", demo: "modeSwitch",
+        keywords: "segmented control chat do plan toggle",
+        lede: "A three-position segmented control that decides how much authority the next message grants: converse, act, or plan first.",
+        spec: "A segmented control with three options: Chat, Do, Plan. One is always active. Active segment gets a soft accent fill, an inset 1px accent ring, and 600 weight; inactive segments are muted grey and gain full text colour on hover. The track is a bordered pill-radius container with 3px inner padding. Selection must also be legible by weight alone.",
+        anatomy: ul([
+          "<strong>Track</strong> &mdash; <code>panel</code> background, 1px <code>line</code> border, radius <code>--r-2</code>, 3px padding.",
+          "<strong>Segment</strong> &mdash; borderless button, 13px / 600, muted text; hover raises to full text colour.",
+          "<strong>Active segment</strong> &mdash; <code>accent-soft</code> fill, inset accent ring, accent text. Never a filled accent block: this is state, not a primary action."
+        ]),
+        usage: ul([
+          "Exactly one segment is pressed at all times; use <code>aria-pressed</code>, not <code>aria-selected</code>.",
+          "Mode changes apply to the <em>next</em> send &mdash; never retroactively relabel a running turn.",
+          "Three options maximum. A fourth mode is a smell; use the completion palette for verbs."
+        ]) },
+      { id: "send-control", section: "Composer", title: "Send control", demo: "sendControl",
+        keywords: "button submit stop split primary action",
+        lede: "The one filled button on the surface. A split control while idle; the same footprint becomes Stop while a run is live.",
+        spec: "A split button: a filled accent 'Send' main segment with an up-arrow glyph, plus a narrow caret segment for send options, divided by a translucent hairline. This is the only filled button on the surface. While a run is live it swaps in place to a bordered raised 'Stop run' button in danger colour with a pulsing dot; the footprint must not shift. Pulse collapses to opacity under reduced motion.",
+        anatomy: ul([
+          "<strong>Main segment</strong> &mdash; filled <code>accent</code>, ink-on-accent text, 650 weight, arrow glyph.",
+          "<strong>Alt segment</strong> &mdash; same fill, caret glyph, separated by a 22% ink hairline; opens send options.",
+          "<strong>Stopping state</strong> &mdash; raised surface, 1px ring, <code>err</code> text, leading pulse dot. No fill: stopping is a state, not the primary intent."
+        ]),
+        usage: ul([
+          "One filled button per surface, and this is it. Everything else on the composer is bordered or ghost.",
+          "Swap to Stop in place &mdash; layout shift while a run starts reads as breakage.",
+          "The pulse animates opacity only; under <code>prefers-reduced-motion</code> it holds steady."
+        ]) },
+      { id: "completion-palette", section: "Composer", title: "Completion palette", demo: "palette",
+        keywords: "slash command menu autocomplete dropdown listbox",
+        lede: "The floating listbox that opens on \u201c/\u201d: command, one-line description, and a single accent-marked selection.",
+        spec: "A floating listbox anchored above the composer caret, opened by typing '/'. Overlay surface with shadow, a mono uppercase section header, and rows of: mono command name, muted one-line description, and a Return kbd hint on the selected row only. Selected row gets a soft accent wash and a 2px inset accent bar on the left edge; hover on other rows is a plain grey raise. Arrow keys move selection, Return commits, Escape dismisses.",
+        anatomy: ul([
+          "<strong>Panel</strong> &mdash; <code>overlay</code> surface, radius <code>--r-3</code>, level-2 shadow; rises over content, layout beneath must not shift.",
+          "<strong>Row</strong> &mdash; mono command, muted description, baseline-aligned.",
+          "<strong>Selection</strong> &mdash; accent wash + inset left bar + accent command text; the <kbd>&#8629;</kbd> hint appears only here."
+        ]),
+        usage: ul([
+          "Filter as the user types; never re-order on hover.",
+          "Keyboard selection and pointer hover are distinct states &mdash; hover must not steal selection.",
+          "Cap visible rows around six and scroll; a taller palette hides the composer it serves."
+        ]) },
+      { id: "attachment-chip", section: "Composer", title: "Attachment chip", demo: "chip",
+        keywords: "file upload progress remove chip pill attach",
+        lede: "One chip per attached file, in exactly three states: ready, uploading, failed. Nothing else belongs on it.",
+        spec: "A compact chip per attached file: type glyph, truncating middle-ellipsis name (max ~20ch), mono size caption, and a small remove button. Three states only: ready (solid 1px border), uploading (dashed border, 3px accent progress bar replaces size and remove), failed (danger-tinted border, cause replaces size in the caption slot). Chips wrap in a row-gap flexbox above the composer footer.",
+        anatomy: ul([
+          "<strong>Glyph</strong> &mdash; 12px outline icon keyed to file kind, always muted.",
+          "<strong>Name + meta</strong> &mdash; 550-weight name, ellipsis at ~20ch; mono muted size caption.",
+          "<strong>State channel</strong> &mdash; border style carries state: solid / dashed / danger-tinted. Colour never carries it alone."
+        ]),
+        usage: ul([
+          "Failure text lives in the meta slot (<em>too large</em>, <em>blocked type</em>) &mdash; not a toast.",
+          "Uploading chips lose the remove affordance; cancel is the composer&rsquo;s job.",
+          "Never grow a chip into a preview card inside the composer; previews belong to the transcript."
+        ]) },
+      { id: "stat-trio", section: "Run rail", title: "Stat trio", demo: "stats",
+        keywords: "numbers tokens elapsed metrics counters",
+        lede: "Three numbers that describe a run at a glance &mdash; tokens, files touched, elapsed &mdash; in strict mono and tabular figures.",
+        spec: "A single bordered strip split into three equal cells by hairlines: big mono tabular number (21px / 700) over a mono uppercase 9.5px letter-spaced label. Unit suffixes (k, s) render smaller and muted inside the number. A cell may take a semantic colour (e.g. green for files touched when all changes verified) but at most one coloured cell per trio.",
+        anatomy: ul([
+          "<strong>Strip</strong> &mdash; one bordered container, internal hairline dividers; never three separate cards.",
+          "<strong>Number</strong> &mdash; mono, tabular, 700; unit suffix drops to 12px muted.",
+          "<strong>Label</strong> &mdash; mono uppercase, 0.13em tracking, muted."
+        ]),
+        usage: ul([
+          "Numbers update in place; a stat that jumps position is worse than one that is briefly stale.",
+          "Elapsed is <code>m:ss</code> under ten minutes, <code>h:mm</code> after &mdash; keep the digit count stable.",
+          "At most one coloured number per trio, and only when it encodes a judgement, not a magnitude."
+        ]) },
+      { id: "plan-row", section: "Run rail", title: "Plan row", demo: "plan",
+        keywords: "todo checklist steps progress task list",
+        lede: "The agent\u2019s plan as a vertical list of steps, each in one of three states: done, active, pending.",
+        spec: "A bordered card of rows: 8px state dot, one-line truncating step title, right-aligned mono duration. Three states: done (filled green dot, muted struck title), active (filled accent pulsing dot, 600-weight title, 'now' in the time slot), pending (hollow grey outline dot, em-dash time). Exactly one row may be active. Pulse is opacity-only.",
+        anatomy: ul([
+          "<strong>Dot</strong> &mdash; hollow = pending, filled green = done, filled pulsing accent = active. Shape and fill carry state before colour.",
+          "<strong>Title</strong> &mdash; single line, ellipsis; strike-through only on done, and struck with a hairline, not heavy.",
+          "<strong>Time</strong> &mdash; mono tabular; <em>now</em> for active, em-dash for pending."
+        ]),
+        usage: ul([
+          "One active row at a time &mdash; parallel work belongs on the timeline, not the plan.",
+          "Completed rows keep their real duration; the plan doubles as the run&rsquo;s receipt.",
+          "Never reorder rows after the run starts; append re-plans below a divider instead."
+        ]) },
+      { id: "timeline", section: "Run rail", title: "Timeline", demo: "timeline",
+        keywords: "activity log events tool calls stream verbs",
+        lede: "Every tool call as it lands: hue-coded verb, object, duration, on a single hairline spine.",
+        spec: "A vertical event list on a 1px hairline spine with a 7px dot per row, coloured by tool class: read (blue), write (green), exec (amber), net (rose) — the same four hues used everywhere. Each row: mono 12px verb in the class hue, truncating object path or command in secondary text, right-aligned mono duration. A running row has an accent ellipsis after the object and no duration yet. The spine stops at the centre of the first and last dots.",
+        anatomy: ul([
+          "<strong>Spine + dot</strong> &mdash; hairline rail, class-hued dot; the only place colour appears.",
+          "<strong>Verb</strong> &mdash; mono, 600, in the class hue: <code>read</code> / <code>write</code> / <code>exec</code> / <code>net</code>.",
+          "<strong>Object + duration</strong> &mdash; secondary one-liner with ellipsis; mono tabular seconds."
+        ]),
+        usage: ul([
+          "The four hues are a contract &mdash; identical meaning in tool mix, file rows, and every chart.",
+          "Append only. Collapse bursts (&ldquo;12 reads&rdquo;) rather than dropping events.",
+          "Durations arrive when the call returns; a running row shows the ellipsis, never <code>0.0s</code>."
+        ]) },
+      { id: "file-row", section: "Run rail", title: "File row", demo: "files",
+        keywords: "diff changed files added deleted modified paths",
+        lede: "One row per touched file: operation letter, right-anchored path, and a +/&minus; diff pair.",
+        spec: "A bordered list of file rows: a mono single-letter op column (M amber, A green, D rose — the write/exec/net hues), a path that truncates from the LEFT so the filename always survives (rtl direction trick with bdi), and a mono diff pair with green additions and rose deletions. Rows raise on hover. Row order is touch order, not alphabetical.",
+        anatomy: ul([
+          "<strong>Op letter</strong> &mdash; M / A / D, mono 700, hue-coded; a fixed 16px column so paths align.",
+          "<strong>Path</strong> &mdash; mono, ellipsis on the left; the basename is the one part that must never truncate.",
+          "<strong>Diff pair</strong> &mdash; <code>+n</code> green, <code>&minus;n</code> rose, tabular, right-aligned."
+        ]),
+        usage: ul([
+          "Touch order tells the story of the run; alphabetical order tells nothing.",
+          "Renames are one row (<code>R</code>) with both paths, not a D + A pair.",
+          "Clicking a row opens the diff; the row itself never expands inline."
+        ]) },
+      { id: "tool-mix", section: "Run rail", title: "Tool mix", demo: "mix",
+        keywords: "distribution bar chart proportion legend usage",
+        lede: "Where the run\u2019s time went, as one stacked bar in the four tool-class hues plus a keyed legend.",
+        spec: "A single 10px stacked horizontal bar, rounded ends, segments in the four tool-class hues sized by share of calls or wall time. Below, a wrapping legend: 8px square key swatch, class name, mono muted percentage. No axis, no gridlines, no labels inside the bar. The bar is one shape — segments touch with no gaps.",
+        anatomy: ul([
+          "<strong>Bar</strong> &mdash; 10px tall, 5px radius, segments flush; <code>line-soft</code> track shows only if the run is empty.",
+          "<strong>Legend key</strong> &mdash; square swatch in the class hue + name + mono percentage.",
+          "<strong>Order</strong> &mdash; segments and legend share one fixed order: read, exec, write, net."
+        ]),
+        usage: ul([
+          "Percentages sum to 100 and are tabular; round but never let them disagree with the bar.",
+          "Under ~4% a segment keeps a 3px minimum so it stays visible; the legend carries the truth.",
+          "This is a summary, not navigation &mdash; clicking filters the timeline, it never zooms the bar."
+        ]) },
+      { id: "failure-surface", section: "Run rail", title: "Failure surface", demo: "fail",
+        keywords: "error exit code stderr retry crash red",
+        lede: "When a tool call fails, the failure becomes a first-class card: badge, command, trimmed stderr, and next moves.",
+        spec: "A card with a 3px danger left edge and danger-tinted 1px border: header row with an uppercase mono 'exit 1' pill badge and the failing command at 600 weight; a mono stderr excerpt (last relevant lines, not the full log) on the recessed rail surface; a footer of ghost buttons — Retry, Open test, Copy stderr. Red appears exactly twice: the edge/border and the badge. The stderr text itself stays neutral.",
+        anatomy: ul([
+          "<strong>Edge + badge</strong> &mdash; the only two red elements; everything else stays neutral so the excerpt is readable.",
+          "<strong>Excerpt</strong> &mdash; mono 12px on the recessed surface, pre-trimmed to the lines that matter.",
+          "<strong>Footer</strong> &mdash; ghost buttons only. Retry is not a primary action until the human says so."
+        ]),
+        usage: ul([
+          "Trim stderr to the assertion or the last stack frame; link the full log, never inline it.",
+          "A retried-and-passed failure collapses to one muted line &mdash; history, not alarm.",
+          "Never toast a failure the rail can hold; the card is the durable record."
+        ]) },
+      { id: "context-meter", section: "Run rail", title: "Context meter", demo: "meter",
+        keywords: "progress window tokens capacity limit gauge",
+        lede: "How much of the model\u2019s window a session has spent, with a hard tick at the compaction threshold.",
+        spec: "A labelled 6px progress track: header row with 'Context' left and a mono 'percent \u00b7 used / total' pair right; a rounded accent fill; and a vertical tick line overhanging the track at the compaction threshold (e.g. 80%). Past the tick, fill and figure both switch to the warn hue. Width changes animate briefly; numbers are tabular so the header never wobbles.",
+        anatomy: ul([
+          "<strong>Header</strong> &mdash; muted label left, mono tabular figures right, one baseline.",
+          "<strong>Track + fill</strong> &mdash; 6px, 3px radius; accent below threshold, warn above.",
+          "<strong>Tick</strong> &mdash; a 1.5px line overhanging the track top and bottom; it never moves during a session."
+        ]),
+        usage: ul([
+          "The tick is a promise: cross it and the meter, not a modal, is what warns.",
+          "Show <code>used / total</code>, not just a percentage &mdash; comparable numbers are mono and visible.",
+          "Only fill width animates; the header numbers snap."
+        ]) },
+      { id: "budget-pill", section: "Run rail", title: "Budget pill", demo: "pill",
+        keywords: "cost spend dollar limit cap money",
+        lede: "Spend against cap as a compact mono pill: green under, amber near, rose over. Shape stays identical throughout.",
+        spec: "A pill-radius bordered chip: 6px status dot + mono tabular 'spent / cap' pair, e.g. $0.41 / $5.00. Three states by threshold: ok (neutral border, green dot), hot at \u226580% (warn-tinted border, amber dot and text), over cap (danger-tinted border, rose dot and text). Digit grouping keeps a fixed width so the pill never resizes as spend climbs.",
+        anatomy: ul([
+          "<strong>Dot</strong> &mdash; the fastest read: green / amber / rose.",
+          "<strong>Figures</strong> &mdash; mono, tabular, always both numbers; a lone spend figure invites misreading.",
+          "<strong>Border tint</strong> &mdash; follows the dot so state survives for colour-blind readers via the paired text tint."
+        ]),
+        usage: ul([
+          "Thresholds match the context meter&rsquo;s: 80% is <em>hot</em> everywhere in the rail.",
+          "Over cap does not stop the run &mdash; it recolours the pill; enforcement lives in the harness.",
+          "Sits in the session header and the run rail; never inside the transcript."
+        ]) }
+    ];
+
+    var BLOCKS = [
+      { id: "block-composer", section: "Blocks", title: "Composer", demo: "composerBlock",
+        keywords: "block input textarea message box region",
+        lede: "The full intent-taking region: textarea, attachment chips, mode switch and send control in one raised card.",
+        spec: "A raised card (radius 16, level-2 shadow) stacking: a borderless auto-growing textarea; a wrapping attachment chip row; a footer with the mode switch left and the send control right, separated by a flexible spacer. The send control is the only filled element. The card border brightens to the accent line colour when the textarea has focus.",
+        anatomy: ul([
+          "<strong>Textarea</strong> &mdash; borderless, transparent, grows to ~8 lines then scrolls.",
+          "<strong>Chip row</strong> &mdash; appears only when attachments exist; no reserved empty space.",
+          "<strong>Footer</strong> &mdash; mode switch &#8592; spacer &#8594; send control, one row, never wraps above 390px."
+        ]),
+        usage: ul([
+          "Composes: mode switch, attachment chip, send control, completion palette (anchored above).",
+          "<kbd>&#8984;&#8629;</kbd> sends in Chat; plain <kbd>&#8629;</kbd> sends in Do &mdash; the switch sets the contract.",
+          "The card is the focus ring: no inner outline on the textarea itself."
+        ]) },
+      { id: "block-run-rail", section: "Blocks", title: "Run rail", demo: "runRailBlock",
+        keywords: "block sidebar activity region live report",
+        lede: "The live report of a run: stat trio, timeline and context meter stacked under mono section labels.",
+        spec: "A recessed rail-surface card stacking labelled sections: RUN (stat trio), ACTIVITY (timeline), BUDGET (context meter). Section labels are mono uppercase 9.5px, letter-spaced, muted. The rail sits one surface below the transcript (rail colour vs panel colour) so live machinery reads as backstage. Sections keep fixed order; empty sections collapse entirely.",
+        anatomy: ul([
+          "<strong>Surface</strong> &mdash; <code>rail</code>, one step below the transcript&rsquo;s <code>panel</code>.",
+          "<strong>Section label</strong> &mdash; the same mono uppercase voice as every structural label on the site.",
+          "<strong>Stack order</strong> &mdash; numbers, then events, then budget: summary before detail before cost."
+        ]),
+        usage: ul([
+          "Composes: stat trio, plan row, timeline, file row, tool mix, failure surface, context meter, budget pill.",
+          "The rail scrolls independently of the transcript; a failure card pins to the top of ACTIVITY until acknowledged.",
+          "Below 880px the rail folds into a disclosure under the session header."
+        ]) },
+      { id: "transcript-turn", section: "Blocks", title: "Transcript turn", demo: "turn",
+        keywords: "block message bubble chat avatar reply",
+        lede: "One assistant turn: avatar, name and time, prose, and any artifacts the turn produced &mdash; like a file row receipt.",
+        spec: "A panel card per turn: a 30px mono-initial avatar tile (accent-soft fill, accent ring), a header of 650-weight name + mono muted timestamp, prose at 14px in secondary text with bordered inline code, and an artifact slot where run receipts (file rows, failure cards, stat strips) embed full-width. Artifacts inside a turn drop their outer shadow — the turn card carries the elevation.",
+        anatomy: ul([
+          "<strong>Avatar</strong> &mdash; initials in mono on <code>accent-soft</code>; images are allowed but never required.",
+          "<strong>Header</strong> &mdash; name and time share a baseline; time is mono 11px.",
+          "<strong>Artifact slot</strong> &mdash; embedded components keep their own borders but lose shadows."
+        ]),
+        usage: ul([
+          "Composes: file row, failure surface, stat trio &mdash; any rail component can appear as a receipt.",
+          "Prose is secondary-colour by default; only emphasis and inline code rise to full text colour.",
+          "Consecutive turns from the same author merge under one header."
+        ]) },
+      { id: "session-header", section: "Blocks", title: "Session header", demo: "session",
+        keywords: "block title bar status running branch chip",
+        lede: "The one-line contract at the top of a session: what it\u2019s doing, whether it\u2019s live, and what it\u2019s spent.",
+        spec: "A single-row panel card: truncating 650-weight session title, a status chip (pill, mono lowercase label, 6px dot — pulsing green while running, static grey when idle, rose when failed), and a budget pill. Title takes all free width; chips never wrap or truncate. The whole row is a click target that focuses the session.",
+        anatomy: ul([
+          "<strong>Title</strong> &mdash; branch or intent, one line, ellipsis; the only flexible element.",
+          "<strong>Status chip</strong> &mdash; dot + mono lowercase word: <code>running</code> / <code>idle</code> / <code>failed</code>.",
+          "<strong>Budget pill</strong> &mdash; the same component as in the rail, unchanged."
+        ]),
+        usage: ul([
+          "Composes: budget pill. The status dot pulse is the header&rsquo;s only motion.",
+          "State words are lowercase mono &mdash; they are machine states, not headlines.",
+          "Failed keeps the title readable; the header never turns red wholesale."
+        ]) }
+    ];
+
+    var FOUNDATIONS = [
+      { id: "theming", title: "Theming", keywords: "dark light density accent data attributes tokens" },
+      { id: "colour", title: "Colour", keywords: "palette hues grey accent semantic swatches" },
+      { id: "radius-elevation", title: "Radius & elevation", keywords: "corners shadow depth border rounding" },
+      { id: "type-motion", title: "Type & motion", keywords: "font serif mono duration easing animation" }
+    ];
+
+    COMPONENTS.concat(BLOCKS).forEach(function (c) {
+      PAGES[c.id] = {
+        title: c.title, kicker: c.section, keywords: c.keywords,
+        html: function () { return componentPage(c); }
+      };
+    });
+
+    PAGES.theming = {
+      title: "Theming", kicker: "Foundations", keywords: FOUNDATIONS[0].keywords,
+      html: function () {
+        return '<p class="eyebrow">Foundations</p><h1>Theming</h1>' +
+          '<p class="lede">Sixteen themes from three attributes on the root element. No stylesheet swaps, no build step &mdash; every component reads the same custom properties.</p>' +
+          '<h2 id="sec-attrs">Three attributes</h2>' +
+          '<div class="cmd" style="margin:14px 0"><span class="ps">&lt;/&gt;</span><code>&lt;html data-theme="dark" data-accent="coven" data-density="cozy"&gt;</code>' +
+          '<button class="copy-btn" data-copy=\'&lt;html data-theme="dark" data-accent="coven" data-density="cozy"&gt;\' aria-label="Copy"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg></button></div>' +
+          '<table class="tok-table"><tr><th>Attribute</th><th>Values</th><th>What it moves</th></tr>' +
+          '<tr><td>data-theme</td><td class="mono">dark &middot; light</td><td>Every surface, line, text and semantic token. Light is a re-derivation, not an inversion.</td></tr>' +
+          '<tr><td>data-accent</td><td class="mono">coven &middot; moss &middot; ember &middot; ice</td><td>Only <code>--accent</code>, <code>--accent-soft</code>, <code>--accent-line</code>. Tool-class hues never move.</td></tr>' +
+          '<tr><td>data-density</td><td class="mono">cozy &middot; compact</td><td>Only the four spacing tokens: page pad, card pad, row pad, gap. Type is untouched.</td></tr></table>' +
+          '<p>2 &times; 4 &times; 2 = 16. The toggles in this site&rsquo;s top bar drive exactly these attributes &mdash; flip them and watch every specimen re-skin live.</p>' +
+          '<h2 id="sec-core">Core tokens</h2>' +
+          '<table class="tok-table"><tr><th>Token</th><th>Dark</th><th>Role</th></tr>' +
+          '<tr><td>--bg</td><td class="mono"><span class="sw" style="background:#0b0b0d"></span>#0b0b0d</td><td>App canvas</td></tr>' +
+          '<tr><td>--panel</td><td class="mono"><span class="sw" style="background:#131315"></span>#131315</td><td>Cards, transcript</td></tr>' +
+          '<tr><td>--rail</td><td class="mono"><span class="sw" style="background:#0e0e10"></span>#0e0e10</td><td>Recessed rail, code beds</td></tr>' +
+          '<tr><td>--raised</td><td class="mono"><span class="sw" style="background:#1a1a1e"></span>#1a1a1e</td><td>Chips, hovers, controls</td></tr>' +
+          '<tr><td>--line</td><td class="mono"><span class="sw" style="background:#2a2930"></span>#2a2930</td><td>Structural borders</td></tr>' +
+          '<tr><td>--text</td><td class="mono"><span class="sw" style="background:#f1eff4"></span>#f1eff4</td><td>Primary text</td></tr>' +
+          '<tr><td>--text-3</td><td class="mono"><span class="sw" style="background:#7d7883"></span>#7d7883</td><td>Muted labels, captions</td></tr></table>' +
+          '<h2 id="sec-rules">Rules</h2>' + ul([
+            "Components never hard-code a colour &mdash; if a value isn&rsquo;t a token, it doesn&rsquo;t ship.",
+            "Accent changes must survive any accent: nothing may assume violet.",
+            "Density moves spacing only. If compact breaks a component, its spacing wasn&rsquo;t tokenised."
+          ]);
+      }
+    };
+
+    PAGES.colour = {
+      title: "Colour", kicker: "Foundations", keywords: FOUNDATIONS[1].keywords,
+      html: function () {
+        var sw = function (v, name, role) {
+          return '<div class="swatch"><div class="chip" style="background:var(' + v + ')"></div><div class="info"><b>' + name + '</b><span>' + role + '</span></div></div>';
+        };
+        return '<p class="eyebrow">Foundations</p><h1>Colour</h1>' +
+          '<p class="lede">Greys carry structure, colour carries meaning. Five greys build every surface; six hues are each a contract &mdash; four tool classes, one accent, and the ok/warn/err triple.</p>' +
+          '<h2 id="sec-hues">Tool-class hues</h2>' +
+          '<p>These four mean the same thing in every chart, list and tree. They are never used decoratively, never remapped per accent, and never appear outside their class.</p>' +
+          '<div class="swatch-grid">' +
+          sw("--hue-read", "read", "--hue-read") + sw("--hue-write", "write", "--hue-write") +
+          sw("--hue-exec", "exec", "--hue-exec") + sw("--hue-net", "net", "--hue-net") + '</div>' +
+          '<h2 id="sec-accent">Accent &amp; semantic</h2>' +
+          '<div class="swatch-grid">' +
+          sw("--accent", "accent", "selection, primary, live") + sw("--ok", "ok", "verified, under budget") +
+          sw("--warn", "warn", "hot, near threshold") + sw("--err", "err", "failed, over cap") + '</div>' +
+          '<h2 id="sec-rules">Rules</h2>' + ul([
+            "Colour is a signal budget: one accent signal per component, at most.",
+            "Every coloured state pairs with a shape, weight or border change &mdash; colour-blind readers get the same information.",
+            "The warn/ok/err triple shares values with exec/write/net hues by design; context disambiguates because placement is disciplined."
+          ]);
+      }
+    };
+
+    PAGES["radius-elevation"] = {
+      title: "Radius & elevation", kicker: "Foundations", keywords: FOUNDATIONS[2].keywords,
+      html: function () {
+        return '<p class="eyebrow">Foundations</p><h1>Radius &amp; elevation</h1>' +
+          '<p class="lede">One radius scale, applied by the size of the thing. Three shadows, applied by how far a surface floats. Never by taste.</p>' +
+          '<h2 id="sec-radius">Radius scale</h2>' +
+          '<div class="radius-row">' +
+          '<div class="radius-box" style="width:64px;height:64px;border-radius:var(--r-1)">4</div>' +
+          '<div class="radius-box" style="width:88px;height:72px;border-radius:var(--r-2)">8</div>' +
+          '<div class="radius-box" style="width:120px;height:84px;border-radius:var(--r-3)">12</div>' +
+          '<div class="radius-box" style="width:160px;height:96px;border-radius:var(--r-4)">16</div></div>' +
+          '<table class="tok-table"><tr><th>Token</th><th>px</th><th>Applies to</th></tr>' +
+          '<tr><td>--r-1</td><td class="mono">4</td><td>kbd, inline code, tiny buttons</td></tr>' +
+          '<tr><td>--r-2</td><td class="mono">8</td><td>chips, buttons, inputs, segments</td></tr>' +
+          '<tr><td>--r-3</td><td class="mono">12</td><td>cards, palettes, list containers</td></tr>' +
+          '<tr><td>--r-4</td><td class="mono">16</td><td>blocks: composer, run rail, windows</td></tr></table>' +
+          '<h2 id="sec-elevation">Elevation</h2>' +
+          '<div class="elev-row">' +
+          '<div class="elev-box" style="box-shadow:var(--shadow-1)">shadow-1</div>' +
+          '<div class="elev-box" style="box-shadow:var(--shadow-2)">shadow-2</div>' +
+          '<div class="elev-box" style="box-shadow:var(--shadow-3)">shadow-3</div></div>' +
+          '<h2 id="sec-rules">Rules</h2>' + ul([
+            "Radius follows physical size: a 16px-radius chip and a 4px-radius window are both wrong.",
+            "Shadow follows float distance: in-flow cards take <code>shadow-1</code>, anchored overlays <code>shadow-2</code>, modal windows <code>shadow-3</code>.",
+            "Detail on hover rises <em>over</em> the content above it &mdash; elevation changes, layout never shifts.",
+            "A component embedded inside another card drops its shadow; the host carries the elevation."
+          ]);
+      }
+    };
+
+    PAGES["type-motion"] = {
+      title: "Type & motion", kicker: "Foundations", keywords: FOUNDATIONS[3].keywords,
+      html: function () {
+        return '<p class="eyebrow">Foundations</p><h1>Type &amp; motion</h1>' +
+          '<p class="lede">Three voices &mdash; a serif that speaks once per page, a UI face that does the work, a mono that carries every number and name a machine produced. Motion is brief, eased, and honest.</p>' +
+          '<h2 id="sec-type">Three voices</h2>' +
+          '<div class="type-row"><span class="spec">serif &middot; display only</span><span style="font-family:var(--font-serif);font-size:26px">The agent surface</span></div>' +
+          '<div class="type-row"><span class="spec">ui &middot; Inter 13&ndash;16</span><span>Labels, prose, controls &mdash; everything a human wrote.</span></div>' +
+          '<div class="type-row"><span class="spec">mono &middot; tabular</span><span style="font-family:var(--font-mono);font-size:13px">12.4k &middot; 2:14 &middot; src/parser/tokenizer.ts &middot; exit 1</span></div>' +
+          '<p style="margin-top:16px">The rule that matters: <strong>any number that can be compared to another number is mono and tabular</strong>. Paths, commands, states and durations are machine output, so they take the machine voice.</p>' +
+          '<h2 id="sec-motion">Motion</h2>' +
+          '<div class="motion-demo">' +
+          '<button class="motion-chip" style="--d:var(--dur-1)">dur-1 &middot; 120ms</button>' +
+          '<button class="motion-chip" style="--d:var(--dur-2)">dur-2 &middot; 180ms</button>' +
+          '<button class="motion-chip" style="--d:var(--dur-3)">dur-3 &middot; 240ms</button></div>' +
+          '<p>Hover the chips &mdash; one easing curve, <code>cubic-bezier(0.3, 0.7, 0.3, 1)</code>, three durations. 120ms for state flips, 180ms for hovers and reveals, 240ms for entrances.</p>' +
+          '<h2 id="sec-rules">Rules</h2>' + ul([
+            "The serif appears once per page, in the display slot. It never labels a control.",
+            "Motion signals state change; nothing moves for delight alone.",
+            "Pulses animate opacity, not scale. Under <code>prefers-reduced-motion</code> everything collapses to near-instant."
+          ]);
+      }
+    };
+
+    /* ---------- nav model ---------- */
+
+    var NAV = [
+      { label: "Getting started", items: [
+        { id: "overview", title: "Overview" },
+        { id: "using-these", title: "Using these" } ] },
+      { label: "Composer", items: COMPONENTS.slice(0, 4).map(function (c) { return { id: c.id, title: c.title }; }) },
+      { label: "Run rail", items: COMPONENTS.slice(4).map(function (c) { return { id: c.id, title: c.title }; }) },
+      { label: "Blocks", items: BLOCKS.map(function (c) { return { id: c.id, title: c.title, block: true }; }) },
+      { label: "Foundations", items: FOUNDATIONS.map(function (f) { return { id: f.id === "radius-elevation" ? "radius-elevation" : f.id, title: f.title }; }) }
+    ];
+
+    var FLAT = [];
+    NAV.forEach(function (s) { s.items.forEach(function (i) { FLAT.push(i); }); });
+
+    /* ---------- rendering ---------- */
+
+    var sidebarEl = document.getElementById("sidebar");
+    var pageEl = document.getElementById("page");
+    var tocEl = document.getElementById("toc");
+    var toastEl = document.getElementById("toast");
+    var current = null;
+
+    function renderSidebar() {
+      sidebarEl.innerHTML = NAV.map(function (s) {
+        return '<div class="nav-section" data-section>' +
+          '<p class="nav-head">' + s.label + '<span class="nav-count">' + s.items.length + '</span></p>' +
+          s.items.map(function (i) {
+            return '<a class="nav-item" href="#' + i.id + '" data-id="' + i.id + '">' + i.title +
+              (i.block ? '<span class="nav-block-badge" aria-hidden="true"></span>' : "") + '</a>';
+          }).join("") + "</div>";
+      }).join("") + '<p class="nav-empty" id="nav-empty">No matches.</p>';
+    }
+
+    function markCurrent() {
+      sidebarEl.querySelectorAll(".nav-item").forEach(function (a) {
+        if (a.dataset.id === current) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
+      });
+    }
+
+    function renderToc() {
+      var heads = pageEl.querySelectorAll("h2[id]");
+      if (!heads.length) { tocEl.innerHTML = ""; return; }
+      tocEl.innerHTML = '<p class="toc-head">On this page</p>' +
+        Array.prototype.map.call(heads, function (h) {
+          return '<a href="#' + current + '" data-target="' + h.id + '">' + h.textContent + "</a>";
+        }).join("");
+      tocEl.querySelectorAll("a").forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          e.preventDefault();
+          var t = document.getElementById(a.dataset.target);
+          if (t) t.scrollIntoView({ block: "start" });
+        });
+      });
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            tocEl.querySelectorAll("a").forEach(function (a) {
+              a.classList.toggle("active", a.dataset.target === en.target.id);
+            });
+          }
+        });
+      }, { rootMargin: "-70px 0px -70% 0px" });
+      heads.forEach(function (h) { obs.observe(h); });
+    }
+
+    function renderPager() {
+      var idx = FLAT.findIndex(function (i) { return i.id === current; });
+      var prev = FLAT[idx - 1], next = FLAT[idx + 1];
+      var html = '<div class="pager">';
+      if (prev) html += '<a href="#' + prev.id + '"><span>&larr; Previous</span>' + prev.title + "</a>";
+      if (next) html += '<a class="next" href="#' + next.id + '"><span>Next &rarr;</span>' + next.title + "</a>";
+      html += "</div>";
+      pageEl.insertAdjacentHTML("beforeend", html);
+    }
+
+    function navigate(id) {
+      if (!PAGES[id]) id = "overview";
+      current = id;
+      pageEl.innerHTML = PAGES[id].html();
+      renderPager();
+      markCurrent();
+      renderToc();
+      window.scrollTo({ top: 0, behavior: "instant" in window ? "auto" : "auto" });
+      document.title = (id === "overview" ? "The agent surface" : PAGES[id].title) + " \u2014 Coven Cave UI";
+      wireDemos();
+    }
+
+    /* ---------- behaviours ---------- */
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add("show");
+      clearTimeout(toast.t);
+      toast.t = setTimeout(function () { toastEl.classList.remove("show"); }, 1600);
+    }
+
+    function copyText(text, btn) {
+      var done = function () {
+        toast("Copied");
+        if (btn) { btn.classList.add("copied"); setTimeout(function () { btn.classList.remove("copied"); }, 1200); }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, done);
+      } else done();
+    }
+
+    function wireDemos() {
+      pageEl.querySelectorAll(".cv-seg").forEach(function (seg) {
+        seg.addEventListener("click", function (e) {
+          var b = e.target.closest("button");
+          if (!b) return;
+          seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        });
+      });
+      pageEl.querySelectorAll('.cv-send[data-demo="send"] .main').forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var send = btn.closest(".cv-send");
+          send.classList.toggle("stopping");
+          btn.innerHTML = send.classList.contains("stopping")
+            ? '<span class="cv-pulse" aria-hidden="true"></span>Stop run'
+            : 'Send<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10V2M2.5 5.5 6 2l3.5 3.5"/></svg>';
+        });
+      });
+      pageEl.querySelectorAll(".cv-palette").forEach(function (pal) {
+        pal.addEventListener("mouseover", function (e) {
+          var row = e.target.closest(".cv-palette-item");
+          if (!row) return;
+          pal.querySelectorAll(".cv-palette-item").forEach(function (r) {
+            r.setAttribute("aria-selected", r === row ? "true" : "false");
+          });
+        });
+      });
+    }
+
+    document.addEventListener("click", function (e) {
+      var tab = e.target.closest(".specimen-tab");
+      if (tab) {
+        var frame = tab.closest(".specimen");
+        frame.dataset.tab = tab.dataset.tab;
+        frame.querySelectorAll(".specimen-tab").forEach(function (t) {
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+        });
+        frame.querySelectorAll(".specimen-code").forEach(function (p) {
+          p.hidden = !p.classList.contains(frame.dataset.tab);
+        });
+        return;
+      }
+      var copyTab = e.target.closest("[data-copy-tab]");
+      if (copyTab) {
+        var fr = copyTab.closest(".specimen");
+        var mode = fr.dataset.tab === "prompt" ? "prompt" : "code";
+        copyText(fr.querySelector(".specimen-code." + mode).textContent, copyTab);
+        return;
+      }
+      var copyBtn = e.target.closest("[data-copy]");
+      if (copyBtn) { copyText(copyBtn.dataset.copy, copyBtn); return; }
+      var rules = e.target.closest("[data-copy-rules]");
+      if (rules) {
+        copyText("Non-negotiables for this set:\n" + HOUSE_RULES.map(function (r, i) { return (i + 1) + ". " + r; }).join("\n"), rules);
+      }
+    });
+
+    /* search */
+    var searchEl = document.getElementById("search");
+    searchEl.addEventListener("input", function () {
+      var q = searchEl.value.trim().toLowerCase();
+      var any = false;
+      sidebarEl.querySelectorAll("[data-section]").forEach(function (sec) {
+        var vis = 0;
+        sec.querySelectorAll(".nav-item").forEach(function (a) {
+          var p = PAGES[a.dataset.id];
+          var hay = (p.title + " " + (p.keywords || "") + " " + (p.kicker || "")).toLowerCase();
+          var hit = !q || hay.indexOf(q) !== -1;
+          a.classList.toggle("hidden", !hit);
+          if (hit) vis++;
+        });
+        sec.style.display = vis ? "" : "none";
+        if (vis) any = true;
+      });
+      document.getElementById("nav-empty").style.display = any ? "none" : "block";
+    });
+    searchEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        var first = sidebarEl.querySelector(".nav-item:not(.hidden)");
+        if (first) { location.hash = first.dataset.id; searchEl.blur(); }
+      }
+      if (e.key === "Escape") { searchEl.value = ""; searchEl.dispatchEvent(new Event("input")); searchEl.blur(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); searchEl.focus(); searchEl.select(); }
+    });
+
+    /* theme / density / accent */
+    var root = document.documentElement;
+    var store = function (k, v) { try { localStorage.setItem("coven-ui:" + k, v); } catch (_) {} };
+    var read = function (k) { try { return localStorage.getItem("coven-ui:" + k); } catch (_) { return null; } };
+
+    function wireSeg(segId, attr) {
+      var seg = document.getElementById(segId);
+      seg.addEventListener("click", function (e) {
+        var b = e.target.closest("button");
+        if (!b) return;
+        root.setAttribute(attr, b.dataset[attr.replace("data-", "")]);
+        store(attr, b.dataset[attr.replace("data-", "")]);
+        seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      });
+      var saved = read(attr);
+      if (saved) {
+        root.setAttribute(attr, saved);
+        seg.querySelectorAll("button").forEach(function (x) {
+          x.setAttribute("aria-pressed", x.dataset[attr.replace("data-", "")] === saved ? "true" : "false");
+        });
+      }
+    }
+
+    wireSeg("theme-seg", "data-theme");
+    wireSeg("density-seg", "data-density");
+
+    var accentSel = document.getElementById("accent");
+    var accentLabel = document.getElementById("accent-label");
+    accentSel.addEventListener("change", function () {
+      root.setAttribute("data-accent", accentSel.value);
+      store("data-accent", accentSel.value);
+      accentLabel.textContent = accentSel.options[accentSel.selectedIndex].text;
+    });
+    var savedAccent = read("data-accent");
+    if (savedAccent) {
+      root.setAttribute("data-accent", savedAccent);
+      accentSel.value = savedAccent;
+      accentLabel.textContent = accentSel.options[accentSel.selectedIndex].text;
+    }
+
+    /* router */
+    renderSidebar();
+    window.addEventListener("hashchange", function () { navigate(location.hash.slice(1)); });
+    navigate(location.hash.slice(1) || "overview");
+  })();
+  </script>
 </body>
 </html>

@@ -4,6 +4,10 @@
   "rewrites": [
     {
       "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lab",
       "destination": "/Components.dc.html"
     }
   ]
