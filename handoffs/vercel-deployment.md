@@ -377,3 +377,34 @@
   `pnpm check:browser` on a clean port. Worth pinning the port or asserting the
   served site's identity before the suite runs.
 - PR: https://github.com/OpenCoven/coven-landing/pull/61 — MERGED 2026-08-21T09:55:06Z, squash commit `cc53bd26f5162a72ae089fdf11386d750d4b5285`. Branch deleted; local `main` clean. Linux CI `build-and-check` pass 2m6s, `14 passed (1.2m)`, "Running 14 tests using 1 worker", no retry or flaky marker (https://github.com/OpenCoven/coven-landing/actions/runs/32469966541).
+
+## 2026-08-22 — Relocate the working tree out of the familiar workspace
+
+- Problem: `OpenCoven/ui` was checked out **inside Cody's private familiar
+  workspace** (`/Users/buns/.coven/workspaces/familiars/cody`). The repo's
+  tracked files sat alongside untracked private files — `MEMORY.md`,
+  `USER.md`, `.secrets/`, `agent-runs/`, `self-reports/` — so a single
+  `git add -A` in that directory would have committed Cody's memory and
+  secrets to this repository. The `.gitignore` there is the workspace's own
+  and is itself untracked, so it offered no protection.
+- Canonical working tree is now `/Users/buns/Documents/GitHub/OpenCoven/ui`.
+  Verified byte-identical to the workspace copy at `cebe4f4` before moving
+  (`cmp` over every `git ls-files` entry, zero differences).
+- Pre-move safety: `git log --all --not --remotes` empty, `git stash list`
+  empty, single worktree, `main...origin/main` in sync. Nothing was
+  workspace-only.
+- Moved with `trash` (recoverable) from the workspace: `.git/`,
+  `Components.dc.html`, `README.md`, `vercel.json`, `.vercelignore`, `docs/`.
+  Left in place deliberately: Cody's `handoffs/` ledger and `artifacts/`
+  screenshots. `git rev-parse` there now reports "not a git repository".
+- Added `scripts/dev.py` — a stdlib-only dev server that applies the same
+  `/` -> `/Components.dc.html` rewrite as `vercel.json`, so local review
+  matches ui.opencoven.ai. Opening the file from disk does not reproduce that
+  route. Excluded from deploys by the existing `.vercelignore` allowlist.
+- Verification: `python3 scripts/dev.py 4321` -> `/` returns 200, 30350 bytes,
+  sha256 `562756c0e586c97c66baaed9ce5878e725fe538eb04c8534c7de905d8358f01d`,
+  identical to `Components.dc.html`; all four specimen states present
+  (`data-view=composer|messages|context|actions`); `/Components.dc.html` 200;
+  unknown path 404.
+- Commit `23256db` pushed to `main` (repo takes direct commits; no PR or CI
+  configured).
