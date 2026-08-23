@@ -94,7 +94,7 @@
 
     * { box-sizing: border-box; }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 
     html, body { margin: 0; min-height: 100%; }
 
@@ -341,6 +341,17 @@
     }
 
     .nav-item.hidden { display: none; }
+
+    /* Reserve the bold width so selecting an item never shifts its label */
+    .nav-label { display: inline-flex; flex-direction: column; }
+    .nav-label::after {
+      content: attr(data-title);
+      height: 0;
+      overflow: hidden;
+      font-weight: 600;
+      visibility: hidden;
+      pointer-events: none;
+    }
 
     .nav-empty {
       margin: 4px 0 0 12px;
@@ -639,6 +650,13 @@
     .specimen[data-tab="code"] .specimen-code.code,
     .specimen[data-tab="prompt"] .specimen-code.prompt { display: block; }
     .specimen-code.prompt { white-space: pre-wrap; }
+
+    /* code-tab syntax tokens — keyed to theme roles so all 16 themes hold */
+    .tok-tag { color: var(--accent); }
+    .tok-attr { color: var(--hue-read); }
+    .tok-str { color: var(--hue-write); }
+    .tok-pun { color: var(--text-3); }
+    .tok-com { color: var(--text-3); font-style: italic; }
 
     /* token table */
     .tok-table {
@@ -1487,6 +1505,25 @@
       return lines.map(function (l) { return l.slice(indent); }).join("\n");
     };
 
+    /* Dependency-free HTML highlighter. Operates on escaped source and
+       wraps tokens in spans; copy stays clean because copyText reads
+       textContent. */
+    var hl = function (src) {
+      var out = esc(src);
+      out = out.replace(/&lt;!--[\s\S]*?--&gt;/g, function (c) {
+        return '<span class="tok-com">' + c + "</span>";
+      });
+      out = out.replace(/(&lt;\/?)([a-zA-Z][\w-]*)([\s\S]*?)(\/?&gt;)/g, function (m, open, name, attrs, close) {
+        var body = attrs.replace(/([\w-]+)(=)(&quot;[^&]*?&quot;|"[^"]*")?/g, function (a, an, eq, av) {
+          return '<span class="tok-attr">' + an + '</span><span class="tok-pun">' + eq + "</span>" +
+            (av ? '<span class="tok-str">' + av + "</span>" : "");
+        });
+        return '<span class="tok-pun">' + open + '</span><span class="tok-tag">' + name + "</span>" +
+          body + '<span class="tok-pun">' + close + "</span>";
+      });
+      return out;
+    };
+
     /* ---------- demos ---------- */
 
     var D = {};
@@ -1669,13 +1706,13 @@
     /* ---------- prompt specs ---------- */
 
     var HOUSE_RULES = [
-      "Greys carry structure, colour carries meaning. Never colour something for decoration.",
+      "Greys carry structure, color carries meaning. Never color something for decoration.",
       "The four tool-class hues (read, write, exec, net) mean the same thing in every chart, list and tree.",
       "One filled button per surface at most. Filled = the single primary action.",
       "Any number that can be compared to another number is mono and tabular.",
       "Detail on hover rises OVER the content above it. Layout must not shift.",
       "One radius scale (4 / 8 / 12 / 16px), applied by size of thing, never by taste.",
-      "State must be legible without colour: shape, weight or motion always changes too.",
+      "State must be legible without color: shape, weight or motion always changes too.",
       "Respect prefers-reduced-motion: pulses and slides collapse to opacity."
     ];
 
@@ -1701,7 +1738,7 @@
         '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><path d="M8.5 3.5v-1a1 1 0 0 0-1-1h-5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1"/></svg>' +
         '</button></div>' +
         '<div class="specimen-stage" role="tabpanel"><div class="demo-col">' + demo + '</div></div>' +
-        '<pre class="specimen-code code" role="tabpanel" hidden aria-label="Markup">' + esc(demo) + '</pre>' +
+        '<pre class="specimen-code code" role="tabpanel" hidden aria-label="Markup">' + hl(demo) + '</pre>' +
         '<pre class="specimen-code prompt" role="tabpanel" hidden aria-label="Prompt spec">' + esc(promptText) + '</pre>' +
         '</div>';
     }
@@ -1773,10 +1810,10 @@
       { id: "mode-switch", section: "Composer", title: "Mode switch", demo: "modeSwitch",
         keywords: "segmented control chat do plan toggle",
         lede: "A three-position segmented control that decides how much authority the next message grants: converse, act, or plan first.",
-        spec: "A segmented control with three options: Chat, Do, Plan. One is always active. Active segment gets a soft accent fill, an inset 1px accent ring, and 600 weight; inactive segments are muted grey and gain full text colour on hover. The track is a bordered pill-radius container with 3px inner padding. Selection must also be legible by weight alone.",
+        spec: "A segmented control with three options: Chat, Do, Plan. One is always active. Active segment gets a soft accent fill, an inset 1px accent ring, and 600 weight; inactive segments are muted grey and gain full text color on hover. The track is a bordered pill-radius container with 3px inner padding. Selection must also be legible by weight alone.",
         anatomy: ul([
           "<strong>Track</strong> &mdash; <code>panel</code> background, 1px <code>line</code> border, radius <code>--r-2</code>, 3px padding.",
-          "<strong>Segment</strong> &mdash; borderless button, 13px / 600, muted text; hover raises to full text colour.",
+          "<strong>Segment</strong> &mdash; borderless button, 13px / 600, muted text; hover raises to full text color.",
           "<strong>Active segment</strong> &mdash; <code>accent-soft</code> fill, inset accent ring, accent text. Never a filled accent block: this is state, not a primary action."
         ]),
         usage: ul([
@@ -1787,7 +1824,7 @@
       { id: "send-control", section: "Composer", title: "Send control", demo: "sendControl",
         keywords: "button submit stop split primary action",
         lede: "The one filled button on the surface. A split control while idle; the same footprint becomes Stop while a run is live.",
-        spec: "A split button: a filled accent 'Send' main segment with an up-arrow glyph, plus a narrow caret segment for send options, divided by a translucent hairline. This is the only filled button on the surface. While a run is live it swaps in place to a bordered raised 'Stop run' button in danger colour with a pulsing dot; the footprint must not shift. Pulse collapses to opacity under reduced motion.",
+        spec: "A split button: a filled accent 'Send' main segment with an up-arrow glyph, plus a narrow caret segment for send options, divided by a translucent hairline. This is the only filled button on the surface. While a run is live it swaps in place to a bordered raised 'Stop run' button in danger color with a pulsing dot; the footprint must not shift. Pulse collapses to opacity under reduced motion.",
         anatomy: ul([
           "<strong>Main segment</strong> &mdash; filled <code>accent</code>, ink-on-accent text, 650 weight, arrow glyph.",
           "<strong>Alt segment</strong> &mdash; same fill, caret glyph, separated by a 22% ink hairline; opens send options.",
@@ -1819,7 +1856,7 @@
         anatomy: ul([
           "<strong>Glyph</strong> &mdash; 12px outline icon keyed to file kind, always muted.",
           "<strong>Name + meta</strong> &mdash; 550-weight name, ellipsis at ~20ch; mono muted size caption.",
-          "<strong>State channel</strong> &mdash; border style carries state: solid / dashed / danger-tinted. Colour never carries it alone."
+          "<strong>State channel</strong> &mdash; border style carries state: solid / dashed / danger-tinted. Color never carries it alone."
         ]),
         usage: ul([
           "Failure text lives in the meta slot (<em>too large</em>, <em>blocked type</em>) &mdash; not a toast.",
@@ -1829,7 +1866,7 @@
       { id: "stat-trio", section: "Run rail", title: "Stat trio", demo: "stats",
         keywords: "numbers tokens elapsed metrics counters",
         lede: "Three numbers that describe a run at a glance &mdash; tokens, files touched, elapsed &mdash; in strict mono and tabular figures.",
-        spec: "A single bordered strip split into three equal cells by hairlines: big mono tabular number (21px / 700) over a mono uppercase 9.5px letter-spaced label. Unit suffixes (k, s) render smaller and muted inside the number. A cell may take a semantic colour (e.g. green for files touched when all changes verified) but at most one coloured cell per trio.",
+        spec: "A single bordered strip split into three equal cells by hairlines: big mono tabular number (21px / 700) over a mono uppercase 9.5px letter-spaced label. Unit suffixes (k, s) render smaller and muted inside the number. A cell may take a semantic color (e.g. green for files touched when all changes verified) but at most one colored cell per trio.",
         anatomy: ul([
           "<strong>Strip</strong> &mdash; one bordered container, internal hairline dividers; never three separate cards.",
           "<strong>Number</strong> &mdash; mono, tabular, 700; unit suffix drops to 12px muted.",
@@ -1838,14 +1875,14 @@
         usage: ul([
           "Numbers update in place; a stat that jumps position is worse than one that is briefly stale.",
           "Elapsed is <code>m:ss</code> under ten minutes, <code>h:mm</code> after &mdash; keep the digit count stable.",
-          "At most one coloured number per trio, and only when it encodes a judgement, not a magnitude."
+          "At most one colored number per trio, and only when it encodes a judgement, not a magnitude."
         ]) },
       { id: "plan-row", section: "Run rail", title: "Plan row", demo: "plan",
         keywords: "todo checklist steps progress task list",
         lede: "The agent\u2019s plan as a vertical list of steps, each in one of three states: done, active, pending.",
         spec: "A bordered card of rows: 8px state dot, one-line truncating step title, right-aligned mono duration. Three states: done (filled green dot, muted struck title), active (filled accent pulsing dot, 600-weight title, 'now' in the time slot), pending (hollow grey outline dot, em-dash time). Exactly one row may be active. Pulse is opacity-only.",
         anatomy: ul([
-          "<strong>Dot</strong> &mdash; hollow = pending, filled green = done, filled pulsing accent = active. Shape and fill carry state before colour.",
+          "<strong>Dot</strong> &mdash; hollow = pending, filled green = done, filled pulsing accent = active. Shape and fill carry state before color.",
           "<strong>Title</strong> &mdash; single line, ellipsis; strike-through only on done, and struck with a hairline, not heavy.",
           "<strong>Time</strong> &mdash; mono tabular; <em>now</em> for active, em-dash for pending."
         ]),
@@ -1857,9 +1894,9 @@
       { id: "timeline", section: "Run rail", title: "Timeline", demo: "timeline",
         keywords: "activity log events tool calls stream verbs",
         lede: "Every tool call as it lands: hue-coded verb, object, duration, on a single hairline spine.",
-        spec: "A vertical event list on a 1px hairline spine with a 7px dot per row, coloured by tool class: read (blue), write (green), exec (amber), net (rose) — the same four hues used everywhere. Each row: mono 12px verb in the class hue, truncating object path or command in secondary text, right-aligned mono duration. A running row has an accent ellipsis after the object and no duration yet. The spine stops at the centre of the first and last dots.",
+        spec: "A vertical event list on a 1px hairline spine with a 7px dot per row, colored by tool class: read (blue), write (green), exec (amber), net (rose) — the same four hues used everywhere. Each row: mono 12px verb in the class hue, truncating object path or command in secondary text, right-aligned mono duration. A running row has an accent ellipsis after the object and no duration yet. The spine stops at the centre of the first and last dots.",
         anatomy: ul([
-          "<strong>Spine + dot</strong> &mdash; hairline rail, class-hued dot; the only place colour appears.",
+          "<strong>Spine + dot</strong> &mdash; hairline rail, class-hued dot; the only place color appears.",
           "<strong>Verb</strong> &mdash; mono, 600, in the class hue: <code>read</code> / <code>write</code> / <code>exec</code> / <code>net</code>.",
           "<strong>Object + duration</strong> &mdash; secondary one-liner with ellipsis; mono tabular seconds."
         ]),
@@ -1931,11 +1968,11 @@
         anatomy: ul([
           "<strong>Dot</strong> &mdash; the fastest read: green / amber / rose.",
           "<strong>Figures</strong> &mdash; mono, tabular, always both numbers; a lone spend figure invites misreading.",
-          "<strong>Border tint</strong> &mdash; follows the dot so state survives for colour-blind readers via the paired text tint."
+          "<strong>Border tint</strong> &mdash; follows the dot so state survives for color-blind readers via the paired text tint."
         ]),
         usage: ul([
           "Thresholds match the context meter&rsquo;s: 80% is <em>hot</em> everywhere in the rail.",
-          "Over cap does not stop the run &mdash; it recolours the pill; enforcement lives in the harness.",
+          "Over cap does not stop the run &mdash; it recolors the pill; enforcement lives in the harness.",
           "Sits in the session header and the run rail; never inside the transcript."
         ]) }
     ];
@@ -1944,7 +1981,7 @@
       { id: "block-composer", section: "Blocks", title: "Composer", demo: "composerBlock",
         keywords: "block input textarea message box region",
         lede: "The full intent-taking region: textarea, attachment chips, mode switch and send control in one raised card.",
-        spec: "A raised card (radius 16, level-2 shadow) stacking: a borderless auto-growing textarea; a wrapping attachment chip row; a footer with the mode switch left and the send control right, separated by a flexible spacer. The send control is the only filled element. The card border brightens to the accent line colour when the textarea has focus.",
+        spec: "A raised card (radius 16, level-2 shadow) stacking: a borderless auto-growing textarea; a wrapping attachment chip row; a footer with the mode switch left and the send control right, separated by a flexible spacer. The send control is the only filled element. The card border brightens to the accent line color when the textarea has focus.",
         anatomy: ul([
           "<strong>Textarea</strong> &mdash; borderless, transparent, grows to ~8 lines then scrolls.",
           "<strong>Chip row</strong> &mdash; appears only when attachments exist; no reserved empty space.",
@@ -1958,7 +1995,7 @@
       { id: "block-run-rail", section: "Blocks", title: "Run rail", demo: "runRailBlock",
         keywords: "block sidebar activity region live report",
         lede: "The live report of a run: stat trio, timeline and context meter stacked under mono section labels.",
-        spec: "A recessed rail-surface card stacking labelled sections: RUN (stat trio), ACTIVITY (timeline), BUDGET (context meter). Section labels are mono uppercase 9.5px, letter-spaced, muted. The rail sits one surface below the transcript (rail colour vs panel colour) so live machinery reads as backstage. Sections keep fixed order; empty sections collapse entirely.",
+        spec: "A recessed rail-surface card stacking labelled sections: RUN (stat trio), ACTIVITY (timeline), BUDGET (context meter). Section labels are mono uppercase 9.5px, letter-spaced, muted. The rail sits one surface below the transcript (rail color vs panel color) so live machinery reads as backstage. Sections keep fixed order; empty sections collapse entirely.",
         anatomy: ul([
           "<strong>Surface</strong> &mdash; <code>rail</code>, one step below the transcript&rsquo;s <code>panel</code>.",
           "<strong>Section label</strong> &mdash; the same mono uppercase voice as every structural label on the site.",
@@ -1980,7 +2017,7 @@
         ]),
         usage: ul([
           "Composes: file row, failure surface, stat trio &mdash; any rail component can appear as a receipt.",
-          "Prose is secondary-colour by default; only emphasis and inline code rise to full text colour.",
+          "Prose is secondary-color by default; only emphasis and inline code rise to full text color.",
           "Consecutive turns from the same author merge under one header."
         ]) },
       { id: "session-header", section: "Blocks", title: "Session header", demo: "session",
@@ -2001,7 +2038,7 @@
 
     var FOUNDATIONS = [
       { id: "theming", title: "Theming", keywords: "dark light density accent data attributes tokens" },
-      { id: "colour", title: "Colour", keywords: "palette hues grey accent semantic swatches" },
+      { id: "color", title: "Color", keywords: "palette hues grey accent semantic swatches" },
       { id: "radius-elevation", title: "Radius & elevation", keywords: "corners shadow depth border rounding" },
       { id: "type-motion", title: "Type & motion", keywords: "font serif mono duration easing animation" }
     ];
@@ -2036,21 +2073,21 @@
           '<tr><td>--text</td><td class="mono"><span class="sw" style="background:#f1eff4"></span>#f1eff4</td><td>Primary text</td></tr>' +
           '<tr><td>--text-3</td><td class="mono"><span class="sw" style="background:#7d7883"></span>#7d7883</td><td>Muted labels, captions</td></tr></table>' +
           '<h2 id="sec-rules">Rules</h2>' + ul([
-            "Components never hard-code a colour &mdash; if a value isn&rsquo;t a token, it doesn&rsquo;t ship.",
+            "Components never hard-code a color &mdash; if a value isn&rsquo;t a token, it doesn&rsquo;t ship.",
             "Accent changes must survive any accent: nothing may assume violet.",
             "Density moves spacing only. If compact breaks a component, its spacing wasn&rsquo;t tokenised."
           ]);
       }
     };
 
-    PAGES.colour = {
-      title: "Colour", kicker: "Foundations", keywords: FOUNDATIONS[1].keywords,
+    PAGES.color = {
+      title: "Color", kicker: "Foundations", keywords: FOUNDATIONS[1].keywords,
       html: function () {
         var sw = function (v, name, role) {
           return '<div class="swatch"><div class="chip" style="background:var(' + v + ')"></div><div class="info"><b>' + name + '</b><span>' + role + '</span></div></div>';
         };
-        return '<p class="eyebrow">Foundations</p><h1>Colour</h1>' +
-          '<p class="lede">Greys carry structure, colour carries meaning. Five greys build every surface; six hues are each a contract &mdash; four tool classes, one accent, and the ok/warn/err triple.</p>' +
+        return '<p class="eyebrow">Foundations</p><h1>Color</h1>' +
+          '<p class="lede">Greys carry structure, color carries meaning. Five greys build every surface; six hues are each a contract &mdash; four tool classes, one accent, and the ok/warn/err triple.</p>' +
           '<h2 id="sec-hues">Tool-class hues</h2>' +
           '<p>These four mean the same thing in every chart, list and tree. They are never used decoratively, never remapped per accent, and never appear outside their class.</p>' +
           '<div class="swatch-grid">' +
@@ -2061,8 +2098,8 @@
           sw("--accent", "accent", "selection, primary, live") + sw("--ok", "ok", "verified, under budget") +
           sw("--warn", "warn", "hot, near threshold") + sw("--err", "err", "failed, over cap") + '</div>' +
           '<h2 id="sec-rules">Rules</h2>' + ul([
-            "Colour is a signal budget: one accent signal per component, at most.",
-            "Every coloured state pairs with a shape, weight or border change &mdash; colour-blind readers get the same information.",
+            "Color is a signal budget: one accent signal per component, at most.",
+            "Every colored state pairs with a shape, weight or border change &mdash; color-blind readers get the same information.",
             "The warn/ok/err triple shares values with exec/write/net hues by design; context disambiguates because placement is disciplined."
           ]);
       }
@@ -2150,7 +2187,8 @@
         return '<div class="nav-section" data-section>' +
           '<p class="nav-head">' + s.label + '<span class="nav-count">' + s.items.length + '</span></p>' +
           s.items.map(function (i) {
-            return '<a class="nav-item" href="#' + i.id + '" data-id="' + i.id + '">' + i.title +
+            return '<a class="nav-item" href="#' + i.id + '" data-id="' + i.id + '">' +
+              '<span class="nav-label" data-title="' + i.title + '">' + i.title + '</span>' +
               (i.block ? '<span class="nav-block-badge" aria-hidden="true"></span>' : "") + '</a>';
           }).join("") + "</div>";
       }).join("") + '<p class="nav-empty" id="nav-empty">No matches.</p>';

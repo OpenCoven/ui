@@ -36,7 +36,7 @@ The library documents the agent surface across five sidebar sections:
 | **Composer** | Mode switch, send control, completion palette, attachment chip. |
 | **Run rail** | Stat trio, plan row, timeline, file row, tool mix, failure surface, context meter, budget pill. |
 | **Blocks** | Composer, run rail, transcript turn, session header — assembled regions. |
-| **Foundations** | Theming, colour, radius & elevation, type & motion. |
+| **Foundations** | Theming, color, radius & elevation, type & motion. |
 
 Every component page carries a live **Preview**, the exact **Code**, and a
 paste-ready **Prompt** spec that lets a coding agent reproduce the component
