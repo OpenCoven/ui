@@ -679,6 +679,126 @@
       font-size: 8px;
     }
 
+    .artifact-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .artifact-card {
+      display: grid;
+      gap: 7px;
+      padding: 11px 13px 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--raised);
+    }
+
+    .artifact-card--pending {
+      border-style: dashed;
+    }
+
+    .artifact-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .artifact-kind {
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .artifact-chip {
+      padding: 3px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .artifact-chip--signal {
+      border-color: rgba(147, 134, 208, 0.42);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .artifact-copy strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 11px;
+      font-weight: 620;
+    }
+
+    .artifact-copy span {
+      display: block;
+      overflow: hidden;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .artifact-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      overflow: hidden;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .artifact-foot .checks-pass {
+      color: var(--success);
+    }
+
+    .carousel-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .carousel-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .carousel-dots span[data-active] {
+      background: var(--accent);
+    }
+
+    .artifact-open {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .artifact-open .control-icon {
+      width: 11px;
+      height: 11px;
+    }
+
     .token-strip {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -785,7 +905,7 @@
       }
 
       .component-nav {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
       }
 
       .nav-item {
@@ -877,6 +997,11 @@
           <span class="nav-name">Actions</span>
           <span class="nav-count">05</span>
         </button>
+        <button class="nav-item" type="button" data-view="cards" aria-selected="false">
+          <span class="nav-icon" data-icon="cards" aria-hidden="true"></span>
+          <span class="nav-name">Cards</span>
+          <span class="nav-count">04</span>
+        </button>
       </nav>
 
       <div class="rail-note">
@@ -920,7 +1045,7 @@
 
       <footer class="stage-footer">
         <span class="status">Interactive component</span>
-        <span id="component-index">01 / 04</span>
+        <span id="component-index">01 / 05</span>
       </footer>
     </section>
   </main>
@@ -934,7 +1059,8 @@
       plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
       arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h13M13 7l5 5-5 5"/></svg>',
       bolt: '<svg viewBox="0 0 24 24"><path d="m13.5 2-8 11h6l-1 9 8-12h-6l1-8Z"/></svg>',
-      branch: '<svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10M8 10h4a6 6 0 0 0 6-1"/></svg>'
+      branch: '<svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7v10M8 10h4a6 6 0 0 0 6-1"/></svg>',
+      cards: '<svg viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="12" rx="2.5"/><path d="M6 5.5h12M8.5 2.5h7"/></svg>'
     };
 
     const views = {
@@ -943,7 +1069,7 @@
         title: "Composer controls",
         description: "A compact writing surface that keeps model, context, and send state visible without competing with the draft.",
         label: "Default · ready",
-        index: "01 / 04",
+        index: "01 / 05",
         code: "CHAT·01",
         anatomy: [
           ["Draft field", "Grows with the message"],
@@ -967,7 +1093,7 @@
         title: "Message surfaces",
         description: "Identity leads the response while the message body stays quiet, readable, and visually connected to its familiar.",
         label: "Assistant · complete",
-        index: "02 / 04",
+        index: "02 / 05",
         code: "CHAT·02",
         anatomy: [
           ["Identity", "Familiar leads the reading order"],
@@ -999,7 +1125,7 @@
         title: "Context rows",
         description: "Project and source context read as durable inputs, with provenance and access state visible before a run begins.",
         label: "Two sources · available",
-        index: "03 / 04",
+        index: "03 / 05",
         code: "CHAT·03",
         anatomy: [
           ["Source", "Repository or linked work"],
@@ -1025,7 +1151,7 @@
         title: "Action menu",
         description: "Actions use plain verbs and reveal their target. Keyboard cues are secondary, never a substitute for a clear label.",
         label: "Menu · keyboard ready",
-        index: "04 / 04",
+        index: "04 / 05",
         code: "CHAT·04",
         anatomy: [
           ["Verb", "Names the exact operation"],
@@ -1044,6 +1170,53 @@
               <span class="action-copy"><strong>Enhance prompt</strong><span>Clarify intent without changing scope</span></span>
               <span class="action-key">⌘ E</span>
             </button>
+          </div>`
+      },
+      cards: {
+        eyebrow: "Artifact / embedded",
+        title: "Artifact cards",
+        description: "In-message artifacts name their kind first, keep provenance visible, and never present a pending write as performed.",
+        label: "Four artifacts · one pending",
+        index: "05 / 05",
+        code: "CHAT·05",
+        anatomy: [
+          ["Kind", "Names the artifact before styling"],
+          ["State", "Live status or pending consequence"],
+          ["Provenance", "Repo, branch, and origin stay visible"],
+          ["Reader", "Documents open beside chat, not inline"]
+        ],
+        render: () => `
+          <div class="sample artifact-list">
+            <article class="artifact-card">
+              <header class="artifact-head">
+                <span class="artifact-kind">Pull request</span>
+                <span class="artifact-chip artifact-chip--signal">Open</span>
+              </header>
+              <p class="artifact-copy"><strong>Recover attachment ingestion for generic files</strong><span>OpenCoven/coven-cave #4764</span></p>
+              <footer class="artifact-foot"><span class="checks-pass">Checks 12 / 12 passing</span><span>main ← fix/attachment-ingestion</span></footer>
+            </article>
+            <article class="artifact-card artifact-card--pending">
+              <header class="artifact-head">
+                <span class="artifact-kind">Proposal</span>
+                <span class="artifact-chip artifact-chip--signal">Awaiting your tap</span>
+              </header>
+              <p class="artifact-copy"><strong>Merge #4764 · squash</strong><span>Nothing runs until you confirm</span></p>
+              <footer class="artifact-foot"><span>Target: OpenCoven/coven-cave · main</span><span>Cancel available</span></footer>
+            </article>
+            <article class="artifact-card">
+              <header class="artifact-head">
+                <span class="artifact-kind">Attachment</span>
+                <span class="carousel-dots" aria-label="Image 1 of 3"><span data-active></span><span></span><span></span></span>
+              </header>
+              <p class="artifact-copy"><strong>Components-refined-preview.png</strong><span>384 KB · artifacts/ · added by Cody</span></p>
+            </article>
+            <article class="artifact-card">
+              <header class="artifact-head">
+                <span class="artifact-kind">Handoff</span>
+                <button class="artifact-open" type="button">Open in reader <span class="control-icon">${icons.arrow}</span></button>
+              </header>
+              <p class="artifact-copy"><strong>Vercel deployment ledger</strong><span>7 sections · decisions, receipts, next actions</span></p>
+            </article>
           </div>`
       }
     };

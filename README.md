@@ -25,7 +25,7 @@ components.
 
 ## Component states
 
-Use the specimen navigation to move between four interface states:
+Use the specimen navigation to move between five interface states:
 
 | State | Purpose |
 | --- | --- |
@@ -33,6 +33,7 @@ Use the specimen navigation to move between four interface states:
 | **Messages** | Presents a familiar response as an editorial turn with clear identity, provenance, response, and utility hierarchy. |
 | **Context** | Makes attached repositories, files, branches, and access state explicit. |
 | **Actions** | Uses direct verbs, visible consequences, and secondary keyboard cues. |
+| **Cards** | Embeds in-message artifacts — pull requests, pending proposals, attachments, and handoffs — with kind, state, and provenance visible, and pending writes never presented as performed. |
 
 The browser preserves visible focus states, arrow-key navigation, reduced-motion
 handling, and a responsive layout without horizontal overflow at 390px.
