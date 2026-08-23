@@ -48,6 +48,21 @@ open Components.dc.html
 No install step is required. On platforms without the macOS `open` command,
 open `Components.dc.html` directly in a browser.
 
+## Run the dev server
+
+Opening the file directly works, but a local server reproduces the deployed
+routing. [`scripts/dev.py`](scripts/dev.py) applies the same root rewrite as
+[`vercel.json`](vercel.json), so `/` serves `Components.dc.html` locally exactly
+as it does on [ui.opencoven.ai](https://ui.opencoven.ai).
+
+```bash
+python3 scripts/dev.py        # http://127.0.0.1:4321/
+python3 scripts/dev.py 5173   # or pass a port
+```
+
+Only the Python 3 standard library is used, and responses are sent with
+`Cache-Control: no-store` so edits appear on reload.
+
 ## Responsive behavior
 
 The same Messages hierarchy contracts naturally on narrow screens while keeping
@@ -62,6 +77,7 @@ the response aligned beneath Cody's identity.
 | Path | Purpose |
 | --- | --- |
 | [`Components.dc.html`](Components.dc.html) | Self-contained interactive component browser |
+| [`scripts/dev.py`](scripts/dev.py) | Dependency-free local dev server with the production root rewrite |
 | [`artifacts/`](artifacts/) | Verified desktop and mobile visual receipts |
 | [`docs/superpowers/specs/`](docs/superpowers/specs/) | Approved design decisions |
 | [`docs/superpowers/plans/`](docs/superpowers/plans/) | Implementation plans and verification steps |
