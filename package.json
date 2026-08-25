@@ -1,0 +1,40 @@
+{
+  "name": "opencoven-ui-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --filter @opencoven/ui build && pnpm --filter @opencoven/specimens build",
+    "dev": "pnpm --filter @opencoven/specimens dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @opencoven/ui test",
+    "test:coverage": "pnpm --filter @opencoven/ui test:coverage",
+    "registry:compose": "node scripts/compose-registry.mjs",
+    "registry:validate": "pnpm registry:compose && shadcn registry validate registry.json",
+    "registry:build": "pnpm registry:compose && shadcn build registry.json && node scripts/normalize-registry-aliases.mjs",
+    "registry:check": "pnpm registry:build && git diff --exit-code -- public/r",
+    "test:consumer": "node scripts/test-registry-consumer.mjs",
+    "package:check": "node scripts/check-package-exports.mjs",
+    "contracts:check": "node scripts/verify-contracts.mjs",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm contracts:check && pnpm registry:validate && pnpm registry:check && pnpm test:consumer && pnpm build && pnpm package:check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.3.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "shadcn": "^4.19.0",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.56.1"
+  }
+}

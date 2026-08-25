@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "button",
+  "title": "Button",
+  "description": "Base UI button with Coven action and density variants.",
+  "dependencies": [
+    "@base-ui/react",
+    "class-variance-authority"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/ui/button.tsx",
+      "content": "\"use client\";\n\nimport { Button as ButtonPrimitive } from \"@base-ui/react/button\";\nimport { cva, type VariantProps } from \"class-variance-authority\";\n\nimport { cn } from \"@/lib/utils\";\n\nconst buttonVariants = cva(\n  \"inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent text-sm font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0\",\n  {\n    variants: {\n      variant: {\n        primary:\n          \"bg-primary text-primary-foreground hover:bg-primary/85 active:translate-y-px\",\n        presence:\n          \"bg-presence text-presence-foreground hover:bg-presence/85 active:translate-y-px\",\n        outline:\n          \"border-border bg-card text-card-foreground hover:bg-muted aria-expanded:bg-muted\",\n        secondary:\n          \"bg-secondary text-secondary-foreground hover:bg-accent aria-expanded:bg-accent\",\n        ghost: \"text-foreground hover:bg-muted aria-expanded:bg-muted\",\n        destructive:\n          \"border-destructive/35 bg-destructive/12 text-destructive hover:bg-destructive/20\",\n        link: \"text-presence underline-offset-4 hover:underline\",\n      },\n      density: {\n        default: \"h-8 px-3\",\n        compact: \"h-7 px-2 text-xs\",\n      },\n      size: {\n        default: \"\",\n        icon: \"aspect-square px-0\",\n      },\n    },\n    defaultVariants: {\n      variant: \"outline\",\n      density: \"default\",\n      size: \"default\",\n    },\n  },\n);\n\nfunction Button({\n  className,\n  variant = \"outline\",\n  density = \"default\",\n  size = \"default\",\n  ...props\n}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {\n  return (\n    <ButtonPrimitive\n      data-slot=\"button\"\n      data-variant={variant}\n      data-density={density}\n      className={cn(buttonVariants({ variant, density, size }), className)}\n      {...props}\n    />\n  );\n}\n\nexport { Button, buttonVariants };\n",
+      "type": "registry:ui",
+      "target": "@ui/button.tsx"
+    }
+  ],
+  "meta": {
+    "primitive": "Base UI"
+  },
+  "type": "registry:ui"
+}

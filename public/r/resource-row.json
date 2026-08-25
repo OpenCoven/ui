@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "resource-row",
+  "title": "Resource row",
+  "description": "Direction-aware file or context resource row.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/resource-row.tsx",
+      "content": "import { FileCode2 } from \"lucide-react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype FileOperation = \"M\" | \"A\" | \"D\" | \"R\";\n\nconst operationStyles: Record<FileOperation, string> = {\n  M: \"text-tool-exec\",\n  A: \"text-tool-write\",\n  D: \"text-tool-net\",\n  R: \"text-tool-read\",\n};\n\ntype ResourceRowProps = {\n  path: string;\n  operation?: FileOperation;\n  additions?: number;\n  deletions?: number;\n  meta?: string;\n  density?: \"default\" | \"compact\";\n  onSelect?: () => void;\n  className?: string;\n};\n\nfunction ResourceRow({\n  path,\n  operation,\n  additions,\n  deletions,\n  meta,\n  density = \"default\",\n  onSelect,\n  className,\n}: ResourceRowProps) {\n  const content = (\n    <>\n      {operation ? (\n        <span\n          className={cn(\"numeric w-4 font-bold\", operationStyles[operation])}\n        >\n          {operation}\n        </span>\n      ) : (\n        <FileCode2\n          aria-hidden=\"true\"\n          className=\"size-4 text-muted-foreground\"\n        />\n      )}\n      <span className=\"min-w-0\">\n        <bdi className=\"numeric block truncate text-start text-sm\" dir=\"rtl\">\n          {path}\n        </bdi>\n        {meta ? (\n          <span className=\"block truncate text-xs text-muted-foreground\">\n            {meta}\n          </span>\n        ) : null}\n      </span>\n      {additions !== undefined || deletions !== undefined ? (\n        <span className=\"numeric flex gap-1 text-xs\">\n          <span className=\"text-tool-write\">+{additions ?? 0}</span>\n          <span className=\"text-tool-net\">−{deletions ?? 0}</span>\n        </span>\n      ) : null}\n    </>\n  );\n\n  const classes = cn(\n    \"grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-3 py-2 text-start last:border-b-0\",\n    density === \"compact\" && \"px-2 py-1.5\",\n    onSelect && \"hover:bg-muted\",\n    className,\n  );\n\n  return onSelect ? (\n    <button\n      type=\"button\"\n      data-slot=\"resource-row\"\n      data-density={density}\n      className={classes}\n      onClick={onSelect}\n    >\n      {content}\n    </button>\n  ) : (\n    <div data-slot=\"resource-row\" data-density={density} className={classes}>\n      {content}\n    </div>\n  );\n}\n\nexport { ResourceRow, type FileOperation, type ResourceRowProps };\n",
+      "type": "registry:component",
+      "target": "@components/resource-row.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "badge",
+  "title": "Badge",
+  "description": "Semantic status badge with a non-color text channel.",
+  "dependencies": [
+    "class-variance-authority"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/ui/badge.tsx",
+      "content": "import * as React from \"react\";\nimport { cva, type VariantProps } from \"class-variance-authority\";\n\nimport { cn } from \"@/lib/utils\";\n\nconst badgeVariants = cva(\n  \"inline-flex w-fit items-center gap-1 rounded-sm border px-1.5 py-0.5 text-xs font-medium\",\n  {\n    variants: {\n      variant: {\n        neutral: \"border-border bg-muted text-muted-foreground\",\n        presence: \"border-presence/40 bg-presence/12 text-presence\",\n        success: \"border-success/40 bg-success/12 text-success\",\n        warning: \"border-warning/40 bg-warning/12 text-warning\",\n        destructive: \"border-destructive/40 bg-destructive/12 text-destructive\",\n        information: \"border-information/40 bg-information/12 text-information\",\n      },\n    },\n    defaultVariants: {\n      variant: \"neutral\",\n    },\n  },\n);\n\nfunction Badge({\n  className,\n  variant = \"neutral\",\n  ...props\n}: React.ComponentProps<\"span\"> & VariantProps<typeof badgeVariants>) {\n  return (\n    <span\n      data-slot=\"badge\"\n      data-variant={variant}\n      className={cn(badgeVariants({ variant }), className)}\n      {...props}\n    />\n  );\n}\n\nexport { Badge, badgeVariants };\n",
+      "type": "registry:ui",
+      "target": "@ui/badge.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

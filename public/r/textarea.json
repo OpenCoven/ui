@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "textarea",
+  "title": "Textarea",
+  "description": "Native multiline input with Coven semantic states.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/ui/textarea.tsx",
+      "content": "import * as React from \"react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype TextareaProps = React.ComponentProps<\"textarea\"> & {\n  density?: \"default\" | \"compact\";\n};\n\nfunction Textarea({ className, density = \"default\", ...props }: TextareaProps) {\n  return (\n    <textarea\n      data-slot=\"textarea\"\n      data-density={density}\n      className={cn(\n        \"min-h-20 w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground shadow-[var(--elevation-1)] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive\",\n        density === \"compact\" && \"min-h-16 px-2 py-1.5 text-xs\",\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nexport { Textarea, type TextareaProps };\n",
+      "type": "registry:ui",
+      "target": "@ui/textarea.tsx"
+    }
+  ],
+  "meta": {
+    "primitive": "native"
+  },
+  "type": "registry:ui"
+}

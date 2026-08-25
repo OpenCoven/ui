@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "transcript-turn",
+  "title": "Transcript turn",
+  "description": "Familiar identity, provenance, response, utilities, and artifacts.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/blocks/transcript-turn.tsx",
+      "content": "import * as React from \"react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype TranscriptTurnProps = {\n  familiar: string;\n  initials: string;\n  role: string;\n  model?: string;\n  timestamp: string;\n  children: React.ReactNode;\n  utilities?: React.ReactNode;\n  artifacts?: React.ReactNode;\n  className?: string;\n};\n\nfunction TranscriptTurn({\n  familiar,\n  initials,\n  role,\n  model,\n  timestamp,\n  children,\n  utilities,\n  artifacts,\n  className,\n}: TranscriptTurnProps) {\n  return (\n    <article\n      data-slot=\"transcript-turn\"\n      className={cn(\n        \"relative grid gap-4 border-s-2 border-s-presence/55 ps-5\",\n        className,\n      )}\n    >\n      <header className=\"flex items-center gap-3\">\n        <span\n          aria-hidden=\"true\"\n          className=\"grid size-9 place-items-center rounded-md border border-presence/35 bg-presence/12 text-sm font-bold text-presence\"\n        >\n          {initials}\n        </span>\n        <span className=\"min-w-0\">\n          <strong className=\"block\">{familiar}</strong>\n          <span className=\"numeric block truncate text-[0.65rem] tracking-[0.1em] text-muted-foreground uppercase\">\n            {[role, model, timestamp].filter(Boolean).join(\" · \")}\n          </span>\n        </span>\n      </header>\n      <div className=\"editorial max-w-prose text-[1.05rem] leading-7\">\n        {children}\n      </div>\n      {artifacts}\n      {utilities ? (\n        <footer\n          aria-label=\"Message utilities\"\n          className=\"flex gap-3 text-xs text-muted-foreground\"\n        >\n          {utilities}\n        </footer>\n      ) : null}\n    </article>\n  );\n}\n\nexport { TranscriptTurn, type TranscriptTurnProps };\n",
+      "type": "registry:block",
+      "target": "@components/blocks/transcript-turn.tsx"
+    }
+  ],
+  "meta": {
+    "examples": [
+      "streaming",
+      "complete",
+      "with-artifacts"
+    ]
+  },
+  "type": "registry:block"
+}

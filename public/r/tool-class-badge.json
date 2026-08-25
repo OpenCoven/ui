@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "tool-class-badge",
+  "title": "Tool-class badge",
+  "description": "Canonical read, write, exec, and net semantic badge.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/tool-class-badge.tsx",
+      "content": "import * as React from \"react\";\n\nimport { cn } from \"@/lib/utils\";\n\nconst toolClassStyles = {\n  read: \"border-tool-read/40 bg-tool-read/12 text-tool-read\",\n  write: \"border-tool-write/40 bg-tool-write/12 text-tool-write\",\n  exec: \"border-tool-exec/40 bg-tool-exec/12 text-tool-exec\",\n  net: \"border-tool-net/40 bg-tool-net/12 text-tool-net\",\n} as const;\n\ntype ToolClass = keyof typeof toolClassStyles;\n\ntype ToolClassBadgeProps = React.ComponentProps<\"span\"> & {\n  tool: ToolClass;\n};\n\nfunction ToolClassBadge({\n  tool,\n  className,\n  children,\n  ...props\n}: ToolClassBadgeProps) {\n  return (\n    <span\n      data-slot=\"tool-class-badge\"\n      data-tool={tool}\n      className={cn(\n        \"numeric inline-flex items-center rounded-sm border px-1.5 py-0.5 text-xs font-semibold\",\n        toolClassStyles[tool],\n        className,\n      )}\n      {...props}\n    >\n      {children ?? tool}\n    </span>\n  );\n}\n\nexport {\n  ToolClassBadge,\n  toolClassStyles,\n  type ToolClass,\n  type ToolClassBadgeProps,\n};\n",
+      "type": "registry:component",
+      "target": "@components/tool-class-badge.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

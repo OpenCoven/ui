@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "completion-palette",
+  "title": "Completion palette",
+  "description": "Slash-command menu composed from Base UI Menu.",
+  "registryDependencies": [
+    "@opencoven/dropdown-menu"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/completion-palette.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuLabel,\n  DropdownMenuTrigger,\n} from \"@/components/ui/dropdown-menu\";\n\ntype CompletionCommand = {\n  id: string;\n  label: string;\n  description: string;\n  shortcut?: string;\n  disabled?: boolean;\n};\n\ntype CompletionPaletteProps = {\n  trigger: React.ReactElement;\n  commands: CompletionCommand[];\n  onSelect: (command: CompletionCommand) => void;\n  label?: string;\n};\n\nfunction CompletionPalette({\n  trigger,\n  commands,\n  onSelect,\n  label = \"Slash commands\",\n}: CompletionPaletteProps) {\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger render={trigger} />\n      <DropdownMenuContent side=\"top\" className=\"w-80\">\n        <DropdownMenuLabel>{label}</DropdownMenuLabel>\n        {commands.map((command) => (\n          <DropdownMenuItem\n            key={command.id}\n            disabled={command.disabled}\n            onClick={() => onSelect(command)}\n          >\n            <span className=\"numeric font-semibold text-presence\">\n              {command.label}\n            </span>\n            <span className=\"truncate text-xs text-muted-foreground\">\n              {command.description}\n            </span>\n            {command.shortcut ? (\n              <kbd className=\"numeric rounded-sm border border-border bg-muted px-1 text-[0.65rem]\">\n                {command.shortcut}\n              </kbd>\n            ) : null}\n          </DropdownMenuItem>\n        ))}\n      </DropdownMenuContent>\n    </DropdownMenu>\n  );\n}\n\nexport {\n  CompletionPalette,\n  type CompletionCommand,\n  type CompletionPaletteProps,\n};\n",
+      "type": "registry:component",
+      "target": "@components/completion-palette.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

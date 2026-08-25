@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "progress",
+  "title": "Progress",
+  "description": "Accessible native progress semantics with a visual track.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/ui/progress.tsx",
+      "content": "import { cn } from \"@/lib/utils\";\n\ntype ProgressProps = {\n  value: number;\n  max?: number;\n  label: string;\n  className?: string;\n  indicatorClassName?: string;\n};\n\nfunction Progress({\n  value,\n  max = 100,\n  label,\n  className,\n  indicatorClassName,\n}: ProgressProps) {\n  const boundedValue = Math.min(Math.max(value, 0), max);\n  const percentage = max > 0 ? (boundedValue / max) * 100 : 0;\n\n  return (\n    <div\n      data-slot=\"progress\"\n      role=\"progressbar\"\n      aria-label={label}\n      aria-valuemin={0}\n      aria-valuemax={max}\n      aria-valuenow={boundedValue}\n      className={cn(\n        \"h-1.5 w-full overflow-hidden rounded-sm bg-muted\",\n        className,\n      )}\n    >\n      <span\n        data-slot=\"progress-indicator\"\n        className={cn(\n          \"block h-full rounded-sm bg-presence transition-[width]\",\n          indicatorClassName,\n        )}\n        style={{ width: `${percentage}%` }}\n      />\n    </div>\n  );\n}\n\nexport { Progress, type ProgressProps };\n",
+      "type": "registry:ui",
+      "target": "@ui/progress.tsx"
+    }
+  ],
+  "meta": {
+    "primitive": "native ARIA"
+  },
+  "type": "registry:ui"
+}

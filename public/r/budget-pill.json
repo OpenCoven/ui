@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "budget-pill",
+  "title": "Budget pill",
+  "description": "Normal, warning, and over-budget spend state.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/budget-pill.tsx",
+      "content": "import { Circle, TriangleAlert } from \"lucide-react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype BudgetState = \"normal\" | \"warning\" | \"over\";\n\ntype BudgetPillProps = {\n  used: number;\n  limit: number;\n  currency?: string;\n  className?: string;\n};\n\nfunction BudgetPill({\n  used,\n  limit,\n  currency = \"$\",\n  className,\n}: BudgetPillProps) {\n  const ratio = limit > 0 ? used / limit : 1;\n  const state: BudgetState =\n    ratio > 1 ? \"over\" : ratio >= 0.8 ? \"warning\" : \"normal\";\n  const Icon = state === \"normal\" ? Circle : TriangleAlert;\n\n  return (\n    <span\n      data-slot=\"budget-pill\"\n      data-state={state}\n      className={cn(\n        \"numeric inline-flex items-center gap-1 rounded-sm border border-border bg-muted px-1.5 py-0.5 text-xs text-muted-foreground\",\n        state === \"warning\" &&\n          \"border-warning/40 bg-warning/12 font-semibold text-warning\",\n        state === \"over\" &&\n          \"border-destructive/45 bg-destructive/12 font-bold text-destructive\",\n        className,\n      )}\n    >\n      <Icon aria-hidden=\"true\" className=\"size-3\" />\n      {currency}\n      {used.toFixed(2)} / {currency}\n      {limit.toFixed(2)}\n      <span className=\"sr-only\">\n        {state === \"normal\" ? \"within budget\" : `${state} budget state`}\n      </span>\n    </span>\n  );\n}\n\nexport { BudgetPill, type BudgetPillProps, type BudgetState };\n",
+      "type": "registry:component",
+      "target": "@components/budget-pill.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

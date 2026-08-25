@@ -1,0 +1,99 @@
+html {
+  min-width: 20rem;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.specimen-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 16rem minmax(0, 1fr);
+}
+
+.specimen-rail {
+  position: sticky;
+  inset-block-start: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 88%, var(--background));
+}
+
+.specimen-main {
+  min-width: 0;
+}
+
+.specimen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1rem;
+}
+
+.specimen-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--card);
+  box-shadow: var(--elevation-1);
+}
+
+.specimen-stage {
+  min-height: 15rem;
+  display: grid;
+  align-content: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background:
+    radial-gradient(
+      circle at 82% 18%,
+      color-mix(in srgb, var(--presence) 10%, transparent),
+      transparent 14rem
+    ),
+    var(--background);
+}
+
+.run-spine {
+  position: relative;
+}
+
+.run-spine::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 1.1rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--presence) 18%,
+    var(--border) 72%,
+    transparent
+  );
+  content: "";
+}
+
+@media (max-width: 56rem) {
+  .specimen-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .specimen-rail {
+    position: static;
+    height: auto;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 24.375rem) {
+  .specimen-stage {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specimen-stage {
+    scroll-behavior: auto;
+  }
+}

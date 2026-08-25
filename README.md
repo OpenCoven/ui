@@ -1,124 +1,166 @@
-<div align="center">
-
 # OpenCoven UI
 
-**A self-contained component library and specimen lab for the OpenCoven agent surface.**
+OpenCoven UI is the modular component library, block library, specimen app, and
+shadcn registry for OpenCoven agent surfaces.
 
-[**View the live component library →**](https://ui.opencoven.ai)
+The package and registry share one TypeScript source tree. The specimen app
+imports the same public modules consumers receive, so documentation cannot
+quietly drift back into copied HTML.
 
-<img src="artifacts/library-overview.png" alt="OpenCoven UI component library overview page with sidebar navigation, stat strip, and house rules" width="960">
+## Foundation
 
-</div>
+| Decision        | Value                                       |
+| --------------- | ------------------------------------------- |
+| Component base  | Base UI for new interactive primitives      |
+| shadcn style    | `base-nova`                                 |
+| Scaffold seed   | Zinc                                        |
+| Brand semantics | Coven-owned CSS variables                   |
+| Presence        | Lavender `#9386d0` in dark mode             |
+| Density         | `default` and explicit `compact` variants   |
+| Language        | Strict TypeScript                           |
+| Styling         | Tailwind CSS 4 and CSS custom properties    |
+| Icons           | Lucide                                      |
+| Distribution    | `@opencoven/ui` package and shadcn registry |
 
----
+Zinc supplies neutral scaffolding only. Components consume semantic tokens such
+as `background`, `card`, `presence`, `success`, and the canonical
+`tool-read`/`tool-write`/`tool-exec`/`tool-net` mappings.
 
-## What this repository is
+## Workspace
 
-OpenCoven UI is a small, inspectable workspace for exploring interface
-direction before it enters a production application. It ships two artifacts,
-both single HTML files with no dependency installation or build step:
-
-| Artifact | Route | Purpose |
-| --- | --- | --- |
-| [`index.html`](index.html) | `/` | **The component library** — 12 components, 4 blocks, and 4 foundation pages, each with live Preview / Code / Prompt specimens, search, dark/light schemes, four accents, and two densities. |
-| [`Components.dc.html`](Components.dc.html) | `/lab` | **The specimen lab** — the original five-state browser showing Composer, Messages, Context, Actions, and Cards as full assembled scenes. |
-
-This repository is not a packaged npm library, production app, or canonical
-source for [Coven Cave](https://github.com/OpenCoven/coven-cave) components.
-
-## The component library
-
-The library documents the agent surface across five sidebar sections:
-
-| Section | Contents |
-| --- | --- |
-| **Getting started** | Overview with the house rules, and the CLI / prompt paths in. |
-| **Composer** | Mode switch, send control, completion palette, attachment chip. |
-| **Run rail** | Stat trio, plan row, timeline, file row, tool mix, failure surface, context meter, budget pill. |
-| **Blocks** | Composer, run rail, transcript turn, session header — assembled regions. |
-| **Foundations** | Theming, color, radius & elevation, type & motion. |
-
-Every component page carries a live **Preview**, the exact **Code**, and a
-paste-ready **Prompt** spec that lets a coding agent reproduce the component
-without seeing this site. The top-bar toggles drive three root attributes
-(`data-theme`, `data-accent`, `data-density`) for sixteen theme combinations,
-persisted in `localStorage`. Search filters the sidebar; `⌘K` focuses it.
-
-## The specimen lab
-
-The lab (`/lab`) preserves the five assembled interface states:
-
-| State | Purpose |
-| --- | --- |
-| **Composer** | Keeps drafting, context, model, and send controls legible without competing with the message. |
-| **Messages** | Presents a familiar response as an editorial turn with clear identity, provenance, response, and utility hierarchy. |
-| **Context** | Makes attached repositories, files, branches, and access state explicit. |
-| **Actions** | Uses direct verbs, visible consequences, and secondary keyboard cues. |
-| **Cards** | Embeds in-message artifacts — pull requests, pending proposals, attachments, and handoffs — with kind, state, and provenance visible, and pending writes never presented as performed. |
-
-Both artifacts preserve visible focus states, keyboard navigation,
-reduced-motion handling, and a responsive layout without horizontal overflow
-at 390px.
-
-## Open locally
-
-```bash
-git clone https://github.com/OpenCoven/ui.git
-cd ui
-open index.html            # the library
-open Components.dc.html    # the lab
+```text
+.
+├── apps/specimens/              React/Vite component library and five-state lab
+├── packages/ui/
+│   └── src/
+│       ├── components/ui/       Base UI and native primitives
+│       ├── components/          Coven composed components
+│       ├── blocks/              Reusable operational surfaces
+│       ├── lib/                 Shared utilities
+│       └── styles/              Semantic tokens and themes
+├── registry/                    Categorized registry source fragments
+├── public/r/                    Generated shadcn artifacts
+├── registry.json               Generated root registry
+└── docs/migration/              Legacy audit and migration evidence
 ```
 
-No install step is required. On platforms without the macOS `open` command,
-open the files directly in a browser.
-
-## Run the dev server
-
-Opening the files directly works, but a local server reproduces the deployed
-routing. [`scripts/dev.py`](scripts/dev.py) applies the same rewrites as
-[`vercel.json`](vercel.json), so `/` serves the library and `/lab` serves the
-specimen lab exactly as on [ui.opencoven.ai](https://ui.opencoven.ai).
+## Develop
 
 ```bash
-python3 scripts/dev.py        # http://127.0.0.1:4321/
-python3 scripts/dev.py 5173   # or pass a port
+pnpm install
+pnpm dev
 ```
 
-Only the Python 3 standard library is used, and responses are sent with
-`Cache-Control: no-store` so edits appear on reload.
+The specimen app opens at `http://127.0.0.1:5173/`. Its assembled lab is at
+`http://127.0.0.1:5173/lab`.
 
-## Repository map
+## Consume the package
 
-| Path | Purpose |
-| --- | --- |
-| [`index.html`](index.html) | Self-contained component library (site root) |
-| [`Components.dc.html`](Components.dc.html) | Self-contained five-state specimen lab (`/lab`) |
-| [`scripts/dev.py`](scripts/dev.py) | Dependency-free local dev server with the production rewrites |
-| [`artifacts/`](artifacts/) | Verified desktop and mobile visual receipts |
-| [`docs/superpowers/specs/`](docs/superpowers/specs/) | Approved design decisions |
-| [`docs/superpowers/plans/`](docs/superpowers/plans/) | Implementation plans and verification steps |
-| [`handoffs/`](handoffs/) | Completion and validation receipts |
+```bash
+pnpm add @opencoven/ui
+```
 
-## Contributing
+Import the theme once, then import named modules:
 
-When changing either artifact:
+```tsx
+import "@opencoven/ui/globals.css";
+import { Composer, ToolClassBadge } from "@opencoven/ui";
+```
 
-1. Keep both artifacts self-contained unless a separately approved design
-   changes the repository architecture.
-2. In the library, preserve the sidebar section semantics and give every
-   component page a Preview, Code, and Prompt specimen.
-3. In the lab, preserve all five states and the existing navigation semantics.
-4. Verify embedded JavaScript parsing, navigation, search, theme/density/accent
-   toggles, and 390px horizontal overflow.
-5. Refresh both desktop and mobile screenshots when visual behavior changes.
-6. Record exact commands and results in the relevant handoff receipt.
+Component and block subpaths are also exported:
 
-The current
-[implementation plan](docs/superpowers/plans/2026-08-17-components-messages-editorial-state.md)
-contains the exact specimen verification commands.
+```tsx
+import { ModeSwitch } from "@opencoven/ui/components/mode-switch";
+import { RunRail } from "@opencoven/ui/blocks/run-rail";
+```
 
-## Design provenance
+## Consume the registry
 
-- [Editorial Messages design](docs/superpowers/specs/2026-08-17-components-messages-editorial-state-design.md)
-- [Editorial Messages implementation plan](docs/superpowers/plans/2026-08-17-components-messages-editorial-state.md)
-- [Repository README design](docs/superpowers/specs/2026-08-17-repository-readme-design.md)
+After the generated registry is deployed at `ui.opencoven.ai`, add the
+namespace to `components.json`:
+
+```json
+{
+  "registries": {
+    "@opencoven": "https://ui.opencoven.ai/r/{name}.json"
+  }
+}
+```
+
+Then install source you own:
+
+```bash
+pnpm dlx shadcn@latest add @opencoven/button
+pnpm dlx shadcn@latest add @opencoven/composer
+```
+
+To test the registry before deployment:
+
+```bash
+pnpm registry:build
+python3 -m http.server 4321 -d public/r
+pnpm dlx shadcn@latest add http://127.0.0.1:4321/composer.json
+```
+
+`registry.json` is composed from categorized fragments. `shadcn build` then
+creates `public/r`, and a deterministic normalization pass converts package
+imports to standard consumer aliases. Do not hand-edit either generated
+surface.
+
+## Components and blocks
+
+The initial migration includes:
+
+- Base UI primitives: Button, Tabs, Tooltip, and Dropdown Menu.
+- Native primitives: Input, Textarea, Badge, Progress, Separator, and Card.
+- Composer components: Mode Switch, Send Control, Completion Palette, and
+  Attachment Chip.
+- Operational components: Metric Display, Status Indicator, Plan Row, Activity
+  Item, Resource Row, Tool Mix, Failure Surface, Context Meter, Budget Pill,
+  Search Field, Empty State, and Error State.
+- Blocks: Composer, Run Rail, Transcript Turn, and Session Header.
+
+No Radix implementation existed to retain. No React Aria dependency was added;
+the current component set does not require its collection or
+internationalization architecture.
+
+## Quality gates
+
+```bash
+pnpm check
+```
+
+This runs formatting, linting, strict type checking, unit and interaction tests,
+automated accessibility checks, architecture/design contract checks, official
+registry validation and builds, generated-artifact freshness, clean-consumer
+registry installation, package and specimen production builds, and package
+export checks.
+
+CI runs the same command on every pull request and push to `main`.
+
+## Legacy migration
+
+`index.html` and `Components.dc.html` remain as parity references. They are not
+the package or deployed specimen source. Their complete component, token,
+interaction, accessibility, responsive, and motion mapping lives in
+[`docs/migration/legacy-to-modern.md`](docs/migration/legacy-to-modern.md).
+
+Do not remove them until a later visual parity receipt covers all 12 legacy
+component pages, four blocks, five assembled scenes, both schemes, both
+densities, keyboard behavior, and 390px layout.
+
+## Contribution rules
+
+1. Add reusable behavior to `packages/ui`; never implement a private specimen
+   substitute.
+2. New interactive primitives use Base UI unless an architecture decision
+   records a concrete constraint.
+3. Keep color semantic: greys structure the interface, and color communicates
+   presence, status, or tool class.
+4. Use the 4/8/12/16px radius scale and shared density tokens.
+5. Comparable numbers use the `numeric` utility.
+6. Keep one filled action per surface.
+7. Pair every colored state with text, shape, weight, or iconography.
+8. Preserve complete feedback under `prefers-reduced-motion`.
+9. Add registry metadata and tests with every public component.
+10. Run `pnpm check` before opening a pull request.

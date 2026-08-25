@@ -1,0 +1,406 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "items": [
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "Base UI button with Coven action and density variants.",
+      "dependencies": ["@base-ui/react", "class-variance-authority"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/button.tsx",
+          "type": "registry:ui",
+          "target": "@ui/button.tsx"
+        }
+      ],
+      "meta": { "primitive": "Base UI" }
+    },
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "title": "Input",
+      "description": "Native text input with default and compact density.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/input.tsx",
+          "type": "registry:ui",
+          "target": "@ui/input.tsx"
+        }
+      ],
+      "meta": { "primitive": "native" }
+    },
+    {
+      "name": "textarea",
+      "type": "registry:ui",
+      "title": "Textarea",
+      "description": "Native multiline input with Coven semantic states.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/textarea.tsx",
+          "type": "registry:ui",
+          "target": "@ui/textarea.tsx"
+        }
+      ],
+      "meta": { "primitive": "native" }
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "Semantic status badge with a non-color text channel.",
+      "dependencies": ["class-variance-authority"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/badge.tsx",
+          "type": "registry:ui",
+          "target": "@ui/badge.tsx"
+        }
+      ]
+    },
+    {
+      "name": "progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "Accessible native progress semantics with a visual track.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/progress.tsx",
+          "type": "registry:ui",
+          "target": "@ui/progress.tsx"
+        }
+      ],
+      "meta": { "primitive": "native ARIA" }
+    },
+    {
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "Direction-aware decorative or semantic separator.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/separator.tsx",
+          "type": "registry:ui",
+          "target": "@ui/separator.tsx"
+        }
+      ]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "Base UI tabs with Coven line and surface variants.",
+      "dependencies": ["@base-ui/react", "class-variance-authority"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/tabs.tsx",
+          "type": "registry:ui",
+          "target": "@ui/tabs.tsx"
+        }
+      ],
+      "meta": { "primitive": "Base UI" }
+    },
+    {
+      "name": "tooltip",
+      "type": "registry:ui",
+      "title": "Tooltip",
+      "description": "Base UI collision-aware tooltip rendered above document flow.",
+      "dependencies": ["@base-ui/react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/tooltip.tsx",
+          "type": "registry:ui",
+          "target": "@ui/tooltip.tsx"
+        }
+      ],
+      "meta": { "primitive": "Base UI" }
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "registry:ui",
+      "title": "Dropdown menu",
+      "description": "Base UI keyboard menu with viewport collision handling.",
+      "dependencies": ["@base-ui/react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/dropdown-menu.tsx",
+          "type": "registry:ui",
+          "target": "@ui/dropdown-menu.tsx"
+        }
+      ],
+      "meta": { "primitive": "Base UI" }
+    },
+    {
+      "name": "card",
+      "type": "registry:ui",
+      "title": "Card",
+      "description": "Neutral structural surface for component composition.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/ui/card.tsx",
+          "type": "registry:ui",
+          "target": "@ui/card.tsx"
+        }
+      ]
+    },
+    {
+      "name": "mode-switch",
+      "type": "registry:component",
+      "title": "Mode switch",
+      "description": "Composer authority selector with pressed-state semantics.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/mode-switch.tsx",
+          "type": "registry:component",
+          "target": "@components/mode-switch.tsx"
+        }
+      ],
+      "meta": { "primitive": "native" }
+    },
+    {
+      "name": "send-control",
+      "type": "registry:component",
+      "title": "Send control",
+      "description": "One filled action control with a stable running state.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["button"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/send-control.tsx",
+          "type": "registry:component",
+          "target": "@components/send-control.tsx"
+        }
+      ]
+    },
+    {
+      "name": "completion-palette",
+      "type": "registry:component",
+      "title": "Completion palette",
+      "description": "Slash-command menu composed from Base UI Menu.",
+      "registryDependencies": ["dropdown-menu"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/completion-palette.tsx",
+          "type": "registry:component",
+          "target": "@components/completion-palette.tsx"
+        }
+      ]
+    },
+    {
+      "name": "attachment-chip",
+      "type": "registry:component",
+      "title": "Attachment chip",
+      "description": "Ready, uploading, and failed attachment states.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["button", "progress", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/attachment-chip.tsx",
+          "type": "registry:component",
+          "target": "@components/attachment-chip.tsx"
+        }
+      ]
+    },
+    {
+      "name": "metric-display",
+      "type": "registry:component",
+      "title": "Metric display",
+      "description": "Comparable value with tabular numeric typography.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/metric-display.tsx",
+          "type": "registry:component",
+          "target": "@components/metric-display.tsx"
+        }
+      ]
+    },
+    {
+      "name": "status-indicator",
+      "type": "registry:component",
+      "title": "Status indicator",
+      "description": "Icon and label state indicator that never relies on color alone.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/status-indicator.tsx",
+          "type": "registry:component",
+          "target": "@components/status-indicator.tsx"
+        }
+      ]
+    },
+    {
+      "name": "plan-row",
+      "type": "registry:component",
+      "title": "Plan row",
+      "description": "Pending, active, complete, or blocked plan step.",
+      "registryDependencies": ["status-indicator", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/plan-row.tsx",
+          "type": "registry:component",
+          "target": "@components/plan-row.tsx"
+        }
+      ]
+    },
+    {
+      "name": "tool-class-badge",
+      "type": "registry:component",
+      "title": "Tool-class badge",
+      "description": "Canonical read, write, exec, and net semantic badge.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/tool-class-badge.tsx",
+          "type": "registry:component",
+          "target": "@components/tool-class-badge.tsx"
+        }
+      ]
+    },
+    {
+      "name": "activity-item",
+      "type": "registry:component",
+      "title": "Activity item",
+      "description": "Append-only tool activity with target and duration.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["tool-class-badge", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/activity-item.tsx",
+          "type": "registry:component",
+          "target": "@components/activity-item.tsx"
+        }
+      ]
+    },
+    {
+      "name": "resource-row",
+      "type": "registry:component",
+      "title": "Resource row",
+      "description": "Direction-aware file or context resource row.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/resource-row.tsx",
+          "type": "registry:component",
+          "target": "@components/resource-row.tsx"
+        }
+      ]
+    },
+    {
+      "name": "tool-mix",
+      "type": "registry:component",
+      "title": "Tool mix",
+      "description": "Canonical read, exec, write, and net distribution.",
+      "registryDependencies": ["tool-class-badge", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/tool-mix.tsx",
+          "type": "registry:component",
+          "target": "@components/tool-mix.tsx"
+        }
+      ]
+    },
+    {
+      "name": "failure-surface",
+      "type": "registry:component",
+      "title": "Failure surface",
+      "description": "Durable command failure receipt with explicit actions.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["button", "card", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/failure-surface.tsx",
+          "type": "registry:component",
+          "target": "@components/failure-surface.tsx"
+        }
+      ]
+    },
+    {
+      "name": "context-meter",
+      "type": "registry:component",
+      "title": "Context meter",
+      "description": "Context-window progress with fixed compaction threshold.",
+      "registryDependencies": ["progress", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/context-meter.tsx",
+          "type": "registry:component",
+          "target": "@components/context-meter.tsx"
+        }
+      ]
+    },
+    {
+      "name": "budget-pill",
+      "type": "registry:component",
+      "title": "Budget pill",
+      "description": "Normal, warning, and over-budget spend state.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/budget-pill.tsx",
+          "type": "registry:component",
+          "target": "@components/budget-pill.tsx"
+        }
+      ]
+    },
+    {
+      "name": "search-field",
+      "type": "registry:component",
+      "title": "Search field",
+      "description": "Search input with icon, accessible label, and optional shortcut.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["input", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/search-field.tsx",
+          "type": "registry:component",
+          "target": "@components/search-field.tsx"
+        }
+      ]
+    },
+    {
+      "name": "empty-state",
+      "type": "registry:component",
+      "title": "Empty state",
+      "description": "Actionable empty state with plain-language guidance.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/empty-state.tsx",
+          "type": "registry:component",
+          "target": "@components/empty-state.tsx"
+        }
+      ]
+    },
+    {
+      "name": "error-state",
+      "type": "registry:component",
+      "title": "Error state",
+      "description": "Persistent error state with a corrective next action.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/components/error-state.tsx",
+          "type": "registry:component",
+          "target": "@components/error-state.tsx"
+        }
+      ]
+    }
+  ]
+}

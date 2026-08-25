@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "send-control",
+  "title": "Send control",
+  "description": "One filled action control with a stable running state.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/button"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/send-control.tsx",
+      "content": "import { ArrowUp, CircleStop, ChevronDown } from \"lucide-react\";\n\nimport { Button } from \"@/components/ui/button\";\nimport { cn } from \"@/lib/utils\";\n\ntype SendControlProps = {\n  running?: boolean;\n  disabled?: boolean;\n  density?: \"default\" | \"compact\";\n  onSend?: () => void;\n  onStop?: () => void;\n  onOpenOptions?: () => void;\n  className?: string;\n};\n\nfunction SendControl({\n  running = false,\n  disabled = false,\n  density = \"default\",\n  onSend,\n  onStop,\n  onOpenOptions,\n  className,\n}: SendControlProps) {\n  if (running) {\n    return (\n      <Button\n        type=\"button\"\n        variant=\"destructive\"\n        density={density}\n        disabled={disabled}\n        onClick={onStop}\n        className={cn(\"min-w-24\", className)}\n      >\n        <CircleStop />\n        Stop run\n      </Button>\n    );\n  }\n\n  return (\n    <div\n      data-slot=\"send-control\"\n      className={cn(\n        \"inline-flex overflow-hidden rounded-md bg-presence text-presence-foreground\",\n        className,\n      )}\n    >\n      <Button\n        type=\"button\"\n        variant=\"presence\"\n        density={density}\n        disabled={disabled}\n        onClick={onSend}\n        className=\"rounded-e-none\"\n      >\n        Send\n        <ArrowUp />\n      </Button>\n      <Button\n        type=\"button\"\n        variant=\"presence\"\n        density={density}\n        size=\"icon\"\n        disabled={disabled}\n        aria-label=\"Send options\"\n        onClick={onOpenOptions}\n        className=\"rounded-s-none border-s border-s-presence-foreground/25\"\n      >\n        <ChevronDown />\n      </Button>\n    </div>\n  );\n}\n\nexport { SendControl, type SendControlProps };\n",
+      "type": "registry:component",
+      "target": "@components/send-control.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

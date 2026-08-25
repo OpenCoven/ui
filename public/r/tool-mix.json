@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "tool-mix",
+  "title": "Tool mix",
+  "description": "Canonical read, exec, write, and net distribution.",
+  "registryDependencies": [
+    "@opencoven/tool-class-badge",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/tool-mix.tsx",
+      "content": "import { type CSSProperties } from \"react\";\n\nimport { type ToolClass } from \"@/components/tool-class-badge\";\nimport { cn } from \"@/lib/utils\";\n\ntype ToolMixValue = {\n  tool: ToolClass;\n  value: number;\n};\n\nconst TOOL_ORDER: ToolClass[] = [\"read\", \"exec\", \"write\", \"net\"];\n\nconst toolStyles: Record<ToolClass, string> = {\n  read: \"bg-tool-read\",\n  write: \"bg-tool-write\",\n  exec: \"bg-tool-exec\",\n  net: \"bg-tool-net\",\n};\n\ntype ToolMixProps = {\n  values: ToolMixValue[];\n  label?: string;\n  className?: string;\n};\n\nfunction ToolMix({ values, label = \"Tool usage\", className }: ToolMixProps) {\n  const normalized = TOOL_ORDER.map((tool) => ({\n    tool,\n    value: Math.max(0, values.find((entry) => entry.tool === tool)?.value ?? 0),\n  }));\n  const total = normalized.reduce((sum, entry) => sum + entry.value, 0);\n  const percentages = normalized.map((entry) => ({\n    ...entry,\n    percentage: total === 0 ? 0 : Math.round((entry.value / total) * 100),\n  }));\n  const accessibleLabel = percentages\n    .map(({ tool, percentage }) => `${tool} ${percentage} percent`)\n    .join(\", \");\n\n  return (\n    <figure\n      data-slot=\"tool-mix\"\n      className={cn(\"grid gap-2\", className)}\n      aria-label={`${label}: ${accessibleLabel}`}\n    >\n      <div\n        role=\"img\"\n        aria-label={accessibleLabel}\n        className=\"flex h-2.5 overflow-hidden rounded-sm bg-muted\"\n      >\n        {percentages.map(({ tool, percentage }) => (\n          <span\n            key={tool}\n            data-tool={tool}\n            className={cn(\"h-full min-w-px\", toolStyles[tool])}\n            style={{ width: `${percentage}%` } as CSSProperties}\n          />\n        ))}\n      </div>\n      <figcaption className=\"flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground\">\n        {percentages.map(({ tool, percentage }) => (\n          <span\n            key={tool}\n            className=\"inline-flex items-center gap-1 capitalize\"\n          >\n            <span\n              aria-hidden=\"true\"\n              className={cn(\"size-2 rounded-sm\", toolStyles[tool])}\n            />\n            {tool}\n            <strong className=\"numeric text-foreground\">{percentage}%</strong>\n          </span>\n        ))}\n      </figcaption>\n    </figure>\n  );\n}\n\nexport { TOOL_ORDER, ToolMix, type ToolMixProps, type ToolMixValue };\n",
+      "type": "registry:component",
+      "target": "@components/tool-mix.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

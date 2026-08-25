@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.tmp/
+apps/specimens/dist/
+packages/ui/dist/

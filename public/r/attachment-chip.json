@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "attachment-chip",
+  "title": "Attachment chip",
+  "description": "Ready, uploading, and failed attachment states.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/button",
+    "@opencoven/progress",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/attachment-chip.tsx",
+      "content": "import { AlertCircle, File, LoaderCircle, X } from \"lucide-react\";\n\nimport { Button } from \"@/components/ui/button\";\nimport { Progress } from \"@/components/ui/progress\";\nimport { cn } from \"@/lib/utils\";\n\ntype AttachmentState = \"ready\" | \"uploading\" | \"failed\";\n\ntype AttachmentChipProps = {\n  name: string;\n  meta?: string;\n  state?: AttachmentState;\n  progress?: number;\n  onRemove?: () => void;\n  className?: string;\n};\n\nfunction AttachmentChip({\n  name,\n  meta,\n  state = \"ready\",\n  progress = 0,\n  onRemove,\n  className,\n}: AttachmentChipProps) {\n  const Icon =\n    state === \"uploading\"\n      ? LoaderCircle\n      : state === \"failed\"\n        ? AlertCircle\n        : File;\n\n  return (\n    <span\n      data-slot=\"attachment-chip\"\n      data-state={state}\n      className={cn(\n        \"inline-grid max-w-72 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs\",\n        state === \"uploading\" && \"border-dashed\",\n        state === \"failed\" && \"border-destructive/45\",\n        className,\n      )}\n    >\n      <Icon\n        aria-hidden=\"true\"\n        className={cn(\n          \"size-3.5 text-muted-foreground\",\n          state === \"uploading\" && \"animate-spin motion-reduce:animate-none\",\n          state === \"failed\" && \"text-destructive\",\n        )}\n      />\n      <span className=\"min-w-0\">\n        <span className=\"block truncate font-medium\">{name}</span>\n        {state === \"uploading\" ? (\n          <Progress\n            value={progress}\n            label={`Uploading ${name}`}\n            className=\"mt-1 h-1\"\n          />\n        ) : (\n          <span\n            className={cn(\n              \"numeric block text-[0.68rem] text-muted-foreground\",\n              state === \"failed\" && \"font-semibold text-destructive\",\n            )}\n          >\n            {meta}\n          </span>\n        )}\n      </span>\n      {state !== \"uploading\" && onRemove ? (\n        <Button\n          type=\"button\"\n          variant=\"ghost\"\n          density=\"compact\"\n          size=\"icon\"\n          aria-label={`Remove ${name}`}\n          onClick={onRemove}\n        >\n          <X />\n        </Button>\n      ) : null}\n    </span>\n  );\n}\n\nexport { AttachmentChip, type AttachmentChipProps, type AttachmentState };\n",
+      "type": "registry:component",
+      "target": "@components/attachment-chip.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

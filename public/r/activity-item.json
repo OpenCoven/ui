@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "activity-item",
+  "title": "Activity item",
+  "description": "Append-only tool activity with target and duration.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/tool-class-badge",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/activity-item.tsx",
+      "content": "import { LoaderCircle } from \"lucide-react\";\n\nimport {\n  ToolClassBadge,\n  type ToolClass,\n} from \"@/components/tool-class-badge\";\nimport { cn } from \"@/lib/utils\";\n\ntype ActivityItemProps = {\n  tool: ToolClass;\n  target: string;\n  duration?: string;\n  running?: boolean;\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction ActivityItem({\n  tool,\n  target,\n  duration,\n  running = false,\n  density = \"default\",\n  className,\n}: ActivityItemProps) {\n  return (\n    <div\n      data-slot=\"activity-item\"\n      data-tool={tool}\n      data-density={density}\n      className={cn(\n        \"grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 py-1.5\",\n        density === \"compact\" && \"py-1 text-xs\",\n        className,\n      )}\n    >\n      <ToolClassBadge tool={tool} />\n      <span className=\"truncate text-sm text-muted-foreground\">{target}</span>\n      {running ? (\n        <LoaderCircle\n          aria-label=\"Running\"\n          className=\"size-3.5 animate-spin text-presence motion-reduce:animate-none\"\n        />\n      ) : (\n        <span className=\"numeric text-xs text-muted-foreground\">\n          {duration}\n        </span>\n      )}\n    </div>\n  );\n}\n\nexport { ActivityItem, type ActivityItemProps };\n",
+      "type": "registry:component",
+      "target": "@components/activity-item.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

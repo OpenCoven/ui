@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "input",
+  "title": "Input",
+  "description": "Native text input with default and compact density.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/ui/input.tsx",
+      "content": "import * as React from \"react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype InputProps = React.ComponentProps<\"input\"> & {\n  density?: \"default\" | \"compact\";\n};\n\nfunction Input({ className, density = \"default\", type, ...props }: InputProps) {\n  return (\n    <input\n      type={type}\n      data-slot=\"input\"\n      data-density={density}\n      className={cn(\n        \"w-full min-w-0 rounded-md border border-input bg-card px-3 text-sm text-foreground shadow-[var(--elevation-1)] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive\",\n        density === \"compact\" ? \"h-7 px-2 text-xs\" : \"h-8\",\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nexport { Input, type InputProps };\n",
+      "type": "registry:ui",
+      "target": "@ui/input.tsx"
+    }
+  ],
+  "meta": {
+    "primitive": "native"
+  },
+  "type": "registry:ui"
+}

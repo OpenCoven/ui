@@ -1,14 +1,12 @@
 {
-  "framework": null,
-  "buildCommand": null,
+  "framework": "vite",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "apps/specimens/dist",
   "rewrites": [
     {
-      "source": "/",
+      "source": "/(.*)",
       "destination": "/index.html"
-    },
-    {
-      "source": "/lab",
-      "destination": "/Components.dc.html"
     }
   ]
 }

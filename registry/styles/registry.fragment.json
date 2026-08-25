@@ -1,0 +1,25 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "items": [
+    {
+      "name": "coven-theme",
+      "type": "registry:theme",
+      "title": "Coven semantic theme",
+      "description": "Nova density, Zinc-seeded structure, lavender presence, and canonical tool-class tokens.",
+      "files": [
+        {
+          "path": "../../packages/ui/src/styles/globals.css",
+          "type": "registry:theme",
+          "target": "src/styles/opencoven.css"
+        }
+      ],
+      "meta": {
+        "style": "base-nova",
+        "baseColor": "zinc",
+        "cssVariables": true,
+        "density": ["default", "compact"],
+        "motion": "prefers-reduced-motion"
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "metric-display",
+  "title": "Metric display",
+  "description": "Comparable value with tabular numeric typography.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/metric-display.tsx",
+      "content": "import { cn } from \"@/lib/utils\";\n\ntype MetricTone = \"neutral\" | \"success\" | \"warning\" | \"information\";\n\nconst toneStyles: Record<MetricTone, string> = {\n  neutral: \"text-foreground\",\n  success: \"text-success\",\n  warning: \"text-warning\",\n  information: \"text-information\",\n};\n\ntype MetricDisplayProps = {\n  value: string | number;\n  label: string;\n  unit?: string;\n  tone?: MetricTone;\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction MetricDisplay({\n  value,\n  label,\n  unit,\n  tone = \"neutral\",\n  density = \"default\",\n  className,\n}: MetricDisplayProps) {\n  return (\n    <div\n      data-slot=\"metric-display\"\n      data-density={density}\n      className={cn(\n        \"grid min-w-0 gap-0.5 px-3 py-2\",\n        density === \"compact\" && \"px-2 py-1.5\",\n        className,\n      )}\n    >\n      <strong\n        className={cn(\n          \"numeric truncate text-xl leading-none\",\n          density === \"compact\" && \"text-base\",\n          toneStyles[tone],\n        )}\n      >\n        {value}\n        {unit ? (\n          <span className=\"ms-0.5 text-xs font-medium text-muted-foreground\">\n            {unit}\n          </span>\n        ) : null}\n      </strong>\n      <span className=\"numeric truncate text-[0.62rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase\">\n        {label}\n      </span>\n    </div>\n  );\n}\n\nexport { MetricDisplay, type MetricDisplayProps, type MetricTone };\n",
+      "type": "registry:component",
+      "target": "@components/metric-display.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

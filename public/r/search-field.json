@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "search-field",
+  "title": "Search field",
+  "description": "Search input with icon, accessible label, and optional shortcut.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/input",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/search-field.tsx",
+      "content": "import { Search } from \"lucide-react\";\n\nimport { Input, type InputProps } from \"@/components/ui/input\";\nimport { cn } from \"@/lib/utils\";\n\ntype SearchFieldProps = Omit<InputProps, \"type\"> & {\n  shortcut?: string;\n};\n\nfunction SearchField({\n  className,\n  shortcut,\n  \"aria-label\": ariaLabel = \"Search\",\n  ...props\n}: SearchFieldProps) {\n  return (\n    <label\n      data-slot=\"search-field\"\n      className={cn(\n        \"relative flex items-center text-muted-foreground\",\n        className,\n      )}\n    >\n      <Search\n        aria-hidden=\"true\"\n        className=\"pointer-events-none absolute start-2.5 size-3.5\"\n      />\n      <Input\n        type=\"search\"\n        aria-label={ariaLabel}\n        className=\"ps-8 pe-12\"\n        {...props}\n      />\n      {shortcut ? (\n        <kbd className=\"numeric pointer-events-none absolute end-2 rounded-sm border border-border bg-muted px-1 text-[0.65rem]\">\n          {shortcut}\n        </kbd>\n      ) : null}\n    </label>\n  );\n}\n\nexport { SearchField, type SearchFieldProps };\n",
+      "type": "registry:component",
+      "target": "@components/search-field.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

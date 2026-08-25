@@ -1,0 +1,10 @@
+artifacts
+dist
+docs/superpowers
+handoffs
+node_modules
+public/r
+registry.json
+pnpm-lock.yaml
+index.html
+Components.dc.html

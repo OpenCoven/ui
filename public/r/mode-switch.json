@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "mode-switch",
+  "title": "Mode switch",
+  "description": "Composer authority selector with pressed-state semantics.",
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/mode-switch.tsx",
+      "content": "\"use client\";\n\nimport { cn } from \"@/lib/utils\";\n\nconst MODES = [\"chat\", \"do\", \"plan\"] as const;\ntype ComposerMode = (typeof MODES)[number];\n\ntype ModeSwitchProps = {\n  value: ComposerMode;\n  onValueChange: (value: ComposerMode) => void;\n  density?: \"default\" | \"compact\";\n  disabled?: boolean;\n  className?: string;\n};\n\nfunction ModeSwitch({\n  value,\n  onValueChange,\n  density = \"default\",\n  disabled = false,\n  className,\n}: ModeSwitchProps) {\n  return (\n    <div\n      data-slot=\"mode-switch\"\n      data-density={density}\n      role=\"group\"\n      aria-label=\"Composer mode\"\n      className={cn(\n        \"inline-flex rounded-md border border-border bg-card p-[3px]\",\n        className,\n      )}\n    >\n      {MODES.map((mode) => {\n        const selected = value === mode;\n        return (\n          <button\n            key={mode}\n            type=\"button\"\n            aria-pressed={selected}\n            disabled={disabled}\n            onClick={() => onValueChange(mode)}\n            className={cn(\n              \"rounded-sm border border-transparent px-2.5 text-sm font-medium capitalize text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50\",\n              density === \"compact\" ? \"h-6 text-xs\" : \"h-7\",\n              selected &&\n                \"border-presence/25 bg-presence/12 font-semibold text-presence shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--presence)_22%,transparent)]\",\n            )}\n          >\n            {mode}\n          </button>\n        );\n      })}\n    </div>\n  );\n}\n\nexport { ModeSwitch, type ComposerMode, type ModeSwitchProps };\n",
+      "type": "registry:component",
+      "target": "@components/mode-switch.tsx"
+    }
+  ],
+  "meta": {
+    "primitive": "native"
+  },
+  "type": "registry:component"
+}

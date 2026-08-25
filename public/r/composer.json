@@ -1,0 +1,33 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "composer",
+  "title": "Composer",
+  "description": "Intent-taking surface with draft, attachments, mode, model, and send state.",
+  "registryDependencies": [
+    "@opencoven/attachment-chip",
+    "@opencoven/mode-switch",
+    "@opencoven/send-control",
+    "@opencoven/textarea"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/blocks/composer.tsx",
+      "content": "\"use client\";\n\nimport * as React from \"react\";\n\nimport { AttachmentChip } from \"@/components/attachment-chip\";\nimport {\n  ModeSwitch,\n  type ComposerMode,\n} from \"@/components/mode-switch\";\nimport { SendControl } from \"@/components/send-control\";\nimport { Textarea } from \"@/components/ui/textarea\";\nimport { cn } from \"@/lib/utils\";\n\ntype ComposerAttachment = {\n  id: string;\n  name: string;\n  meta?: string;\n};\n\ntype ComposerProps = {\n  value: string;\n  onValueChange: (value: string) => void;\n  mode: ComposerMode;\n  onModeChange: (mode: ComposerMode) => void;\n  attachments?: ComposerAttachment[];\n  onRemoveAttachment?: (id: string) => void;\n  onSend?: () => void;\n  running?: boolean;\n  onStop?: () => void;\n  model?: string;\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction Composer({\n  value,\n  onValueChange,\n  mode,\n  onModeChange,\n  attachments = [],\n  onRemoveAttachment,\n  onSend,\n  running = false,\n  onStop,\n  model = \"GPT-5.6 Sol\",\n  density = \"default\",\n  className,\n}: ComposerProps) {\n  return (\n    <section\n      data-slot=\"composer\"\n      data-density={density}\n      aria-label=\"Message composer\"\n      className={cn(\n        \"surface grid gap-[var(--density-gap)] p-[var(--density-panel)]\",\n        className,\n      )}\n    >\n      <label className=\"sr-only\" htmlFor=\"coven-composer-message\">\n        Message\n      </label>\n      <Textarea\n        id=\"coven-composer-message\"\n        value={value}\n        density={density}\n        onChange={(event) => onValueChange(event.target.value)}\n        placeholder=\"Describe the change, attach context, pick a mode…\"\n        className=\"min-h-24 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0\"\n      />\n      {attachments.length > 0 ? (\n        <div className=\"flex flex-wrap gap-2\" aria-label=\"Attachments\">\n          {attachments.map((attachment) => (\n            <AttachmentChip\n              key={attachment.id}\n              name={attachment.name}\n              meta={attachment.meta}\n              onRemove={\n                onRemoveAttachment\n                  ? () => onRemoveAttachment(attachment.id)\n                  : undefined\n              }\n            />\n          ))}\n        </div>\n      ) : null}\n      <footer className=\"flex flex-wrap items-center gap-2\">\n        <ModeSwitch\n          value={mode}\n          onValueChange={onModeChange}\n          density={density}\n        />\n        <span className=\"numeric ms-auto text-xs text-muted-foreground\">\n          {model}\n        </span>\n        <SendControl\n          running={running}\n          density={density}\n          disabled={!running && value.trim().length === 0}\n          onSend={onSend}\n          onStop={onStop}\n        />\n      </footer>\n    </section>\n  );\n}\n\nexport { Composer, type ComposerAttachment, type ComposerProps };\n",
+      "type": "registry:block",
+      "target": "@components/blocks/composer.tsx"
+    }
+  ],
+  "meta": {
+    "examples": [
+      "populated",
+      "empty",
+      "running",
+      "disabled"
+    ],
+    "density": [
+      "default",
+      "compact"
+    ]
+  },
+  "type": "registry:block"
+}

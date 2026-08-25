@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "plan-row",
+  "title": "Plan row",
+  "description": "Pending, active, complete, or blocked plan step.",
+  "registryDependencies": [
+    "@opencoven/status-indicator",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/plan-row.tsx",
+      "content": "import { StatusIndicator, type Status } from \"./status-indicator\";\nimport { cn } from \"@/lib/utils\";\n\ntype PlanRowProps = {\n  title: string;\n  status: Extract<Status, \"pending\" | \"active\" | \"complete\" | \"blocked\">;\n  duration?: string;\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction PlanRow({\n  title,\n  status,\n  duration,\n  density = \"default\",\n  className,\n}: PlanRowProps) {\n  const displayedDuration =\n    status === \"active\" ? \"now\" : status === \"pending\" ? \"—\" : duration;\n\n  return (\n    <div\n      data-slot=\"plan-row\"\n      data-status={status}\n      data-density={density}\n      className={cn(\n        \"grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border px-3 py-2 last:border-b-0\",\n        density === \"compact\" && \"px-2 py-1.5 text-xs\",\n        className,\n      )}\n    >\n      <StatusIndicator status={status} label=\"\" aria-label={status} />\n      <span\n        className={cn(\n          \"truncate text-sm\",\n          status === \"active\" && \"font-semibold\",\n          status === \"complete\" &&\n            \"text-muted-foreground line-through decoration-border\",\n        )}\n      >\n        {title}\n      </span>\n      <span className=\"numeric text-xs text-muted-foreground\">\n        {displayedDuration}\n      </span>\n    </div>\n  );\n}\n\nexport { PlanRow, type PlanRowProps };\n",
+      "type": "registry:component",
+      "target": "@components/plan-row.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

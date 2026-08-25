@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "session-header",
+  "title": "Session header",
+  "description": "Task title, branch, execution state, and budget in one line.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/budget-pill",
+    "@opencoven/status-indicator",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/blocks/session-header.tsx",
+      "content": "import { GitBranch } from \"lucide-react\";\n\nimport { BudgetPill } from \"@/components/budget-pill\";\nimport {\n  StatusIndicator,\n  type Status,\n} from \"@/components/status-indicator\";\nimport { cn } from \"@/lib/utils\";\n\ntype SessionHeaderProps = {\n  title: string;\n  branch: string;\n  status: Status;\n  budget?: {\n    used: number;\n    limit: number;\n  };\n  className?: string;\n};\n\nfunction SessionHeader({\n  title,\n  branch,\n  status,\n  budget,\n  className,\n}: SessionHeaderProps) {\n  return (\n    <header\n      data-slot=\"session-header\"\n      className={cn(\n        \"flex min-w-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3\",\n        className,\n      )}\n    >\n      <span className=\"min-w-0 flex-1\">\n        <strong className=\"block truncate text-sm\">{title}</strong>\n        <span className=\"numeric flex items-center gap-1 truncate text-xs text-muted-foreground\">\n          <GitBranch aria-hidden=\"true\" className=\"size-3\" />\n          {branch}\n        </span>\n      </span>\n      <StatusIndicator status={status} />\n      {budget ? <BudgetPill {...budget} /> : null}\n    </header>\n  );\n}\n\nexport { SessionHeader, type SessionHeaderProps };\n",
+      "type": "registry:block",
+      "target": "@components/blocks/session-header.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

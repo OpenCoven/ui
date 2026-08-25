@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "failure-surface",
+  "title": "Failure surface",
+  "description": "Durable command failure receipt with explicit actions.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/button",
+    "@opencoven/card",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/failure-surface.tsx",
+      "content": "import { AlertTriangle } from \"lucide-react\";\n\nimport { Button } from \"@/components/ui/button\";\nimport {\n  Card,\n  CardContent,\n  CardFooter,\n  CardHeader,\n} from \"@/components/ui/card\";\nimport { cn } from \"@/lib/utils\";\n\ntype FailureAction = {\n  label: string;\n  onSelect: () => void;\n};\n\ntype FailureSurfaceProps = {\n  command: string;\n  exitCode: number;\n  output: string;\n  actions?: FailureAction[];\n  className?: string;\n};\n\nfunction FailureSurface({\n  command,\n  exitCode,\n  output,\n  actions = [],\n  className,\n}: FailureSurfaceProps) {\n  return (\n    <Card\n      data-slot=\"failure-surface\"\n      role=\"alert\"\n      className={cn(\n        \"border-destructive/45 border-s-4 border-s-destructive\",\n        className,\n      )}\n    >\n      <CardHeader className=\"grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2\">\n        <span className=\"numeric inline-flex items-center gap-1 rounded-sm border border-destructive/40 bg-destructive/12 px-1.5 py-0.5 text-xs font-semibold text-destructive uppercase\">\n          <AlertTriangle aria-hidden=\"true\" className=\"size-3\" />\n          exit {exitCode}\n        </span>\n        <strong className=\"truncate text-sm\">{command}</strong>\n      </CardHeader>\n      <CardContent>\n        <pre className=\"numeric max-h-52 overflow-auto rounded-sm bg-muted p-3 text-xs whitespace-pre-wrap text-foreground\">\n          {output}\n        </pre>\n      </CardContent>\n      {actions.length > 0 ? (\n        <CardFooter>\n          {actions.map((action) => (\n            <Button\n              key={action.label}\n              type=\"button\"\n              variant=\"ghost\"\n              density=\"compact\"\n              onClick={action.onSelect}\n            >\n              {action.label}\n            </Button>\n          ))}\n        </CardFooter>\n      ) : null}\n    </Card>\n  );\n}\n\nexport { FailureSurface, type FailureAction, type FailureSurfaceProps };\n",
+      "type": "registry:component",
+      "target": "@components/failure-surface.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "items": [
+    {
+      "name": "composer",
+      "type": "registry:block",
+      "title": "Composer",
+      "description": "Intent-taking surface with draft, attachments, mode, model, and send state.",
+      "registryDependencies": [
+        "attachment-chip",
+        "mode-switch",
+        "send-control",
+        "textarea"
+      ],
+      "files": [
+        {
+          "path": "../../packages/ui/src/blocks/composer.tsx",
+          "type": "registry:block",
+          "target": "@components/blocks/composer.tsx"
+        }
+      ],
+      "meta": {
+        "examples": ["populated", "empty", "running", "disabled"],
+        "density": ["default", "compact"]
+      }
+    },
+    {
+      "name": "run-rail",
+      "type": "registry:block",
+      "title": "Run rail",
+      "description": "Live metrics, activity, context-window use, and budget.",
+      "registryDependencies": [
+        "activity-item",
+        "budget-pill",
+        "context-meter",
+        "metric-display",
+        "card"
+      ],
+      "files": [
+        {
+          "path": "../../packages/ui/src/blocks/run-rail.tsx",
+          "type": "registry:block",
+          "target": "@components/blocks/run-rail.tsx"
+        }
+      ],
+      "meta": {
+        "examples": ["populated", "loading", "empty", "error", "restricted"],
+        "density": ["default", "compact"]
+      }
+    },
+    {
+      "name": "transcript-turn",
+      "type": "registry:block",
+      "title": "Transcript turn",
+      "description": "Familiar identity, provenance, response, utilities, and artifacts.",
+      "registryDependencies": ["cn", "coven-theme"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/blocks/transcript-turn.tsx",
+          "type": "registry:block",
+          "target": "@components/blocks/transcript-turn.tsx"
+        }
+      ],
+      "meta": {
+        "examples": ["streaming", "complete", "with-artifacts"]
+      }
+    },
+    {
+      "name": "session-header",
+      "type": "registry:block",
+      "title": "Session header",
+      "description": "Task title, branch, execution state, and budget in one line.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["budget-pill", "status-indicator", "cn"],
+      "files": [
+        {
+          "path": "../../packages/ui/src/blocks/session-header.tsx",
+          "type": "registry:block",
+          "target": "@components/blocks/session-header.tsx"
+        }
+      ]
+    }
+  ]
+}

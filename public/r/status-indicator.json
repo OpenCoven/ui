@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "status-indicator",
+  "title": "Status indicator",
+  "description": "Icon and label state indicator that never relies on color alone.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/status-indicator.tsx",
+      "content": "import { Check, Circle, LoaderCircle, TriangleAlert } from \"lucide-react\";\nimport * as React from \"react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype Status = \"pending\" | \"active\" | \"complete\" | \"blocked\";\n\nconst statusConfig = {\n  pending: {\n    icon: Circle,\n    label: \"Pending\",\n    className: \"text-muted-foreground\",\n  },\n  active: {\n    icon: LoaderCircle,\n    label: \"Active\",\n    className: \"text-presence\",\n  },\n  complete: {\n    icon: Check,\n    label: \"Complete\",\n    className: \"text-success\",\n  },\n  blocked: {\n    icon: TriangleAlert,\n    label: \"Blocked\",\n    className: \"text-warning\",\n  },\n} as const;\n\ntype StatusIndicatorProps = Omit<React.ComponentProps<\"span\">, \"children\"> & {\n  status: Status;\n  label?: string;\n};\n\nfunction StatusIndicator({\n  status,\n  label = statusConfig[status].label,\n  className,\n  ...props\n}: StatusIndicatorProps) {\n  const Icon = statusConfig[status].icon;\n  return (\n    <span\n      data-slot=\"status-indicator\"\n      data-status={status}\n      className={cn(\n        \"inline-flex items-center gap-1 text-xs font-medium\",\n        statusConfig[status].className,\n        className,\n      )}\n      {...props}\n    >\n      <Icon\n        aria-hidden=\"true\"\n        className={cn(\n          \"size-3.5\",\n          status === \"active\" && \"animate-spin motion-reduce:animate-none\",\n        )}\n      />\n      {label}\n    </span>\n  );\n}\n\nexport { StatusIndicator, type Status, type StatusIndicatorProps };\n",
+      "type": "registry:component",
+      "target": "@components/status-indicator.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

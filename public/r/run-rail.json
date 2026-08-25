@@ -1,0 +1,35 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "run-rail",
+  "title": "Run rail",
+  "description": "Live metrics, activity, context-window use, and budget.",
+  "registryDependencies": [
+    "@opencoven/activity-item",
+    "@opencoven/budget-pill",
+    "@opencoven/context-meter",
+    "@opencoven/metric-display",
+    "@opencoven/card"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/blocks/run-rail.tsx",
+      "content": "import {\n  ActivityItem,\n  type ActivityItemProps,\n} from \"@/components/activity-item\";\nimport { BudgetPill } from \"@/components/budget-pill\";\nimport { ContextMeter } from \"@/components/context-meter\";\nimport {\n  MetricDisplay,\n  type MetricDisplayProps,\n} from \"@/components/metric-display\";\nimport { Card } from \"@/components/ui/card\";\nimport { cn } from \"@/lib/utils\";\n\ntype RunRailProps = {\n  metrics: MetricDisplayProps[];\n  activity: ActivityItemProps[];\n  context: {\n    used: number;\n    total: number;\n    threshold?: number;\n  };\n  budget: {\n    used: number;\n    limit: number;\n  };\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction RunRail({\n  metrics,\n  activity,\n  context,\n  budget,\n  density = \"default\",\n  className,\n}: RunRailProps) {\n  return (\n    <aside\n      data-slot=\"run-rail\"\n      data-density={density}\n      aria-label=\"Run status\"\n      className={cn(\"grid content-start gap-4\", className)}\n    >\n      <div>\n        <p className=\"numeric mb-2 text-[0.65rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase\">\n          Run\n        </p>\n        <Card className=\"grid grid-cols-3 divide-x divide-border\">\n          {metrics.map((metric) => (\n            <MetricDisplay key={metric.label} {...metric} density={density} />\n          ))}\n        </Card>\n      </div>\n      <div>\n        <p className=\"numeric mb-2 text-[0.65rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase\">\n          Activity\n        </p>\n        <Card className=\"divide-y divide-border px-3 py-1\">\n          {activity.map((item, index) => (\n            <ActivityItem\n              key={`${item.tool}-${index}`}\n              {...item}\n              density={density}\n            />\n          ))}\n        </Card>\n      </div>\n      <div>\n        <p className=\"numeric mb-2 text-[0.65rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase\">\n          Limits\n        </p>\n        <Card className=\"grid gap-3 p-3\">\n          <ContextMeter {...context} density={density} />\n          <BudgetPill {...budget} className=\"justify-self-start\" />\n        </Card>\n      </div>\n    </aside>\n  );\n}\n\nexport { RunRail, type RunRailProps };\n",
+      "type": "registry:block",
+      "target": "@components/blocks/run-rail.tsx"
+    }
+  ],
+  "meta": {
+    "examples": [
+      "populated",
+      "loading",
+      "empty",
+      "error",
+      "restricted"
+    ],
+    "density": [
+      "default",
+      "compact"
+    ]
+  },
+  "type": "registry:block"
+}

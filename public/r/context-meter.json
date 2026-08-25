@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "context-meter",
+  "title": "Context meter",
+  "description": "Context-window progress with fixed compaction threshold.",
+  "registryDependencies": [
+    "@opencoven/progress",
+    "@opencoven/cn"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/context-meter.tsx",
+      "content": "import { Progress } from \"@/components/ui/progress\";\nimport { cn } from \"@/lib/utils\";\n\ntype ContextMeterProps = {\n  used: number;\n  total: number;\n  threshold?: number;\n  density?: \"default\" | \"compact\";\n  className?: string;\n};\n\nfunction ContextMeter({\n  used,\n  total,\n  threshold = 0.8,\n  density = \"default\",\n  className,\n}: ContextMeterProps) {\n  const percentage = total > 0 ? Math.min(used / total, 1) : 0;\n  const warning = percentage >= threshold;\n  const percentLabel = Math.round(percentage * 100);\n\n  return (\n    <div\n      data-slot=\"context-meter\"\n      data-state={warning ? \"warning\" : \"normal\"}\n      data-density={density}\n      className={cn(\"grid gap-1.5\", className)}\n    >\n      <div className=\"flex items-baseline justify-between gap-3 text-xs\">\n        <span className=\"text-muted-foreground\">Context</span>\n        <strong\n          className={cn(\"numeric text-foreground\", warning && \"text-warning\")}\n        >\n          {percentLabel}% · {used.toLocaleString()} / {total.toLocaleString()}\n        </strong>\n      </div>\n      <div className=\"relative\">\n        <Progress\n          value={used}\n          max={total}\n          label={`${percentLabel}% of context used`}\n          indicatorClassName={warning ? \"bg-warning\" : \"bg-presence\"}\n        />\n        <span\n          aria-hidden=\"true\"\n          className=\"absolute -inset-y-1 w-px bg-foreground/60\"\n          style={{ insetInlineStart: `${threshold * 100}%` }}\n        />\n      </div>\n    </div>\n  );\n}\n\nexport { ContextMeter, type ContextMeterProps };\n",
+      "type": "registry:component",
+      "target": "@components/context-meter.tsx"
+    }
+  ],
+  "type": "registry:component"
+}
