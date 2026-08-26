@@ -408,3 +408,70 @@
   unknown path 404.
 - Commit `23256db` pushed to `main` (repo takes direct commits; no PR or CI
   configured).
+
+## 2026-08-26 — Live deployment review: the registry was never deployed
+
+Reviewed `https://ui.opencoven.ai/` at `f447222` (post pnpm-monorepo migration).
+
+**Deployment is current and reproducible.** A local `pnpm build` emitted
+`assets/index-Bdto56ik.css` and `assets/index-Lx5oImkc.js` — the exact asset
+names referenced by the live `index.html`. The SPA shell and CSS bundle both
+serve correctly.
+
+**Defect found — every published registry URL returned HTML, not JSON.**
+`README.md`, root `components.json` and `registry.json` all advertise
+`https://ui.opencoven.ai/r/{name}.json` as the install path
+(`pnpm dlx shadcn@latest add @opencoven/button`). Live probes of
+`/r/registry.json` and `/r/button.json` both returned the SPA shell with
+HTTP 200. The repository's primary documented consumer workflow was broken.
+
+Two independent causes:
+
+1. Vite resolves `publicDir` relative to the app root, which is
+   `apps/specimens`. That directory has no `public/`, and the generated
+   registry lives in the workspace-root `public/r`. So the 34 registry JSON
+   files were never copied into `apps/specimens/dist` — confirmed by building
+   at `f447222`: `apps/specimens/dist` contained only `index.html` and
+   `assets/`.
+2. `vercel.json` rewrote `/(.*)` to `/index.html`, converting the resulting
+   404 into a 200 HTML response. That is why the breakage was silent.
+
+**Why CI stayed green.** `scripts/test-registry-consumer.mjs` serves
+`public/r` from the local filesystem over a throwaway HTTP server. It proves
+the registry JSON is *correct*, never that it is *published*. No check
+inspected the deploy output.
+
+**Fix — commit `a86fdad`:**
+
+- `apps/specimens/vite.config.ts`: `publicDir` now points at the workspace
+  root `public/`, which contains only `r/`. Registry files land in
+  `apps/specimens/dist/r/` for both `vite dev` and `vite build`.
+- `vercel.json`: rewrite source is now `/((?!r/).*)`, so a missing registry
+  item returns a real 404 instead of 200 HTML — `shadcn add` reports "not
+  found" rather than failing on a JSON parse error.
+- `scripts/verify-deploy-output.mjs` (new): asserts every `public/r/*.json`
+  is present and byte-identical in `vercel.json`'s `outputDirectory`, that
+  `index.html` is present, and that no rewrite to `/index.html` captures
+  `/r/*`. Wired into `pnpm check` immediately after `pnpm build`.
+
+**Verification:**
+
+- Post-fix build: 34 items in `apps/specimens/dist/r`; asset hashes unchanged
+  (`index-Bdto56ik.css`, `index-Lx5oImkc.js`) — the app bundle is untouched.
+- Mutation 1, remove `publicDir`: `deploy:check` exits 1 listing all 34 items
+  missing.
+- Mutation 2, restore the `/(.*)` catch-all: `deploy:check` exits 1 with
+  "vercel.json rewrite captures /r/*".
+- Full `pnpm check` (the exact CI command) passes end to end.
+
+**Noted, not changed:**
+
+- `scripts/dev.py` still serves the legacy `Components.dc.html` and its
+  docstring claims it mirrors production. Since `f447222` the deployed site
+  is the Vite specimens app, so that script now mirrors nothing that ships.
+  `.vercelignore` was also deleted in that migration while `dev.py`'s comment
+  still cites it. Root `Components.dc.html` and `index.html` remain tracked
+  but are no longer served.
+- `apps/specimens/vite.config.ts` sets `build.sourcemap: true`, so a 1.9 MB
+  `.js.map` is published. Harmless for an open-source library, but it is a
+  deliberate choice worth revisiting if bandwidth matters.
