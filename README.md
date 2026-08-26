@@ -94,6 +94,17 @@ pnpm dlx shadcn@latest add @opencoven/button
 pnpm dlx shadcn@latest add @opencoven/composer
 ```
 
+`pnpm check` runs `deploy:check`, which asserts every generated registry item
+is published byte-identical in the deploy output and that the SPA rewrite does
+not capture `/r/*`. After a deploy, `pnpm live:check` fetches every item from
+the deployed origin and confirms a missing item returns 404 rather than the
+app shell:
+
+```bash
+pnpm live:check                      # defaults to registry.json homepage
+pnpm live:check https://preview-url  # or a specific deployment
+```
+
 To test the registry before deployment:
 
 ```bash

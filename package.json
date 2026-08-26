@@ -23,6 +23,7 @@
     "test:consumer": "node scripts/test-registry-consumer.mjs",
     "package:check": "node scripts/check-package-exports.mjs",
     "deploy:check": "node scripts/verify-deploy-output.mjs",
+    "live:check": "node scripts/verify-live-registry.mjs",
     "contracts:check": "node scripts/verify-contracts.mjs",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm contracts:check && pnpm registry:validate && pnpm registry:check && pnpm test:consumer && pnpm build && pnpm deploy:check && pnpm package:check"
   },
