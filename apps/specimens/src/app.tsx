@@ -48,23 +48,21 @@ type Specimen = {
 
 const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
 
-const groupDetails: Record<
-  SpecimenGroup,
-  { id: string; description: string }
-> = {
-  Composer: {
-    id: "group-composer",
-    description: "Intent, authority, attachments, and send readiness.",
-  },
-  "Run rail": {
-    id: "group-run-rail",
-    description: "Execution evidence, limits, resources, and failure states.",
-  },
-  Blocks: {
-    id: "group-blocks",
-    description: "Complete surfaces assembled from the public component API.",
-  },
-};
+const groupDetails: Record<SpecimenGroup, { id: string; description: string }> =
+  {
+    Composer: {
+      id: "group-composer",
+      description: "Intent, authority, attachments, and send readiness.",
+    },
+    "Run rail": {
+      id: "group-run-rail",
+      description: "Execution evidence, limits, resources, and failure states.",
+    },
+    Blocks: {
+      id: "group-blocks",
+      description: "Complete surfaces assembled from the public component API.",
+    },
+  };
 
 function SpecimenCard({
   specimen,
@@ -114,9 +112,7 @@ function SpecimenCard({
             </code>
             .
           </p>
-          <p className="text-muted-foreground">
-            States: {specimen.states}.
-          </p>
+          <p className="text-muted-foreground">States: {specimen.states}.</p>
         </TabsContent>
         <TabsContent value="usage" className="specimen-documentation">
           <p className="text-muted-foreground">
@@ -686,11 +682,7 @@ function DensityControl({
   onDensityChange: (density: Density) => void;
 }) {
   return (
-    <div
-      className="density-control"
-      role="group"
-      aria-label="Display density"
-    >
+    <div className="density-control" role="group" aria-label="Display density">
       <button
         type="button"
         aria-pressed={density === "default"}
@@ -783,9 +775,7 @@ function App() {
               className="scheme-control"
               aria-label={`Use ${scheme === "dark" ? "light" : "dark"} scheme`}
               onClick={() =>
-                setScheme((current) =>
-                  current === "dark" ? "light" : "dark",
-                )
+                setScheme((current) => (current === "dark" ? "light" : "dark"))
               }
             >
               {scheme === "dark" ? <Sun /> : <Moon />}
@@ -831,7 +821,9 @@ function App() {
           <div className="specimen-rail__package">
             <span className="specimen-kicker numeric">Install</span>
             <code className="numeric">@opencoven/ui</code>
-            <p>Semantic source, package exports, and registry remain aligned.</p>
+            <p>
+              Semantic source, package exports, and registry remain aligned.
+            </p>
           </div>
         </aside>
         <main className="specimen-main" id="specimen-main">
