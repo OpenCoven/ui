@@ -9,6 +9,7 @@ const [
   packageJson,
   tokens,
   specimenCss,
+  specimenApp,
   button,
   tooltip,
   menu,
@@ -17,6 +18,7 @@ const [
   read("packages/ui/package.json"),
   read("packages/ui/src/styles/globals.css"),
   read("apps/specimens/src/specimens.css"),
+  read("apps/specimens/src/app.tsx"),
   read("packages/ui/src/components/ui/button.tsx"),
   read("packages/ui/src/components/ui/tooltip.tsx"),
   read("packages/ui/src/components/ui/dropdown-menu.tsx"),
@@ -82,8 +84,35 @@ const assertions = [
     ),
   ],
   [
+    "specimen shell has stable landmarks",
+    specimenApp.includes('className="specimen-topbar"') &&
+      specimenApp.includes('className="specimen-rail"') &&
+      specimenApp.includes('id="specimen-main"') &&
+      specimenApp.includes('className="skip-link"'),
+  ],
+  [
+    "catalog restores task hierarchy",
+    ["group-composer", "group-run-rail", "group-blocks"].every((id) =>
+      specimenApp.includes(id),
+    ),
+  ],
+  [
+    "density control is explicit",
+    specimenApp.includes('aria-label="Display density"') &&
+      !specimenApp.includes("nth-child(2)"),
+  ],
+  [
     "mobile layout covers 390px",
     specimenCss.includes("@media (max-width: 24.375rem)"),
+  ],
+  [
+    "responsive rail becomes compact navigation",
+    specimenCss.includes("@media (max-width: 68rem)") &&
+      specimenCss.includes(".specimen-rail__context,\n  .specimen-rail__package"),
+  ],
+  [
+    "specimen chrome avoids decorative gradients",
+    !specimenCss.includes("gradient("),
   ],
   [
     "filled action variants are explicit",
