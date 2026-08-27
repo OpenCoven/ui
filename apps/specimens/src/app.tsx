@@ -34,31 +34,65 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 type Density = "default" | "compact";
 type Scheme = "light" | "dark";
+type SpecimenGroup = "Composer" | "Run rail" | "Blocks";
 
 type Specimen = {
   id: string;
   title: string;
-  group: "Composer" | "Run rail" | "Blocks";
+  group: SpecimenGroup;
   primitive: string;
   description: string;
   states: string;
   preview: ReactNode;
 };
 
-function SpecimenCard({ specimen }: { specimen: Specimen }) {
+const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
+
+const groupDetails: Record<
+  SpecimenGroup,
+  { id: string; description: string }
+> = {
+  Composer: {
+    id: "group-composer",
+    description: "Intent, authority, attachments, and send readiness.",
+  },
+  "Run rail": {
+    id: "group-run-rail",
+    description: "Execution evidence, limits, resources, and failure states.",
+  },
+  Blocks: {
+    id: "group-blocks",
+    description: "Complete surfaces assembled from the public component API.",
+  },
+};
+
+function SpecimenCard({
+  specimen,
+  index,
+}: {
+  specimen: Specimen;
+  index: number;
+}) {
+  const sourceKind = specimen.group === "Blocks" ? "blocks" : "components";
+  const headingId = `${specimen.id}-title`;
+
   return (
-    <article className="specimen-card" id={specimen.id}>
-      <header className="border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="numeric text-[0.65rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            {specimen.group}
+    <article
+      className="specimen-card"
+      id={specimen.id}
+      aria-labelledby={headingId}
+    >
+      <header className="specimen-card__header">
+        <div className="specimen-card__meta">
+          <span className="specimen-card__index numeric">
+            {String(index + 1).padStart(2, "0")}
           </span>
           <Badge>{specimen.primitive}</Badge>
         </div>
-        <h2 className="mt-1 text-lg font-semibold">{specimen.title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {specimen.description}
-        </p>
+        <h3 className="specimen-card__title" id={headingId}>
+          {specimen.title}
+        </h3>
+        <p className="specimen-card__description">{specimen.description}</p>
       </header>
       <Tabs defaultValue="preview">
         <TabsList variant="line" className="mx-4 mt-3">
@@ -69,24 +103,23 @@ function SpecimenCard({ specimen }: { specimen: Specimen }) {
         <TabsContent value="preview">
           <div className="specimen-stage">{specimen.preview}</div>
         </TabsContent>
-        <TabsContent value="api" className="min-h-60 p-4">
-          <p className="numeric text-xs text-muted-foreground">
-            pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/{specimen.id}
-            .json
-          </p>
-          <p className="mt-3 text-sm">
+        <TabsContent value="api" className="specimen-documentation">
+          <code className="specimen-command numeric">
+            {`pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/${specimen.id}.json`}
+          </code>
+          <p>
             Import from{" "}
             <code className="numeric text-presence">
-              @opencoven/ui/components/{specimen.id}
+              @opencoven/ui/{sourceKind}/{specimen.id}
             </code>
             .
           </p>
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="text-muted-foreground">
             States: {specimen.states}.
           </p>
         </TabsContent>
-        <TabsContent value="usage" className="min-h-60 p-4">
-          <p className="text-sm text-muted-foreground">
+        <TabsContent value="usage" className="specimen-documentation">
+          <p className="text-muted-foreground">
             Uses semantic tokens, visible focus, non-color state cues, logical
             properties, and reduced-motion-safe feedback. Compact density is an
             explicit prop, never a global compression shortcut.
@@ -422,22 +455,69 @@ function Library({ density, query }: { density: Density; query: string }) {
     [density, message, mode],
   );
 
+  const normalizedQuery = query.trim().toLowerCase();
   const filtered = specimens.filter((specimen) =>
     `${specimen.title} ${specimen.group} ${specimen.description}`
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(normalizedQuery),
   );
 
+  if (filtered.length === 0) {
+    return (
+      <section className="catalog-empty" aria-live="polite">
+        <span className="catalog-empty__mark" aria-hidden="true">
+          <Sparkles />
+        </span>
+        <h2>No matching specimens</h2>
+        <p>Try a component name, block, state, or operational concept.</p>
+      </section>
+    );
+  }
+
+  let specimenIndex = 0;
+
   return (
-    <div className="specimen-grid">
-      {filtered.map((specimen) => (
-        <SpecimenCard key={specimen.id} specimen={specimen} />
-      ))}
-      {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No components match “{query}”.
-        </p>
-      ) : null}
+    <div className="catalog" aria-label="Component catalog">
+      {groupOrder.map((group) => {
+        const groupedSpecimens = filtered.filter(
+          (specimen) => specimen.group === group,
+        );
+
+        if (groupedSpecimens.length === 0) {
+          return null;
+        }
+
+        const detail = groupDetails[group];
+
+        return (
+          <section className="catalog-group" id={detail.id} key={group}>
+            <header className="catalog-group__header">
+              <div>
+                <p className="catalog-group__eyebrow numeric">{group}</p>
+                <h2>{detail.description}</h2>
+              </div>
+              <span className="catalog-group__count numeric">
+                {groupedSpecimens.length}{" "}
+                {groupedSpecimens.length === 1 ? "specimen" : "specimens"}
+              </span>
+            </header>
+            <div className="specimen-grid">
+              {groupedSpecimens.map((specimen) => {
+                const currentIndex = specimenIndex;
+                specimenIndex += 1;
+
+                return (
+                  <SpecimenCard
+                    key={specimen.id}
+                    specimen={specimen}
+                    index={currentIndex}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -451,27 +531,64 @@ function Lab({ density }: { density: Density }) {
 
   const views: Record<string, ReactNode> = {
     composer: (
-      <Composer
-        value={message}
-        onValueChange={setMessage}
-        mode={mode}
-        onModeChange={setMode}
-        density={density}
-      />
+      <div className="lab-composer">
+        <TranscriptTurn
+          familiar="Cody"
+          initials="CO"
+          role="Code Familiar"
+          model="GPT-5.6 Sol"
+          timestamp="now"
+        >
+          <p>
+            I found two visual regressions in the specimen shell and kept the
+            package boundary intact.
+          </p>
+        </TranscriptTurn>
+        <Composer
+          value={message}
+          onValueChange={setMessage}
+          mode={mode}
+          onModeChange={setMode}
+          density={density}
+          attachments={[
+            { id: "diff", name: "specimen-shell.diff", meta: "8.1 KB" },
+          ]}
+        />
+      </div>
     ),
     messages: (
-      <TranscriptTurn
-        familiar="Cody"
-        initials="CO"
-        role="Code Familiar"
-        model="GPT-5.6 Sol"
-        timestamp="now"
-      >
-        <p>
-          Model selection, linked context, and send readiness remain visible
-          without interrupting the writing flow.
-        </p>
-      </TranscriptTurn>
+      <div className="lab-message-stack">
+        <TranscriptTurn
+          familiar="Cody"
+          initials="CO"
+          role="Code Familiar"
+          model="GPT-5.6 Sol"
+          timestamp="now"
+          utilities={
+            <>
+              <span>Reply</span>
+              <span>Copy</span>
+              <span className="numeric">1.2K tokens</span>
+            </>
+          }
+        >
+          <p>
+            Model selection, linked context, and send readiness remain visible
+            without interrupting the writing flow.
+          </p>
+        </TranscriptTurn>
+        <TranscriptTurn
+          familiar="Charm"
+          initials="CH"
+          role="Community Familiar"
+          timestamp="2m"
+        >
+          <p>
+            The same primitives can carry a different familiar identity without
+            changing their authority or accessibility contract.
+          </p>
+        </TranscriptTurn>
+      </div>
     ),
     context: (
       <Card>
@@ -480,6 +597,10 @@ function Lab({ density }: { density: Density }) {
           meta="main · src/components/chat-view.tsx · read + write"
         />
         <ResourceRow path="Composer polish" meta="Issue #4621 · linked task" />
+        <ResourceRow
+          path="OpenCoven/ui"
+          meta="fix/specimen-browser-shell · proposal"
+        />
       </Card>
     ),
     actions: (
@@ -503,7 +624,7 @@ function Lab({ density }: { density: Density }) {
       </Card>
     ),
     cards: (
-      <div className="grid gap-3">
+      <div className="lab-card-grid">
         {[
           ["Pull request", "Recover attachment ingestion", "Checks 12 / 12"],
           ["Proposal", "Merge #4764 · squash", "Awaiting your tap"],
@@ -530,24 +651,61 @@ function Lab({ density }: { density: Density }) {
   };
 
   return (
-    <section className="mx-auto max-w-5xl">
+    <section className="assembled-lab" id="assembled-lab">
+      <SessionHeader
+        title="Restore the OpenCoven UI specimen browser"
+        branch="fix/specimen-browser-shell"
+        status="active"
+        budget={{ used: 0.41, limit: 5 }}
+      />
       <Tabs value={view} onValueChange={(next) => setView(String(next))}>
-        <TabsList className="mb-6 flex w-full overflow-x-auto">
-          {Object.keys(views).map((name) => (
-            <TabsTrigger key={name} value={name} className="capitalize">
-              {name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="assembled-lab__nav">
+          <TabsList className="assembled-lab__tabs">
+            {Object.keys(views).map((name) => (
+              <TabsTrigger key={name} value={name} className="capitalize">
+                {name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
         {Object.entries(views).map(([name, content]) => (
           <TabsContent key={name} value={name}>
-            <div className="specimen-stage min-h-[34rem] rounded-lg border border-border">
-              {content}
-            </div>
+            <div className="assembled-lab__stage">{content}</div>
           </TabsContent>
         ))}
       </Tabs>
     </section>
+  );
+}
+
+function DensityControl({
+  density,
+  onDensityChange,
+}: {
+  density: Density;
+  onDensityChange: (density: Density) => void;
+}) {
+  return (
+    <div
+      className="density-control"
+      role="group"
+      aria-label="Display density"
+    >
+      <button
+        type="button"
+        aria-pressed={density === "default"}
+        onClick={() => onDensityChange("default")}
+      >
+        Cozy
+      </button>
+      <button
+        type="button"
+        aria-pressed={density === "compact"}
+        onClick={() => onDensityChange("compact")}
+      >
+        Compact
+      </button>
+    </div>
   );
 }
 
@@ -562,7 +720,8 @@ function App() {
   );
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  const isLab = window.location.pathname === "/lab";
+  const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isLab = normalizedPath === "/lab";
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", scheme === "dark");
@@ -578,74 +737,36 @@ function App() {
         searchRef.current?.focus();
       }
     };
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
     <TooltipProvider>
-      <div className="specimen-shell">
-        <aside className="specimen-rail p-5">
-          <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="grid size-8 place-items-center rounded-md border border-presence/35 bg-presence/12 text-presence">
-              <Sparkles className="size-4" />
+      <a className="skip-link" href="#specimen-main">
+        Skip to specimens
+      </a>
+      <header className="specimen-topbar">
+        <div className="specimen-topbar__inner">
+          <a href="/" className="specimen-brand" aria-label="OpenCoven UI home">
+            <span className="specimen-brand__mark" aria-hidden="true">
+              <Sparkles />
             </span>
-            OpenCoven UI
+            <span>
+              OpenCoven UI
+              <small>Reference lab</small>
+            </span>
           </a>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Base UI · Nova · Zinc seed · Coven semantics
-          </p>
-          <nav className="mt-8 grid gap-1" aria-label="Specimen surfaces">
-            <a
-              href="/"
-              aria-current={!isLab ? "page" : undefined}
-              className="rounded-md px-3 py-2 text-sm hover:bg-muted aria-[current=page]:bg-presence/12 aria-[current=page]:font-semibold aria-[current=page]:text-presence"
-            >
-              Component library
+          <nav className="surface-switcher" aria-label="Specimen surfaces">
+            <a href="/" aria-current={!isLab ? "page" : undefined}>
+              Library
             </a>
-            <a
-              href="/lab"
-              aria-current={isLab ? "page" : undefined}
-              className="rounded-md px-3 py-2 text-sm hover:bg-muted aria-[current=page]:bg-presence/12 aria-[current=page]:font-semibold aria-[current=page]:text-presence"
-            >
-              Assembled lab
+            <a href="/lab" aria-current={isLab ? "page" : undefined}>
+              Assembled
             </a>
           </nav>
-          <div className="mt-8 grid gap-2 border-t border-border pt-5">
-            <Button
-              variant="outline"
-              onClick={() =>
-                setScheme((current) => (current === "dark" ? "light" : "dark"))
-              }
-            >
-              {scheme === "dark" ? <Sun /> : <Moon />}
-              {scheme === "dark" ? "Light scheme" : "Dark scheme"}
-            </Button>
-            <ModeSwitch
-              value={density === "default" ? "chat" : "plan"}
-              onValueChange={(next) =>
-                setDensity(next === "chat" ? "default" : "compact")
-              }
-              className="[&>button:nth-child(2)]:hidden"
-            />
-          </div>
-        </aside>
-        <main className="specimen-main p-[clamp(1rem,4vw,3rem)]">
-          <header className="mb-8 flex flex-wrap items-end gap-4 border-b border-border pb-6">
-            <div className="min-w-0 flex-1">
-              <p className="numeric text-[0.65rem] font-semibold tracking-[0.14em] text-presence uppercase">
-                {isLab ? "Five assembled states" : "Registry-backed components"}
-              </p>
-              <h1 className="editorial mt-1 text-4xl tracking-tight">
-                {isLab
-                  ? "The agent surface, assembled"
-                  : "Quiet tools for active runs"}
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Greys carry structure. Color carries operational meaning. Every
-                preview imports the same modules consumers install.
-              </p>
-            </div>
+          <div className="specimen-topbar__actions">
             {!isLab ? (
               <SearchField
                 ref={searchRef}
@@ -653,15 +774,107 @@ function App() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search components…"
                 shortcut="⌘K"
-                className="w-full sm:w-64"
+                className="specimen-search"
               />
             ) : null}
-          </header>
-          {isLab ? (
-            <Lab density={density} />
-          ) : (
-            <Library density={density} query={query} />
-          )}
+            <DensityControl density={density} onDensityChange={setDensity} />
+            <Button
+              variant="outline"
+              className="scheme-control"
+              aria-label={`Use ${scheme === "dark" ? "light" : "dark"} scheme`}
+              onClick={() =>
+                setScheme((current) =>
+                  current === "dark" ? "light" : "dark",
+                )
+              }
+            >
+              {scheme === "dark" ? <Sun /> : <Moon />}
+              <span>{scheme === "dark" ? "Light" : "Dark"}</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+      <div className="specimen-shell">
+        <aside className="specimen-rail">
+          <div className="specimen-rail__context">
+            <p className="specimen-kicker numeric">
+              {isLab ? "Assembled states" : "Component catalog"}
+            </p>
+            <h2>{isLab ? "Operational scenes" : "Public UI inventory"}</h2>
+            <p>
+              {isLab
+                ? "Five focused compositions using only exported OpenCoven modules."
+                : "Registry-backed primitives and blocks grouped by the job they perform."}
+            </p>
+          </div>
+          <nav className="specimen-rail__nav" aria-label="On this page">
+            {isLab ? (
+              <a href="#assembled-lab">
+                <span>Workbench</span>
+                <small className="numeric">05</small>
+              </a>
+            ) : (
+              groupOrder.map((group) => (
+                <a href={`#${groupDetails[group].id}`} key={group}>
+                  <span>{group}</span>
+                  <small className="numeric">
+                    {group === "Composer"
+                      ? "04"
+                      : group === "Run rail"
+                        ? "08"
+                        : "04"}
+                  </small>
+                </a>
+              ))
+            )}
+          </nav>
+          <div className="specimen-rail__package">
+            <span className="specimen-kicker numeric">Install</span>
+            <code className="numeric">@opencoven/ui</code>
+            <p>Semantic source, package exports, and registry remain aligned.</p>
+          </div>
+        </aside>
+        <main className="specimen-main" id="specimen-main">
+          <div className="specimen-main__inner">
+            <header className="specimen-hero">
+              <div className="specimen-hero__copy">
+                <p className="specimen-kicker numeric">
+                  {isLab
+                    ? "Five assembled states"
+                    : "Registry-backed components"}
+                </p>
+                <h1>
+                  {isLab
+                    ? "The agent surface, assembled."
+                    : "Quiet tools for active runs."}
+                </h1>
+                <p>
+                  Greys carry structure. Color carries operational meaning.
+                  Every preview imports the same public modules consumers
+                  install.
+                </p>
+              </div>
+              <dl className="specimen-stats" aria-label="Library summary">
+                <div>
+                  <dt>{isLab ? "Views" : "Specimens"}</dt>
+                  <dd className="numeric">{isLab ? "05" : "16"}</dd>
+                </div>
+                <div>
+                  <dt>Schemes</dt>
+                  <dd className="numeric">02</dd>
+                </div>
+                <div>
+                  <dt>Densities</dt>
+                  <dd className="numeric">02</dd>
+                </div>
+              </dl>
+            </header>
+            {isLab ? (
+              <Lab density={density} />
+            ) : (
+              <Library density={density} query={query} />
+            )}
+          </div>
         </main>
       </div>
     </TooltipProvider>
