@@ -1,0 +1,35 @@
+name: Format receipt
+
+on:
+  push:
+    branches:
+      - fix/specimen-browser-shell
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/specimens/src/app.tsx scripts/verify-contracts.mjs
+      - run: |
+          mkdir -p artifacts/formatted/apps/specimens/src artifacts/formatted/scripts
+          cp apps/specimens/src/app.tsx artifacts/formatted/apps/specimens/src/app.tsx
+          cp scripts/verify-contracts.mjs artifacts/formatted/scripts/verify-contracts.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-source
+          path: artifacts/formatted
+          if-no-files-found: error
+          retention-days: 1
