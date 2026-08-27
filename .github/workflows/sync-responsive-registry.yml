@@ -1,0 +1,33 @@
+name: Sync responsive registry
+
+on:
+  push:
+    branches:
+      - fix/specimen-browser-shell
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm registry:build
+      - name: Commit affected registry artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/r/session-header.json public/r/transcript-turn.json
+          git commit -m "chore(registry): sync responsive block payloads"
+          git push origin HEAD:fix/specimen-browser-shell
