@@ -6,7 +6,7 @@ on:
       - fix/specimen-browser-shell
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -23,13 +23,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prettier --write apps/specimens/src/app.tsx scripts/verify-contracts.mjs
-      - run: |
-          mkdir -p artifacts/formatted/apps/specimens/src artifacts/formatted/scripts
-          cp apps/specimens/src/app.tsx artifacts/formatted/apps/specimens/src/app.tsx
-          cp scripts/verify-contracts.mjs artifacts/formatted/scripts/verify-contracts.mjs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: formatted-source
-          path: artifacts/formatted
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit canonical formatting
+        if: github.actor != 'github-actions[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/specimens/src/app.tsx scripts/verify-contracts.mjs
+          if git diff --cached --quiet; then
+            echo "Source is already formatted."
+            exit 0
+          fi
+          git commit -m "style(specimens): apply canonical formatting"
+          git push origin HEAD:fix/specimen-browser-shell
