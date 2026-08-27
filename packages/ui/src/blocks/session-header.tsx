@@ -29,11 +29,11 @@ function SessionHeader({
     <header
       data-slot="session-header"
       className={cn(
-        "flex min-w-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3",
+        "flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-card px-4 py-3",
         className,
       )}
     >
-      <span className="min-w-0 flex-1">
+      <span className="min-w-0 basis-full flex-1 sm:basis-auto">
         <strong className="block truncate text-sm">{title}</strong>
         <span className="numeric flex items-center gap-1 truncate text-xs text-muted-foreground">
           <GitBranch aria-hidden="true" className="size-3" />

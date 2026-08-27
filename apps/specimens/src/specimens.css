@@ -547,7 +547,18 @@ body {
 
 .assembled-lab__tabs {
   width: max-content;
-  min-width: 100%;
+  min-width: 0;
+}
+
+.assembled-lab__tabs [data-slot="tabs-trigger"] {
+  flex: none;
+}
+
+.assembled-lab [data-slot="tabs"],
+.assembled-lab__stage,
+.lab-composer,
+.lab-message-stack {
+  min-width: 0;
 }
 
 .assembled-lab__stage {
