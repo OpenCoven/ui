@@ -7,6 +7,7 @@ const fragments = [
   "registry/styles/registry.fragment.json",
   "registry/components/registry.fragment.json",
   "registry/blocks/registry.fragment.json",
+  "registry/developer/registry.fragment.json",
 ];
 
 const rawItems = [];
