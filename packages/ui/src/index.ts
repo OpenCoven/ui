@@ -1,4 +1,5 @@
 export * from "./blocks/composer";
+export * from "./blocks/developer-surface";
 export * from "./blocks/run-rail";
 export * from "./blocks/session-header";
 export * from "./blocks/transcript-turn";
@@ -6,7 +7,9 @@ export * from "./blocks/transcript-turn";
 export * from "./components/activity-item";
 export * from "./components/attachment-chip";
 export * from "./components/budget-pill";
+export * from "./components/command-receipt";
 export * from "./components/completion-palette";
+export * from "./components/connection-status";
 export * from "./components/context-meter";
 export * from "./components/empty-state";
 export * from "./components/error-state";
