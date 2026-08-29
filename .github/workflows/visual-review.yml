@@ -7,6 +7,7 @@ on:
       - "apps/specimens/**"
       - "packages/ui/**"
       - "scripts/visual-review.mjs"
+      - "scripts/developer-visual-review.mjs"
   workflow_dispatch:
 
 permissions:
@@ -40,8 +41,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build package and specimen app
-        run: pnpm build
+      - name: Build registry, package, and specimen app
+        run: pnpm registry:build && pnpm build
 
       - name: Set up Chrome for Testing
         id: chrome
@@ -85,11 +86,16 @@ jobs:
 
           set +e
           node scripts/visual-review.mjs
-          review_status=$?
+          browser_status=$?
+          node scripts/developer-visual-review.mjs
+          developer_status=$?
           set -e
 
           cp "$preview_log" artifacts/visual-review/preview.log
-          exit "$review_status"
+
+          if [[ "$browser_status" -ne 0 || "$developer_status" -ne 0 ]]; then
+            exit 1
+          fi
 
       - name: Upload visual-review artifact
         if: always()
