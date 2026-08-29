@@ -78,6 +78,8 @@ describe("developer surface components", () => {
     expect(screen.getByText("2 sources")).toBeInTheDocument();
     expect(screen.getByText("1 receipt")).toBeInTheDocument();
     expect(screen.getByText("Authority rule")).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
+
+    const results = await axe(container);
+    expect(results.violations).toHaveLength(0);
   });
 });
