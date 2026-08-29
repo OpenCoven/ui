@@ -1,5 +1,5 @@
-import { Button, DeveloperSurface } from "@opencoven/ui";
-import { ArrowLeft, BookOpen, Boxes, TerminalSquare } from "lucide-react";
+import { DeveloperSurface } from "@opencoven/ui";
+import { ArrowLeft, BookOpen, Boxes } from "lucide-react";
 
 function DeveloperShowcase() {
   return (
@@ -17,7 +17,10 @@ function DeveloperShowcase() {
           <span className="numeric text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
             Developer surface
           </span>
-          <nav className="ms-auto flex items-center gap-2" aria-label="Developer resources">
+          <nav
+            className="ms-auto flex items-center gap-2"
+            aria-label="Developer resources"
+          >
             <a
               href="https://docs.opencoven.ai"
               className="hidden items-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium text-muted-foreground no-underline hover:bg-muted hover:text-foreground sm:inline-flex"
@@ -61,7 +64,9 @@ function DeveloperShowcase() {
                 <dt className="numeric text-[0.625rem] tracking-[0.08em] text-muted-foreground uppercase">
                   {label}
                 </dt>
-                <dd className="numeric mt-1 mb-0 text-sm font-semibold">{value}</dd>
+                <dd className="numeric mt-1 mb-0 text-sm font-semibold">
+                  {value}
+                </dd>
               </div>
             ))}
           </dl>
@@ -73,17 +78,6 @@ function DeveloperShowcase() {
             branch="feat/developer-surface-system"
             title="OpenCoven development context"
             description="A normalized, presentation-only view over real SDK, CLI, daemon, runtime, and repository signals."
-            actions={
-              <>
-                <Button variant="outline" density="compact">
-                  <TerminalSquare aria-hidden="true" />
-                  Open CLI
-                </Button>
-                <Button variant="presence" density="compact">
-                  Inspect project
-                </Button>
-              </>
-            }
             connections={[
               {
                 name: "Coven daemon",
@@ -140,7 +134,8 @@ function DeveloperShowcase() {
                 channel: "sdk",
                 command: "cave.health({ timeoutMs: 5000 })",
                 status: "success",
-                summary: "Read-only Cave health returned through a caller-controlled transport.",
+                summary:
+                  "Read-only Cave health returned through a caller-controlled transport.",
                 duration: "42ms",
                 timestamp: "now",
               },
@@ -159,7 +154,9 @@ function DeveloperShowcase() {
                   <p className="numeric m-0 text-[0.625rem] font-semibold tracking-[0.12em] text-presence uppercase">
                     Integration contract
                   </p>
-                  <h3 className="mt-2 mb-0 text-sm font-semibold">Normalize, then render.</h3>
+                  <h3 className="mt-2 mb-0 text-sm font-semibold">
+                    Normalize, then render.
+                  </h3>
                   <p className="mt-2 mb-0 text-xs leading-5 text-muted-foreground">
                     SDK and CLI adapters map external responses into small view
                     models. UI code does not perform discovery, credential lookup,
@@ -171,7 +168,8 @@ function DeveloperShowcase() {
                     Public install
                   </p>
                   <code className="numeric mt-2 block overflow-x-auto rounded-md border border-border bg-background p-3 text-[0.6875rem] leading-5">
-                    pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/developer-surface.json
+                    pnpm dlx shadcn@latest add
+                    https://ui.opencoven.ai/r/developer-surface.json
                   </code>
                 </section>
                 <section className="border-t border-border pt-4">
