@@ -75,11 +75,11 @@ function DeveloperShowcase() {
             description="A normalized, presentation-only view over real SDK, CLI, daemon, runtime, and repository signals."
             actions={
               <>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" density="compact">
                   <TerminalSquare aria-hidden="true" />
                   Open CLI
                 </Button>
-                <Button variant="presence" size="sm">
+                <Button variant="presence" density="compact">
                   Inspect project
                 </Button>
               </>
