@@ -1,0 +1,37 @@
+/* Focused regression guards layered after the specimen shell styles. */
+
+body:not(:has(#group-composer))
+  .specimen-rail
+  a[href="#group-composer"],
+body:not(:has(#group-run-rail))
+  .specimen-rail
+  a[href="#group-run-rail"],
+body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
+  display: none;
+}
+
+@media (max-width: 24.375rem) {
+  .assembled-lab__nav {
+    overflow-x: hidden;
+  }
+
+  .assembled-lab__tabs {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .assembled-lab__tabs [role="tab"] {
+    min-width: 0;
+    padding-inline: 0.35rem;
+    font-size: 0.625rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specimen-card:hover,
+  .specimen-card:focus-within {
+    translate: none;
+  }
+}
