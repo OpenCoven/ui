@@ -117,7 +117,9 @@ const assertions = [
   [
     "responsive rail becomes compact navigation",
     specimenCss.includes("@media (max-width: 68rem)") &&
-      specimenCss.includes(".specimen-shell {\n    grid-template-columns: 1fr;") &&
+      specimenCss.includes(
+        ".specimen-shell {\n    grid-template-columns: 1fr;",
+      ) &&
       specimenCss.includes("@media (max-width: 48rem)") &&
       specimenCss.includes(
         ".specimen-rail__nav {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
