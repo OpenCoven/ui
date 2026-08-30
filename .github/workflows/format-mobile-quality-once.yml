@@ -1,0 +1,37 @@
+name: Format mobile quality once
+
+on:
+  push:
+    branches:
+      - test/specimen-visual-review
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.head_commit.message != 'chore: format mobile quality gate'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/specimen-visual-review
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier scripts/mobile-quality-review.mjs --write
+      - name: Commit exact formatter output
+        run: |
+          if git diff --quiet -- scripts/mobile-quality-review.mjs; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/mobile-quality-review.mjs
+          git commit -m "chore: format mobile quality gate"
+          git push origin HEAD:test/specimen-visual-review
