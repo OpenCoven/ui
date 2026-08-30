@@ -73,34 +73,48 @@ try {
     returnByValue: true,
     expression: `(() => {
       const viewport = document.documentElement.clientWidth;
+      const describe = (element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName.toLowerCase(),
+          id: element.id || null,
+          className: typeof element.className === 'string' ? element.className : null,
+          slot: element.getAttribute('data-slot'),
+          role: element.getAttribute('role'),
+          hidden: element.hidden,
+          inert: element.inert,
+          ariaHidden: element.getAttribute('aria-hidden'),
+          data: Object.fromEntries([...element.attributes].filter((attribute) => attribute.name.startsWith('data-')).map((attribute) => [attribute.name, attribute.value])),
+          styleAttribute: element.getAttribute('style'),
+          display: style.display,
+          visibility: style.visibility,
+          position: style.position,
+          transform: style.transform,
+          translate: style.translate,
+          left: Math.round(rect.left * 10) / 10,
+          right: Math.round(rect.right * 10) / 10,
+          width: Math.round(rect.width * 10) / 10,
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+        };
+      };
       const visible = [...document.querySelectorAll('*')].filter((element) => {
         const style = getComputedStyle(element);
         const rect = element.getBoundingClientRect();
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
       });
       const offenders = visible
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            tag: element.tagName.toLowerCase(),
-            id: element.id || null,
-            className: typeof element.className === 'string' ? element.className : null,
-            slot: element.getAttribute('data-slot'),
-            role: element.getAttribute('role'),
-            left: Math.round(rect.left * 10) / 10,
-            right: Math.round(rect.right * 10) / 10,
-            width: Math.round(rect.width * 10) / 10,
-            clientWidth: element.clientWidth,
-            scrollWidth: element.scrollWidth,
-          };
-        })
+        .map(describe)
         .filter((entry) => entry.right > viewport + 0.5 || entry.left < -0.5)
         .sort((a, b) => b.right - a.right)
         .slice(0, 40);
+      const panels = [...document.querySelectorAll('[data-slot="tabs-content"]')].map(describe);
       return {
         viewport,
         scrollWidth: document.documentElement.scrollWidth,
         bodyScrollWidth: document.body.scrollWidth,
+        panels,
         offenders,
       };
     })()`,
