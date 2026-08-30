@@ -1,5 +1,5 @@
 import { Code2, GitBranch, Layers3 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import {
   CommandReceipt,
@@ -11,15 +11,19 @@ import {
 } from "@opencoven/ui/components/connection-status";
 import { cn } from "@opencoven/ui/lib/utils";
 
+type DeveloperConnection = ConnectionStatusProps & { id: string };
+type DeveloperReceipt = CommandReceiptProps & { id: string };
+
 type DeveloperSurfaceProps = {
   project: string;
   branch?: string;
   title?: string;
   description?: string;
-  connections: ConnectionStatusProps[];
-  activity?: CommandReceiptProps[];
+  connections: readonly DeveloperConnection[];
+  activity?: readonly DeveloperReceipt[];
   actions?: ReactNode;
   aside?: ReactNode;
+  headingLevel?: 2 | 3;
   className?: string;
 };
 
@@ -32,11 +36,20 @@ function DeveloperSurface({
   activity = [],
   actions,
   aside,
+  headingLevel = 2,
   className,
 }: DeveloperSurfaceProps) {
+  const id = useId();
+  const titleId = `${id}-title`;
+  const connectionsId = `${id}-connections`;
+  const activityId = `${id}-activity`;
+  const Title = headingLevel === 2 ? "h2" : "h3";
+  const SectionTitle = headingLevel === 2 ? "h3" : "h4";
+
   return (
     <section
       data-slot="developer-surface"
+      aria-labelledby={titleId}
       className={cn(
         "overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm",
         className,
@@ -48,9 +61,12 @@ function DeveloperSurface({
             <Layers3 aria-hidden="true" className="size-3" />
             Developer surface
           </span>
-          <h2 className="mt-1.5 mb-0 text-lg font-semibold tracking-tight">
+          <Title
+            id={titleId}
+            className="mt-1.5 mb-0 text-lg font-semibold tracking-tight"
+          >
             {title}
-          </h2>
+          </Title>
           <p className="mt-1 mb-0 max-w-2xl text-xs leading-5 text-muted-foreground">
             {description}
           </p>
@@ -73,48 +89,52 @@ function DeveloperSurface({
             ) : null}
           </div>
 
-          <section aria-labelledby="developer-surface-connections">
+          <section aria-labelledby={connectionsId}>
             <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
               <div>
                 <p className="numeric m-0 text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                   Integrations
                 </p>
-                <h3
-                  id="developer-surface-connections"
+                <SectionTitle
+                  id={connectionsId}
                   className="mt-1 mb-0 text-sm font-semibold"
                 >
                   Connected development context
-                </h3>
+                </SectionTitle>
               </div>
               <span className="numeric text-[0.625rem] text-muted-foreground">
                 {connections.length} source{connections.length === 1 ? "" : "s"}
               </span>
             </header>
-            <div className="grid gap-3 px-5 pb-5 md:grid-cols-2">
-              {connections.map((connection) => (
-                <ConnectionStatus
-                  key={`${connection.kind}:${connection.name}`}
-                  {...connection}
-                />
-              ))}
-            </div>
+            {connections.length > 0 ? (
+              <div className="grid gap-3 px-5 pb-5 md:grid-cols-2">
+                {connections.map(({ id: connectionId, ...connection }) => (
+                  <ConnectionStatus key={connectionId} {...connection} />
+                ))}
+              </div>
+            ) : (
+              <p className="mx-5 mt-0 mb-5 rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground">
+                No integration state is available. Do not infer connectivity or
+                authority from an empty response.
+              </p>
+            )}
           </section>
 
           <section
             className="border-t border-border"
-            aria-labelledby="developer-surface-activity"
+            aria-labelledby={activityId}
           >
             <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
               <div>
                 <p className="numeric m-0 text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                   Evidence
                 </p>
-                <h3
-                  id="developer-surface-activity"
+                <SectionTitle
+                  id={activityId}
                   className="mt-1 mb-0 text-sm font-semibold"
                 >
                   Recent invocations
-                </h3>
+                </SectionTitle>
               </div>
               <span className="numeric text-[0.625rem] text-muted-foreground">
                 {activity.length} receipt{activity.length === 1 ? "" : "s"}
@@ -122,11 +142,8 @@ function DeveloperSurface({
             </header>
             {activity.length > 0 ? (
               <div className="pb-2">
-                {activity.map((receipt, index) => (
-                  <CommandReceipt
-                    key={`${receipt.channel}:${receipt.command}:${index}`}
-                    {...receipt}
-                  />
+                {activity.map(({ id: receiptId, ...receipt }) => (
+                  <CommandReceipt key={receiptId} {...receipt} />
                 ))}
               </div>
             ) : (
@@ -138,7 +155,10 @@ function DeveloperSurface({
           </section>
         </div>
 
-        <aside className="min-w-0 border-t border-border bg-muted/25 p-5 lg:border-t-0 lg:border-l">
+        <aside
+          aria-label="Developer surface guidance"
+          className="min-w-0 border-t border-border bg-muted/25 p-5 lg:border-t-0 lg:border-l"
+        >
           {aside ?? (
             <div className="grid gap-4">
               <div>
@@ -169,4 +189,9 @@ function DeveloperSurface({
   );
 }
 
-export { DeveloperSurface, type DeveloperSurfaceProps };
+export {
+  DeveloperSurface,
+  type DeveloperConnection,
+  type DeveloperReceipt,
+  type DeveloperSurfaceProps,
+};
