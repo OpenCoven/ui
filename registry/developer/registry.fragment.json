@@ -5,7 +5,7 @@
       "name": "connection-status",
       "type": "registry:component",
       "title": "Connection status",
-      "description": "Integration health and authority state for SDK, CLI, daemon, runtime, and project sources.",
+      "description": "Integration health and host-supplied authority state for SDK, CLI, daemon, runtime, and project sources.",
       "dependencies": ["lucide-react"],
       "registryDependencies": ["cn", "coven-theme"],
       "files": [
@@ -23,14 +23,15 @@
           "disconnected",
           "unavailable"
         ],
-        "authority": ["read-only", "proposal", "mutating", "local-authority"]
+        "authority": ["read-only", "proposal", "mutating", "local-authority"],
+        "authoritySource": "host-supplied"
       }
     },
     {
       "name": "command-receipt",
       "type": "registry:component",
       "title": "Command receipt",
-      "description": "Explicit CLI, SDK, daemon, or runtime invocation evidence with status and timing.",
+      "description": "Presentation-safe CLI, SDK, daemon, or runtime invocation evidence with explicit lifecycle state.",
       "dependencies": ["lucide-react"],
       "registryDependencies": ["cn", "coven-theme"],
       "files": [
@@ -42,14 +43,24 @@
       ],
       "meta": {
         "channels": ["cli", "sdk", "daemon", "runtime"],
-        "states": ["running", "success", "failed", "blocked"]
+        "states": [
+          "accepted",
+          "running",
+          "succeeded",
+          "failed",
+          "blocked",
+          "unknown",
+          "recovery-required"
+        ],
+        "commandField": "displayCommand",
+        "protectedData": "pre-redacted-and-bounded"
       }
     },
     {
       "name": "developer-surface",
       "type": "registry:block",
       "title": "Developer surface",
-      "description": "Project context, integration health, authority cues, and invocation receipts in one reusable development cockpit.",
+      "description": "Project context, integration health, authority cues, and invocation evidence in one reusable development cockpit.",
       "dependencies": ["lucide-react"],
       "registryDependencies": ["connection-status", "command-receipt", "cn"],
       "files": [
@@ -61,7 +72,8 @@
       ],
       "meta": {
         "integrationSources": ["sdk", "cli", "daemon", "runtime", "project"],
-        "authority": "presentation-only"
+        "authority": "presentation-only",
+        "stableItemIds": true
       }
     }
   ]
