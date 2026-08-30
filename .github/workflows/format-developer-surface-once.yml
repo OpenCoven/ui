@@ -1,0 +1,56 @@
+name: Format developer surface once
+
+on:
+  push:
+    branches:
+      - feat/developer-surface-system
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format changed developer-surface files
+        run: |
+          pnpm exec prettier --write \
+            apps/specimens/src/developer-showcase.tsx \
+            apps/specimens/src/main.tsx \
+            apps/specimens/src/specimens-fixes.css \
+            docs/developer-surface.md \
+            packages/ui/src/blocks/developer-surface.tsx \
+            packages/ui/src/components/connection-status.tsx \
+            registry/developer/registry.fragment.json \
+            scripts/developer-visual-review.mjs \
+            scripts/verify-contracts.mjs
+      - name: Commit formatting if needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/specimens/src/developer-showcase.tsx \
+            apps/specimens/src/main.tsx \
+            apps/specimens/src/specimens-fixes.css \
+            docs/developer-surface.md \
+            packages/ui/src/blocks/developer-surface.tsx \
+            packages/ui/src/components/connection-status.tsx \
+            registry/developer/registry.fragment.json \
+            scripts/developer-visual-review.mjs \
+            scripts/verify-contracts.mjs
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style(ui): format developer surface"
+          git push origin HEAD:feat/developer-surface-system
