@@ -108,8 +108,8 @@ const assertions = [
   [
     "responsive rail becomes compact navigation",
     specimenCss.includes("@media (max-width: 68rem)") &&
-      specimenCss.includes(
-        ".specimen-rail__context,\n  .specimen-rail__package",
+      /\.specimen-rail__context,\r?\n\s+\.specimen-rail__package/.test(
+        specimenCss,
       ),
   ],
   [
