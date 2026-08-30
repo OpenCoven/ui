@@ -34,15 +34,31 @@ function TranscriptTurn({
       )}
     >
       <header className="flex min-w-0 items-start gap-3 sm:items-center">
-        <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-md border border-presence/35 bg-presence/12 text-sm font-bold text-presence">{initials}</span>
+        <span
+          aria-hidden="true"
+          className="grid size-9 shrink-0 place-items-center rounded-md border border-presence/35 bg-presence/12 text-sm font-bold text-presence"
+        >
+          {initials}
+        </span>
         <span className="min-w-0 flex-1">
           <strong className="block leading-5">{familiar}</strong>
-          <span className="numeric block min-w-0 break-words text-[0.625rem] leading-4 tracking-[0.08em] text-muted-foreground uppercase sm:truncate sm:text-[0.65rem] sm:tracking-[0.1em]">{[role, model, timestamp].filter(Boolean).join(" · ")}</span>
+          <span className="numeric block min-w-0 break-words text-[0.625rem] leading-4 tracking-[0.08em] text-muted-foreground uppercase sm:truncate sm:text-[0.65rem] sm:tracking-[0.1em]">
+            {[role, model, timestamp].filter(Boolean).join(" · ")}
+          </span>
         </span>
       </header>
-      <div className="editorial min-w-0 max-w-prose break-words text-base leading-6 sm:text-[1.05rem] sm:leading-7">{children}</div>
+      <div className="editorial min-w-0 max-w-prose break-words text-base leading-6 sm:text-[1.05rem] sm:leading-7">
+        {children}
+      </div>
       {artifacts}
-      {utilities ? <footer aria-label="Message utilities" className="flex min-w-0 flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground">{utilities}</footer> : null}
+      {utilities ? (
+        <footer
+          aria-label="Message utilities"
+          className="flex min-w-0 flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground"
+        >
+          {utilities}
+        </footer>
+      ) : null}
     </article>
   );
 }
