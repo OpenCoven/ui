@@ -1,5 +1,9 @@
 /* Focused regression guards layered after the specimen shell styles. */
 
+html {
+  min-width: 320px;
+}
+
 body:not(:has(#group-composer)) .specimen-rail a[href="#group-composer"],
 body:not(:has(#group-run-rail)) .specimen-rail a[href="#group-run-rail"],
 body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
