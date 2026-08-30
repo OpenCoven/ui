@@ -77,75 +77,85 @@ function DeveloperShowcase() {
             project="OpenCoven/ui"
             branch="feat/developer-surface-system"
             title="OpenCoven development context"
-            description="A normalized, presentation-only view over real SDK, CLI, daemon, runtime, and repository signals."
+            description="A normalized, presentation-only view over SDK, CLI, daemon, runtime, and repository signals supplied by their owning systems."
             connections={[
               {
+                id: "daemon-primary",
                 name: "Coven daemon",
                 kind: "Daemon",
                 state: "connected",
                 authority: "local-authority",
-                version: "v0.1",
+                version: "coven.daemon.v1",
                 detail:
                   "Session and runtime authority from the same-user local daemon contract.",
-                meta: "coven.daemon.v1",
+                meta: "owner-local IPC",
               },
               {
+                id: "sdk-primary",
                 name: "OpenCoven SDK",
                 kind: "SDK",
                 state: "degraded",
                 authority: "read-only",
-                version: "0.1 exp",
+                version: "pre-release",
                 detail:
                   "Experimental read-only coordination surface; mutation remains deliberately unavailable.",
                 meta: "Cave + Coven reads",
               },
               {
+                id: "cli-primary",
                 name: "Coven CLI",
                 kind: "CLI",
                 state: "connected",
                 authority: "proposal",
                 version: "@opencoven/cli",
                 detail:
-                  "Canonical user CLI. Execution is still revalidated by the daemon authority boundary.",
+                  "Canonical user CLI. Consequential execution is revalidated by the daemon authority boundary.",
                 meta: "coven doctor · run · sessions",
               },
               {
+                id: "runtime-primary",
                 name: "coven-code runtime",
                 kind: "Runtime",
                 state: "connected",
                 authority: "proposal",
-                version: "0.7",
+                version: "registered",
                 detail:
-                  "Registered coding runtime driven through the Coven execution substrate.",
-                meta: "stream-json",
+                  "Coding runtime presented through the Coven execution substrate.",
+                meta: "stream-json adapter",
               },
             ]}
             activity={[
               {
+                id: "doctor-receipt",
                 channel: "cli",
-                command: "coven doctor",
-                status: "success",
+                displayCommand: "coven doctor",
+                status: "succeeded",
+                receiptId: "demo:doctor:01",
                 summary: "Local runtime and harness readiness verified.",
                 duration: "0.8s",
                 exitCode: 0,
-                timestamp: "now",
+                timestamp: "2026-08-30T12:00:00Z",
               },
               {
+                id: "sdk-health-receipt",
                 channel: "sdk",
-                command: "cave.health({ timeoutMs: 5000 })",
-                status: "success",
+                displayCommand: "cave.health({ timeoutMs: 5000 })",
+                status: "succeeded",
+                receiptId: "demo:cave-health:01",
                 summary:
                   "Read-only Cave health returned through a caller-controlled transport.",
                 duration: "42ms",
-                timestamp: "now",
+                timestamp: "2026-08-30T12:00:01Z",
               },
               {
+                id: "daemon-policy-receipt",
                 channel: "daemon",
-                command: "session.create · project=OpenCoven/ui",
+                displayCommand: "session.create · project=[redacted-demo-scope]",
                 status: "blocked",
+                receiptId: "demo:policy-denial:01",
                 summary:
-                  "Mutation is intentionally shown as blocked until the canonical authority grants it.",
-                timestamp: "now",
+                  "Mutation is explicitly blocked until the canonical authority grants it.",
+                timestamp: "2026-08-30T12:00:02Z",
               },
             ]}
             aside={
@@ -158,9 +168,10 @@ function DeveloperShowcase() {
                     Normalize, then render.
                   </h3>
                   <p className="mt-2 mb-0 text-xs leading-5 text-muted-foreground">
-                    SDK and CLI adapters map external responses into small view
-                    models. UI code does not perform discovery, credential
-                    lookup, transport negotiation, or daemon mutation.
+                    SDK and CLI adapters map external responses into small,
+                    presentation-safe view models. UI code does not perform
+                    discovery, credential lookup, transport negotiation, or
+                    daemon mutation.
                   </p>
                 </section>
                 <section className="border-t border-border pt-4">
