@@ -11,7 +11,32 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   display: none;
 }
 
+@media (max-width: 68rem) {
+  .specimen-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 48rem) {
+  .specimen-rail,
+  .specimen-rail__context,
+  .specimen-rail__intro,
+  .specimen-rail__nav {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-rail__context,
+  .specimen-rail__intro {
+    overflow-wrap: anywhere;
+  }
+
+  .catalog-group__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .specimen-card > [data-slot="tabs"] {
     width: 100%;
     min-width: 0;
@@ -62,6 +87,7 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   }
 
   .specimen-stage {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
     min-height: 0;
@@ -73,12 +99,14 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   }
 
   .specimen-stage > * {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
     max-width: 100%;
   }
 
   .specimen-documentation {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
     min-height: 0;
