@@ -83,6 +83,7 @@ try {
     } catch {}
     await sleep(100);
   }
+
   if (!target?.webSocketDebuggerUrl) {
     throw new Error("Chrome debugging target unavailable");
   }
@@ -95,6 +96,7 @@ try {
 
   let id = 0;
   const pending = new Map();
+
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
     if (!message.id) return;
@@ -118,12 +120,14 @@ try {
       awaitPromise: true,
       returnByValue: true,
     });
+
     if (result.exceptionDetails) {
       throw new Error(
         result.exceptionDetails.exception?.description ??
           result.exceptionDetails.text,
       );
     }
+
     return result.result?.value;
   };
 
@@ -134,6 +138,7 @@ try {
   });
 
   const results = [];
+
   for (const scenario of cases) {
     await send("Emulation.setDeviceMetricsOverride", {
       width: scenario.width,
@@ -149,18 +154,22 @@ try {
     await evaluate(`(() => {
       localStorage.setItem("coven-ui:scheme", ${JSON.stringify(scenario.scheme)});
       localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.density)});
-      return true;
     })()`);
     await send("Page.navigate", { url: new URL("/", baseUrl).href });
     await sleep(500);
 
+    await evaluate(`(() => {
+      document.documentElement.dir = ${JSON.stringify(scenario.rtl ? "rtl" : "ltr")};
+      document.documentElement.style.fontSize = ${JSON.stringify(
+        scenario.textScale ? `${scenario.textScale * 100}%` : "",
+      )};
+    })()`);
+
     const measurement = await evaluate(`(async () => {
       await document.fonts.ready;
-      document.documentElement.dir = ${JSON.stringify(scenario.rtl ? "rtl" : "ltr")};
-      const existingScale = document.querySelector("#mobile-quality-text-scale");
-      existingScale?.remove();
-      ${scenario.textScale ? `const scale = document.createElement("style"); scale.id = "mobile-quality-text-scale"; scale.textContent = "html { font-size: ${scenario.textScale * 100}% !important; }"; document.head.append(scale);` : ""}
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
 
       const root = document.documentElement;
       const cards = [...document.querySelectorAll(".specimen-card")];
@@ -175,15 +184,20 @@ try {
         .map((tabs) => tabs.querySelector(':scope > [data-slot="tabs-content"]'))
         .filter(Boolean);
       const transcript = document.querySelector(
-        "#transcript-turn [data-slot=\"transcript-turn\"]",
+        '#transcript-turn [data-slot="transcript-turn"]',
       );
       const session = document.querySelector(
-        "#session-header [data-slot=\"session-header\"]",
+        '#session-header [data-slot="session-header"]',
       );
       const sessionTitle = session?.querySelector("strong");
       const clipped = (element) =>
         element ? Math.max(0, element.scrollWidth - element.clientWidth) : 0;
       const rect = (element) => element?.getBoundingClientRect();
+      const tabHeights = cardLists.flatMap((list) =>
+        [...list.querySelectorAll('[role="tab"]')].map(
+          (tab) => rect(tab).height,
+        ),
+      );
 
       return {
         viewport: root.clientWidth,
@@ -192,13 +206,7 @@ try {
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
-        minTabHeight: Math.min(
-          ...cardLists.flatMap((list) =>
-            [...list.querySelectorAll('[role="tab"]')].map(
-              (tab) => rect(tab).height,
-            ),
-          ),
-        ),
+        minTabHeight: Math.min(...tabHeights),
         stackedTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
           const panelRect = rect(activePanels[index]);
@@ -224,6 +232,7 @@ try {
     })()`);
 
     const failures = [];
+
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
     }
@@ -270,10 +279,12 @@ try {
       captureBeyondViewport: false,
     });
     const screenshot = `${scenario.name}.png`;
+
     await writeFile(
       path.join(outputDir, screenshot),
       Buffer.from(image.data, "base64"),
     );
+
     results.push({ ...scenario, measurement, failures, screenshot });
   }
 
@@ -282,6 +293,7 @@ try {
     passed: results.every((entry) => entry.failures.length === 0),
     results,
   };
+
   await writeFile(
     path.join(outputDir, "summary.json"),
     `${JSON.stringify(summary, null, 2)}\n`,
