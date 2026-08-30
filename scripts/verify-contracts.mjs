@@ -9,6 +9,7 @@ const [
   packageJson,
   tokens,
   specimenCss,
+  specimenFixes,
   specimenApp,
   button,
   tooltip,
@@ -18,6 +19,7 @@ const [
   read("packages/ui/package.json"),
   read("packages/ui/src/styles/globals.css"),
   read("apps/specimens/src/specimens.css"),
+  read("apps/specimens/src/specimens-fixes.css"),
   read("apps/specimens/src/app.tsx"),
   read("packages/ui/src/components/ui/button.tsx"),
   read("packages/ui/src/components/ui/tooltip.tsx"),
@@ -104,6 +106,10 @@ const assertions = [
   [
     "mobile layout covers 390px",
     specimenCss.includes("@media (max-width: 24.375rem)"),
+  ],
+  [
+    "minimum viewport floor does not scale with text",
+    /html\s*\{[^}]*min-width:\s*320px/.test(specimenFixes),
   ],
   [
     "responsive rail becomes compact navigation",
