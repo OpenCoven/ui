@@ -11,6 +11,7 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   .assembled-lab [data-slot="tabs-content"],
   .assembled-lab__nav,
   .assembled-lab__stage {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -27,6 +28,7 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 
   .assembled-lab__tabs {
     display: grid;
+    box-sizing: border-box;
     width: 100% !important;
     min-width: 0;
     max-width: 100%;
