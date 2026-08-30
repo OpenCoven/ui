@@ -11,9 +11,17 @@ import type { ReactNode } from "react";
 import { cn } from "@opencoven/ui/lib/utils";
 
 type ConnectionState =
-  "connected" | "pending" | "degraded" | "disconnected" | "unavailable";
+  | "connected"
+  | "pending"
+  | "degraded"
+  | "disconnected"
+  | "unavailable";
 
-type AuthorityLevel = "read-only" | "proposal" | "mutating" | "local-authority";
+type AuthorityLevel =
+  | "read-only"
+  | "proposal"
+  | "mutating"
+  | "local-authority";
 
 type ConnectionStatusProps = {
   name: string;
@@ -37,7 +45,7 @@ const stateDetails: Record<
     className: "text-success",
   },
   pending: {
-    label: "Connecting",
+    label: "Pending",
     icon: CircleDashed,
     className: "text-information",
   },
@@ -105,6 +113,7 @@ function ConnectionStatus({
       data-slot="connection-status"
       data-state={state}
       data-authority={authority}
+      aria-label={`${kind} ${name}: ${stateDetail.label}; ${authorityDetail.label}`}
       className={cn(
         "grid min-w-0 gap-3 rounded-lg border border-border bg-card p-4 shadow-sm",
         className,
@@ -120,14 +129,16 @@ function ConnectionStatus({
           </strong>
         </span>
         {version ? (
-          <code className="numeric shrink-0 rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] text-muted-foreground">
+          <code className="numeric max-w-[45%] min-w-0 truncate rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] text-muted-foreground">
             {version}
           </code>
         ) : null}
       </header>
 
       {detail ? (
-        <p className="m-0 text-xs leading-5 text-muted-foreground">{detail}</p>
+        <p className="m-0 text-xs leading-5 break-words text-muted-foreground">
+          {detail}
+        </p>
       ) : null}
 
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-[0.6875rem]">
