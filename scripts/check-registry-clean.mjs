@@ -26,11 +26,12 @@ function gitStatus() {
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let settled = false;
+    let timeout;
 
     const finish = (callback) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
       callback();
     };
 
@@ -65,7 +66,7 @@ function gitStatus() {
       });
     });
 
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       child.kill("SIGTERM");
       finish(() => reject(new Error("git status timed out")));
     }, timeoutMs);
