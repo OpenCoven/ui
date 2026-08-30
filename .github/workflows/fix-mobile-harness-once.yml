@@ -36,7 +36,7 @@ jobs:
           )
           text = text.replace(
               "  socket?.close();\n  chrome.kill();\n  await rm(profile, { recursive: true, force: true });",
-              "  socket?.close();\n  chrome.kill();\n  await new Promise((resolve) => {\n    if (chrome.exitCode !== null) {\n      resolve();\n      return;\n    }\n    const timeout = setTimeout(resolve, 2000);\n    chrome.once(\"exit\", () => {\n      clearTimeout(timeout);\n      resolve();\n    });\n  });\n  for (let attempt = 0; attempt < 5; attempt += 1) {\n    try {\n      await rm(profile, { recursive: true, force: true });\n      break;\n    } catch (error) {\n      if (attempt === 4) throw error;\n      await sleep(100 * (attempt + 1));\n    }\n  }",
+              "  socket?.close();\n  chrome.kill();\n  await new Promise((resolve) => {\n    if (chrome.exitCode !== null) {\n      resolve();\n      return;\n    }\n    const timeout = setTimeout(resolve, 2000);\n    chrome.once(\"exit\", () => {\n      clearTimeout(timeout);\n      resolve();\n    });\n  });\n  let profileRemoved = false;\n  for (let attempt = 0; attempt < 5; attempt += 1) {\n    try {\n      await rm(profile, { recursive: true, force: true });\n      profileRemoved = true;\n      break;\n    } catch {\n      await sleep(100 * (attempt + 1));\n    }\n  }\n  if (!profileRemoved) {\n    console.warn(`Unable to remove temporary Chrome profile: ${profile}`);\n  }",
               1,
           )
           path.write_text(text)
