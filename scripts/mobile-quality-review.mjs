@@ -54,9 +54,7 @@ const cases = [
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const profile = await mkdtemp(
-  path.join(tmpdir(), "opencoven-mobile-quality-"),
-);
+const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
 
 const chrome = spawn(chromePath, [
@@ -75,9 +73,9 @@ try {
   let target;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      const targets = await fetch(
-        `http://127.0.0.1:${port}/json/list`,
-      ).then((response) => response.json());
+      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
+        (response) => response.json(),
+      );
       target = targets.find((entry) => entry.type === "page");
       if (target?.webSocketDebuggerUrl) break;
     } catch {}
