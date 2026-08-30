@@ -13,16 +13,50 @@ const port = Number(process.env.MOBILE_CHROME_PORT ?? 9233);
 if (!chromePath) throw new Error("CHROME_PATH is required");
 
 const cases = [
-  { name: "mobile-320-dark-cozy", width: 320, scheme: "dark", density: "default" },
-  { name: "mobile-375-light-compact", width: 375, scheme: "light", density: "compact" },
-  { name: "mobile-390-dark-cozy", width: 390, scheme: "dark", density: "default" },
-  { name: "mobile-430-light-cozy", width: 430, scheme: "light", density: "default" },
-  { name: "mobile-390-dark-rtl", width: 390, scheme: "dark", density: "compact", rtl: true },
-  { name: "mobile-390-dark-text-200", width: 390, scheme: "dark", density: "default", textScale: 2 },
+  {
+    name: "mobile-320-dark-cozy",
+    width: 320,
+    scheme: "dark",
+    density: "default",
+  },
+  {
+    name: "mobile-375-light-compact",
+    width: 375,
+    scheme: "light",
+    density: "compact",
+  },
+  {
+    name: "mobile-390-dark-cozy",
+    width: 390,
+    scheme: "dark",
+    density: "default",
+  },
+  {
+    name: "mobile-430-light-cozy",
+    width: 430,
+    scheme: "light",
+    density: "default",
+  },
+  {
+    name: "mobile-390-dark-rtl",
+    width: 390,
+    scheme: "dark",
+    density: "compact",
+    rtl: true,
+  },
+  {
+    name: "mobile-390-dark-text-200",
+    width: 390,
+    scheme: "dark",
+    density: "default",
+    textScale: 2,
+  },
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
+const profile = await mkdtemp(
+  path.join(tmpdir(), "opencoven-mobile-quality-"),
+);
 await mkdir(outputDir, { recursive: true });
 
 const chrome = spawn(chromePath, [
@@ -41,13 +75,17 @@ try {
   let target;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((response) => response.json());
+      const targets = await fetch(
+        `http://127.0.0.1:${port}/json/list`,
+      ).then((response) => response.json());
       target = targets.find((entry) => entry.type === "page");
       if (target?.webSocketDebuggerUrl) break;
     } catch {}
     await sleep(100);
   }
-  if (!target?.webSocketDebuggerUrl) throw new Error("Chrome debugging target unavailable");
+  if (!target?.webSocketDebuggerUrl) {
+    throw new Error("Chrome debugging target unavailable");
+  }
 
   socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -81,7 +119,10 @@ try {
       returnByValue: true,
     });
     if (result.exceptionDetails) {
-      throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text);
+      throw new Error(
+        result.exceptionDetails.exception?.description ??
+          result.exceptionDetails.text,
+      );
     }
     return result.result?.value;
   };
@@ -124,13 +165,24 @@ try {
       const root = document.documentElement;
       const cards = [...document.querySelectorAll(".specimen-card")];
       const stages = [...document.querySelectorAll(".specimen-stage")];
-      const cardTabRoots = cards.map((card) => card.querySelector(':scope > [data-slot="tabs"]')).filter(Boolean);
-      const cardLists = cardTabRoots.map((tabs) => tabs.querySelector(':scope > [data-slot="tabs-list"]')).filter(Boolean);
-      const activePanels = cardTabRoots.map((tabs) => tabs.querySelector(':scope > [data-slot="tabs-content"]')).filter(Boolean);
-      const transcript = document.querySelector("#transcript-turn [data-slot=\"transcript-turn\"]");
-      const session = document.querySelector("#session-header [data-slot=\"session-header\"]");
+      const cardTabRoots = cards
+        .map((card) => card.querySelector(':scope > [data-slot="tabs"]'))
+        .filter(Boolean);
+      const cardLists = cardTabRoots
+        .map((tabs) => tabs.querySelector(':scope > [data-slot="tabs-list"]'))
+        .filter(Boolean);
+      const activePanels = cardTabRoots
+        .map((tabs) => tabs.querySelector(':scope > [data-slot="tabs-content"]'))
+        .filter(Boolean);
+      const transcript = document.querySelector(
+        "#transcript-turn [data-slot=\"transcript-turn\"]",
+      );
+      const session = document.querySelector(
+        "#session-header [data-slot=\"session-header\"]",
+      );
       const sessionTitle = session?.querySelector("strong");
-      const clipped = (element) => element ? Math.max(0, element.scrollWidth - element.clientWidth) : 0;
+      const clipped = (element) =>
+        element ? Math.max(0, element.scrollWidth - element.clientWidth) : 0;
       const rect = (element) => element?.getBoundingClientRect();
 
       return {
@@ -140,7 +192,13 @@ try {
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
-        minTabHeight: Math.min(...cardLists.flatMap((list) => [...list.querySelectorAll('[role="tab"]')].map((tab) => rect(tab).height))),
+        minTabHeight: Math.min(
+          ...cardLists.flatMap((list) =>
+            [...list.querySelectorAll('[role="tab"]')].map(
+              (tab) => rect(tab).height,
+            ),
+          ),
+        ),
         stackedTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
           const panelRect = rect(activePanels[index]);
@@ -149,30 +207,62 @@ try {
         fullWidthTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
           const rootRect = rect(cardTabRoots[index]);
-          return listRect && rootRect && Math.abs(listRect.width - rootRect.width) <= 1;
+          return (
+            listRect &&
+            rootRect &&
+            Math.abs(listRect.width - rootRect.width) <= 1
+          );
         }),
         transcriptOverflow: clipped(transcript),
         sessionOverflow: clipped(session),
-        sessionTitleEllipsized: sessionTitle ? getComputedStyle(sessionTitle).textOverflow === "ellipsis" : null,
+        sessionTitleEllipsized: sessionTitle
+          ? getComputedStyle(sessionTitle).textOverflow === "ellipsis"
+          : null,
         direction: root.dir,
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
       };
     })()`);
 
     const failures = [];
-    if (measurement.cardCount !== 16) failures.push(`expected 16 cards, got ${measurement.cardCount}`);
-    if (measurement.documentOverflow > 1) failures.push(`document overflow ${measurement.documentOverflow}px`);
-    if (measurement.maxCardOverflow > 1) failures.push(`card overflow ${measurement.maxCardOverflow}px`);
-    if (measurement.maxStageOverflow > 1) failures.push(`stage overflow ${measurement.maxStageOverflow}px`);
-    if (measurement.maxTabRootOverflow > 1) failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);
-    if (measurement.minTabHeight < 44) failures.push(`tab target ${measurement.minTabHeight}px < 44px`);
-    if (!measurement.stackedTabs) failures.push("card tabs are not stacked above their active panels");
-    if (!measurement.fullWidthTabs) failures.push("card tab lists do not consume the mobile content width");
-    if (measurement.transcriptOverflow > 1) failures.push(`transcript overflow ${measurement.transcriptOverflow}px`);
-    if (measurement.sessionOverflow > 1) failures.push(`session header overflow ${measurement.sessionOverflow}px`);
-    if (measurement.sessionTitleEllipsized) failures.push("session title is ellipsized on mobile");
-    if (!measurement.reducedMotion) failures.push("reduced-motion media query was not active");
-    if (scenario.rtl && measurement.direction !== "rtl") failures.push("RTL direction was not applied");
+    if (measurement.cardCount !== 16) {
+      failures.push(`expected 16 cards, got ${measurement.cardCount}`);
+    }
+    if (measurement.documentOverflow > 1) {
+      failures.push(`document overflow ${measurement.documentOverflow}px`);
+    }
+    if (measurement.maxCardOverflow > 1) {
+      failures.push(`card overflow ${measurement.maxCardOverflow}px`);
+    }
+    if (measurement.maxStageOverflow > 1) {
+      failures.push(`stage overflow ${measurement.maxStageOverflow}px`);
+    }
+    if (measurement.maxTabRootOverflow > 1) {
+      failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);
+    }
+    if (measurement.minTabHeight < 44) {
+      failures.push(`tab target ${measurement.minTabHeight}px < 44px`);
+    }
+    if (!measurement.stackedTabs) {
+      failures.push("card tabs are not stacked above their active panels");
+    }
+    if (!measurement.fullWidthTabs) {
+      failures.push("card tab lists do not consume the mobile content width");
+    }
+    if (measurement.transcriptOverflow > 1) {
+      failures.push(`transcript overflow ${measurement.transcriptOverflow}px`);
+    }
+    if (measurement.sessionOverflow > 1) {
+      failures.push(`session header overflow ${measurement.sessionOverflow}px`);
+    }
+    if (measurement.sessionTitleEllipsized) {
+      failures.push("session title is ellipsized on mobile");
+    }
+    if (!measurement.reducedMotion) {
+      failures.push("reduced-motion media query was not active");
+    }
+    if (scenario.rtl && measurement.direction !== "rtl") {
+      failures.push("RTL direction was not applied");
+    }
 
     const image = await send("Page.captureScreenshot", {
       format: "png",
@@ -180,7 +270,10 @@ try {
       captureBeyondViewport: false,
     });
     const screenshot = `${scenario.name}.png`;
-    await writeFile(path.join(outputDir, screenshot), Buffer.from(image.data, "base64"));
+    await writeFile(
+      path.join(outputDir, screenshot),
+      Buffer.from(image.data, "base64"),
+    );
     results.push({ ...scenario, measurement, failures, screenshot });
   }
 
@@ -189,7 +282,10 @@ try {
     passed: results.every((entry) => entry.failures.length === 0),
     results,
   };
-  await writeFile(path.join(outputDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
+  await writeFile(
+    path.join(outputDir, "summary.json"),
+    `${JSON.stringify(summary, null, 2)}\n`,
+  );
   await writeFile(
     path.join(outputDir, "README.md"),
     [
@@ -199,13 +295,22 @@ try {
       "",
       "| Scenario | Width | Document overflow | Stage overflow | Min tab target | Result |",
       "|---|---:|---:|---:|---:|---|",
-      ...results.map((entry) => `| ${entry.name} | ${entry.width}px | ${entry.measurement.documentOverflow}px | ${entry.measurement.maxStageOverflow}px | ${entry.measurement.minTabHeight}px | ${entry.failures.length ? entry.failures.join("; ") : "PASS"} |`),
+      ...results.map(
+        (entry) =>
+          `| ${entry.name} | ${entry.width}px | ${entry.measurement.documentOverflow}px | ${entry.measurement.maxStageOverflow}px | ${entry.measurement.minTabHeight}px | ${entry.failures.length ? entry.failures.join("; ") : "PASS"} |`,
+      ),
       "",
     ].join("\n"),
   );
 
   if (!summary.passed) {
-    throw new Error(results.flatMap((entry) => entry.failures.map((failure) => `${entry.name}: ${failure}`)).join("\n"));
+    throw new Error(
+      results
+        .flatMap((entry) =>
+          entry.failures.map((failure) => `${entry.name}: ${failure}`),
+        )
+        .join("\n"),
+    );
   }
 } finally {
   socket?.close();
