@@ -7,16 +7,21 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 }
 
 @media (max-width: 24.375rem) {
-  .assembled-lab > [data-slot="tabs"] {
+  .assembled-lab > [data-slot="tabs"],
+  .assembled-lab [data-slot="tabs-content"],
+  .assembled-lab__nav,
+  .assembled-lab__stage {
     width: 100%;
     min-width: 0;
     max-width: 100%;
   }
 
+  .assembled-lab [data-slot="tabs-content"],
+  .assembled-lab__stage {
+    overflow-x: hidden;
+  }
+
   .assembled-lab__nav {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
     overflow-x: hidden;
   }
 
@@ -33,6 +38,11 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     padding-inline: 0.25rem;
     font-size: 0.625rem;
     white-space: normal;
+  }
+
+  .assembled-lab__stage > * {
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
