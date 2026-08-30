@@ -1,5 +1,6 @@
 /* Focused regression guards layered after the specimen shell styles. */
 
+/* Keep the supported viewport floor stable when users enlarge root text. */
 html {
   min-width: 320px;
 }
