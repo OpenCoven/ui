@@ -53,9 +53,7 @@ const cases = [
 if (!chromePath) throw new Error("CHROME_PATH is required");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const profile = await mkdtemp(
-  path.join(tmpdir(), "opencoven-mobile-quality-"),
-);
+const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
 
 const chrome = spawn(chromePath, [
@@ -74,9 +72,9 @@ try {
   let target;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      const targets = await fetch(
-        `http://127.0.0.1:${port}/json/list`,
-      ).then((response) => response.json());
+      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
+        (response) => response.json(),
+      );
       target = targets.find((entry) => entry.type === "page");
       if (target?.webSocketDebuggerUrl) break;
     } catch {}
@@ -262,10 +260,14 @@ try {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
     }
     if (measurement.tabRootCount !== 16) {
-      failures.push(`expected 16 card tab roots, got ${measurement.tabRootCount}`);
+      failures.push(
+        `expected 16 card tab roots, got ${measurement.tabRootCount}`,
+      );
     }
     if (measurement.tabListCount !== 16) {
-      failures.push(`expected 16 card tab lists, got ${measurement.tabListCount}`);
+      failures.push(
+        `expected 16 card tab lists, got ${measurement.tabListCount}`,
+      );
     }
     if (measurement.activePanelCount !== 16) {
       failures.push(
