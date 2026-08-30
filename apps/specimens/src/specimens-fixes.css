@@ -7,21 +7,32 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 }
 
 @media (max-width: 24.375rem) {
+  .assembled-lab > [data-slot="tabs"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .assembled-lab__nav {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: hidden;
   }
 
   .assembled-lab__tabs {
     display: grid;
-    width: 100%;
+    width: 100% !important;
     min-width: 0;
+    max-width: 100%;
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .assembled-lab__tabs [role="tab"] {
     min-width: 0;
-    padding-inline: 0.35rem;
+    padding-inline: 0.25rem;
     font-size: 0.625rem;
+    white-space: normal;
   }
 }
 
