@@ -69,7 +69,7 @@
       "name": "session-header",
       "type": "registry:block",
       "title": "Session header",
-      "description": "Task title, branch, execution state, and budget with responsive hierarchy.",
+      "description": "Task title, branch, execution state, and budget in one line.",
       "dependencies": ["lucide-react"],
       "registryDependencies": ["budget-pill", "status-indicator", "cn"],
       "files": [
