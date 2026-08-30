@@ -27,7 +27,7 @@ jobs:
         uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
         with:
           chrome-version: stable
-      - name: Diagnose 390px overflow
+      - name: Diagnose 390px overflow and tab-panel state
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
