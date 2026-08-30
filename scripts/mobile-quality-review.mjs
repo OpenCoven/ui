@@ -9,9 +9,6 @@ const outputDir = path.resolve(
   process.env.MOBILE_OUTPUT_DIR ?? "artifacts/mobile-quality",
 );
 const port = Number(process.env.MOBILE_CHROME_PORT ?? 9233);
-
-if (!chromePath) throw new Error("CHROME_PATH is required");
-
 const cases = [
   {
     name: "mobile-320-dark-cozy",
@@ -53,10 +50,10 @@ const cases = [
   },
 ];
 
+if (!chromePath) throw new Error("CHROME_PATH is required");
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const profile = await mkdtemp(
-  path.join(tmpdir(), "opencoven-mobile-quality-"),
-);
+const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
 
 const chrome = spawn(chromePath, [
@@ -75,12 +72,14 @@ try {
   let target;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     try {
-      const targets = await fetch(
-        `http://127.0.0.1:${port}/json/list`,
-      ).then((response) => response.json());
+      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
+        (response) => response.json(),
+      );
       target = targets.find((entry) => entry.type === "page");
       if (target?.webSocketDebuggerUrl) break;
-    } catch {}
+    } catch {
+      // Chrome may not have exposed the debugging endpoint yet.
+    }
     await sleep(100);
   }
 
@@ -96,7 +95,6 @@ try {
 
   let id = 0;
   const pending = new Map();
-
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
     if (!message.id) return;
@@ -131,6 +129,11 @@ try {
     return result.result?.value;
   };
 
+  const navigate = async (url) => {
+    await send("Page.navigate", { url });
+    await sleep(500);
+  };
+
   await send("Page.enable");
   await send("Runtime.enable");
   await send("Emulation.setEmulatedMedia", {
@@ -149,17 +152,17 @@ try {
       screenHeight: 900,
     });
 
-    await send("Page.navigate", { url: new URL("/", baseUrl).href });
-    await sleep(250);
+    await navigate(new URL("/", baseUrl).href);
     await evaluate(`(() => {
       localStorage.setItem("coven-ui:scheme", ${JSON.stringify(scenario.scheme)});
       localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.density)});
     })()`);
-    await send("Page.navigate", { url: new URL("/", baseUrl).href });
-    await sleep(500);
+    await navigate(new URL("/", baseUrl).href);
 
     await evaluate(`(() => {
-      document.documentElement.dir = ${JSON.stringify(scenario.rtl ? "rtl" : "ltr")};
+      document.documentElement.dir = ${JSON.stringify(
+        scenario.rtl ? "rtl" : "ltr",
+      )};
       document.documentElement.style.fontSize = ${JSON.stringify(
         scenario.textScale ? `${scenario.textScale * 100}%` : "",
       )};
@@ -195,18 +198,40 @@ try {
       const rect = (element) => element?.getBoundingClientRect();
       const tabHeights = cardLists.flatMap((list) =>
         [...list.querySelectorAll('[role="tab"]')].map(
-          (tab) => rect(tab).height,
+          (tab) => rect(tab)?.height ?? 0,
         ),
       );
+      const overflowingElements = [...document.querySelectorAll("body *")]
+        .map((element) => {
+          const bounds = rect(element);
+          const overflow = bounds
+            ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
+            : 0;
+          const label = [
+            element.tagName.toLowerCase(),
+            element.id ? "#" + element.id : "",
+            ...[...element.classList]
+              .slice(0, 3)
+              .map((name) => "." + name),
+          ].join("");
+          return { label, overflow };
+        })
+        .filter(({ overflow }) => overflow > 1)
+        .sort((left, right) => right.overflow - left.overflow)
+        .slice(0, 5);
 
       return {
         viewport: root.clientWidth,
         documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
         cardCount: cards.length,
+        tabRootCount: cardTabRoots.length,
+        tabListCount: cardLists.length,
+        activePanelCount: activePanels.length,
+        tabTargetCount: tabHeights.length,
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
-        minTabHeight: Math.min(...tabHeights),
+        minTabHeight: tabHeights.length > 0 ? Math.min(...tabHeights) : null,
         stackedTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
           const panelRect = rect(activePanels[index]);
@@ -228,16 +253,40 @@ try {
           : null,
         direction: root.dir,
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        overflowingElements,
       };
     })()`);
 
     const failures = [];
-
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
     }
+    if (measurement.tabRootCount !== 16) {
+      failures.push(
+        `expected 16 card tab roots, got ${measurement.tabRootCount}`,
+      );
+    }
+    if (measurement.tabListCount !== 16) {
+      failures.push(
+        `expected 16 card tab lists, got ${measurement.tabListCount}`,
+      );
+    }
+    if (measurement.activePanelCount !== 16) {
+      failures.push(
+        `expected 16 active card panels, got ${measurement.activePanelCount}`,
+      );
+    }
+    if (measurement.tabTargetCount !== 48) {
+      failures.push(
+        `expected 48 card tab targets, got ${measurement.tabTargetCount}`,
+      );
+    }
     if (measurement.documentOverflow > 1) {
-      failures.push(`document overflow ${measurement.documentOverflow}px`);
+      failures.push(
+        `document overflow ${measurement.documentOverflow}px: ${measurement.overflowingElements
+          .map(({ label, overflow }) => `${label} (${overflow}px)`)
+          .join(", ")}`,
+      );
     }
     if (measurement.maxCardOverflow > 1) {
       failures.push(`card overflow ${measurement.maxCardOverflow}px`);
@@ -248,8 +297,10 @@ try {
     if (measurement.maxTabRootOverflow > 1) {
       failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);
     }
-    if (measurement.minTabHeight < 44) {
-      failures.push(`tab target ${measurement.minTabHeight}px < 44px`);
+    if (measurement.minTabHeight === null || measurement.minTabHeight < 44) {
+      failures.push(
+        `tab target ${measurement.minTabHeight ?? "missing"}px < 44px`,
+      );
     }
     if (!measurement.stackedTabs) {
       failures.push("card tabs are not stacked above their active panels");
@@ -279,12 +330,10 @@ try {
       captureBeyondViewport: false,
     });
     const screenshot = `${scenario.name}.png`;
-
     await writeFile(
       path.join(outputDir, screenshot),
       Buffer.from(image.data, "base64"),
     );
-
     results.push({ ...scenario, measurement, failures, screenshot });
   }
 
@@ -293,7 +342,6 @@ try {
     passed: results.every((entry) => entry.failures.length === 0),
     results,
   };
-
   await writeFile(
     path.join(outputDir, "summary.json"),
     `${JSON.stringify(summary, null, 2)}\n`,
@@ -327,5 +375,28 @@ try {
 } finally {
   socket?.close();
   chrome.kill();
-  await rm(profile, { recursive: true, force: true });
+  await new Promise((resolve) => {
+    if (chrome.exitCode !== null) {
+      resolve();
+      return;
+    }
+    const timeout = setTimeout(resolve, 2000);
+    chrome.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+  let profileRemoved = false;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rm(profile, { recursive: true, force: true });
+      profileRemoved = true;
+      break;
+    } catch {
+      await sleep(100 * (attempt + 1));
+    }
+  }
+  if (!profileRemoved) {
+    console.warn(`Unable to remove temporary Chrome profile: ${profile}`);
+  }
 }
