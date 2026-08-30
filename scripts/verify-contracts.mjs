@@ -105,7 +105,8 @@ const assertions = [
   ],
   [
     "mobile layout covers 390px",
-    specimenCss.includes("@media (max-width: 24.375rem)"),
+    specimenFixes.includes("@media (max-width: 24.375rem)") &&
+      specimenFixes.includes("grid-template-columns: repeat(5, minmax(0, 1fr))"),
   ],
   [
     "minimum viewport floor does not scale with text",
@@ -114,8 +115,10 @@ const assertions = [
   [
     "responsive rail becomes compact navigation",
     specimenCss.includes("@media (max-width: 68rem)") &&
-      /\.specimen-rail__context,\r?\n\s+\.specimen-rail__package/.test(
-        specimenCss,
+      specimenCss.includes(".specimen-shell {\n    grid-template-columns: 1fr;") &&
+      specimenCss.includes("@media (max-width: 48rem)") &&
+      specimenCss.includes(
+        ".specimen-rail__nav {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
       ),
   ],
   [
