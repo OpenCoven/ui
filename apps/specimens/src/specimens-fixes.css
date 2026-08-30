@@ -12,6 +12,20 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 }
 
 @media (max-width: 48rem) {
+  .specimen-rail,
+  .specimen-rail__context,
+  .specimen-rail__intro,
+  .specimen-rail__nav {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-rail__context,
+  .specimen-rail__intro {
+    overflow-wrap: anywhere;
+  }
+
   .specimen-card > [data-slot="tabs"] {
     width: 100%;
     min-width: 0;
