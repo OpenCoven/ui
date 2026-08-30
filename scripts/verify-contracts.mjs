@@ -106,7 +106,9 @@ const assertions = [
   [
     "mobile layout covers 390px",
     specimenFixes.includes("@media (max-width: 24.375rem)") &&
-      specimenFixes.includes("grid-template-columns: repeat(5, minmax(0, 1fr))"),
+      specimenFixes.includes(
+        "grid-template-columns: repeat(5, minmax(0, 1fr))",
+      ),
   ],
   [
     "minimum viewport floor does not scale with text",
