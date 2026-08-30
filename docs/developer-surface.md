@@ -6,14 +6,14 @@ mutation, execution, or receipt provenance.
 
 ## Canonical ownership
 
-| Concern | Canonical producer | UI responsibility |
-| --- | --- | --- |
-| Cave/Coven read models | `@opencoven/sdk` packages | Normalize returned state into bounded view models and render it |
-| User-facing local CLI | `@opencoven/cli` (`coven`) | Render presentation-safe operation labels, state, and receipts supplied by the host |
-| Session/runtime authority | Coven daemon (`coven.daemon.v1`) | Display authority state explicitly; never infer permission |
-| Orchestration authority | Psyche | Display task, lease, approval, and receipt state supplied by the client |
-| Protected mutation | Threads + Coven | Present pending, proposed, committed, denied, or recovery-required state without performing the mutation |
-| Production application behavior | Cave | Consume these components where appropriate; Cave remains product authority |
+| Concern                         | Canonical producer               | UI responsibility                                                                                        |
+| ------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Cave/Coven read models          | `@opencoven/sdk` packages        | Normalize returned state into bounded view models and render it                                          |
+| User-facing local CLI           | `@opencoven/cli` (`coven`)       | Render presentation-safe operation labels, state, and receipts supplied by the host                      |
+| Session/runtime authority       | Coven daemon (`coven.daemon.v1`) | Display authority state explicitly; never infer permission                                               |
+| Orchestration authority         | Psyche                           | Display task, lease, approval, and receipt state supplied by the client                                  |
+| Protected mutation              | Threads + Coven                  | Present pending, proposed, committed, denied, or recovery-required state without performing the mutation |
+| Production application behavior | Cave                             | Consume these components where appropriate; Cave remains product authority                               |
 
 ## Current SDK status
 
@@ -48,10 +48,7 @@ not be treated as proof that an operation was authorized or completed.
 depend on labels, commands, or array positions:
 
 ```ts
-import type {
-  DeveloperConnection,
-  DeveloperReceipt,
-} from "@opencoven/ui";
+import type { DeveloperConnection, DeveloperReceipt } from "@opencoven/ui";
 
 const connections: DeveloperConnection[] = [
   {
@@ -104,15 +101,15 @@ when the host intentionally produced that safe projection. Renaming raw data to
 
 The component renders, but does not derive, these host-supplied states:
 
-| State | Meaning |
-| --- | --- |
-| `accepted` | The canonical producer accepted the request; execution is not yet proved |
-| `running` | The canonical producer reports active execution |
-| `succeeded` | A terminal success was reported |
-| `failed` | A terminal failure was reported |
-| `blocked` | Policy, capability, approval, or validation prevented execution |
-| `unknown` | The effect or terminal state cannot currently be proved |
-| `recovery-required` | Operator or producer reconciliation is required before retry |
+| State               | Meaning                                                                  |
+| ------------------- | ------------------------------------------------------------------------ |
+| `accepted`          | The canonical producer accepted the request; execution is not yet proved |
+| `running`           | The canonical producer reports active execution                          |
+| `succeeded`         | A terminal success was reported                                          |
+| `failed`            | A terminal failure was reported                                          |
+| `blocked`           | Policy, capability, approval, or validation prevented execution          |
+| `unknown`           | The effect or terminal state cannot currently be proved                  |
+| `recovery-required` | Operator or producer reconciliation is required before retry             |
 
 Do not translate PTY creation, transport connection, local UI transition, or
 process spawn into `accepted` or `succeeded` unless the owning protocol defines
@@ -123,10 +120,7 @@ that event as authoritative.
 Keep integration code outside the UI package:
 
 ```ts
-import type {
-  DeveloperConnection,
-  DeveloperReceipt,
-} from "@opencoven/ui";
+import type { DeveloperConnection, DeveloperReceipt } from "@opencoven/ui";
 
 export function toCaveConnection(result: CaveHealth): DeveloperConnection {
   return {

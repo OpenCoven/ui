@@ -190,7 +190,9 @@ const assertions = [
       developerSurface.includes(
         "type DeveloperReceipt = CommandReceiptProps & { id: string }",
       ) &&
-      developerSurface.includes("connections: readonly DeveloperConnection[]") &&
+      developerSurface.includes(
+        "connections: readonly DeveloperConnection[]",
+      ) &&
       developerSurface.includes("activity?: readonly DeveloperReceipt[]") &&
       developerSurface.includes("No integration state is available"),
   ],

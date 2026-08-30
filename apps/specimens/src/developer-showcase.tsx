@@ -150,7 +150,8 @@ function DeveloperShowcase() {
               {
                 id: "daemon-policy-receipt",
                 channel: "daemon",
-                displayCommand: "session.create · project=[redacted-demo-scope]",
+                displayCommand:
+                  "session.create · project=[redacted-demo-scope]",
                 status: "blocked",
                 receiptId: "demo:policy-denial:01",
                 summary:

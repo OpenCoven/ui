@@ -539,7 +539,9 @@ try {
     result.failures.map((failure) => `${result.name}: ${failure}`),
   );
   if (failures.length > 0) {
-    throw new Error(`Developer visual review failed:\n- ${failures.join("\n- ")}`);
+    throw new Error(
+      `Developer visual review failed:\n- ${failures.join("\n- ")}`,
+    );
   }
 
   console.log(
