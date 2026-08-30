@@ -6,6 +6,86 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   display: none;
 }
 
+@media (max-width: 48rem) {
+  .specimen-card > [data-slot="tabs"] {
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+  }
+
+  .specimen-card > [data-slot="tabs"] > [data-slot="tabs-list"] {
+    display: grid;
+    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin: 0 !important;
+    border-block-end: 1px solid var(--border);
+    padding: 0 0.75rem;
+  }
+
+  .specimen-card
+    > [data-slot="tabs"]
+    > [data-slot="tabs-list"]
+    > [data-slot="tabs-trigger"] {
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.5rem;
+  }
+
+  .specimen-card > [data-slot="tabs"] > [data-slot="tabs-content"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-card__header {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  .specimen-card__title {
+    margin-block-start: 0.875rem;
+  }
+
+  .specimen-card__description {
+    margin-block-start: 0.375rem;
+    line-height: 1.5;
+  }
+
+  .specimen-stage {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    align-content: start;
+    justify-items: stretch;
+    border-block-start: 0;
+    padding: 1rem;
+  }
+
+  .specimen-stage > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-documentation {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .specimen-command {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 24.375rem) {
   .assembled-lab > [data-slot="tabs"],
   .assembled-lab [data-slot="tabs-content"],
@@ -15,11 +95,6 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-  }
-
-  .assembled-lab [data-slot="tabs-content"],
-  .assembled-lab__stage {
-    overflow-x: hidden;
   }
 
   .assembled-lab__nav {
@@ -40,6 +115,11 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     padding-inline: 0.25rem;
     font-size: 0.625rem;
     white-space: normal;
+  }
+
+  .assembled-lab__stage {
+    min-height: 0;
+    align-content: start;
   }
 
   .assembled-lab__stage > * {
