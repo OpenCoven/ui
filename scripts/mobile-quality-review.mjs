@@ -77,7 +77,9 @@ try {
       );
       target = targets.find((entry) => entry.type === "page");
       if (target?.webSocketDebuggerUrl) break;
-    } catch {}
+    } catch {
+      // Chrome may not have exposed the debugging endpoint yet.
+    }
     await sleep(100);
   }
 
@@ -373,5 +375,28 @@ try {
 } finally {
   socket?.close();
   chrome.kill();
-  await rm(profile, { recursive: true, force: true });
+  await new Promise((resolve) => {
+    if (chrome.exitCode !== null) {
+      resolve();
+      return;
+    }
+    const timeout = setTimeout(resolve, 2000);
+    chrome.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+  let profileRemoved = false;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rm(profile, { recursive: true, force: true });
+      profileRemoved = true;
+      break;
+    } catch {
+      await sleep(100 * (attempt + 1));
+    }
+  }
+  if (!profileRemoved) {
+    console.warn(`Unable to remove temporary Chrome profile: ${profile}`);
+  }
 }
