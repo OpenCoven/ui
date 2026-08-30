@@ -159,8 +159,8 @@ function DeveloperShowcase() {
                   </h3>
                   <p className="mt-2 mb-0 text-xs leading-5 text-muted-foreground">
                     SDK and CLI adapters map external responses into small view
-                    models. UI code does not perform discovery, credential lookup,
-                    transport negotiation, or daemon mutation.
+                    models. UI code does not perform discovery, credential
+                    lookup, transport negotiation, or daemon mutation.
                   </p>
                 </section>
                 <section className="border-t border-border pt-4">

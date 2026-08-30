@@ -16,7 +16,13 @@
         }
       ],
       "meta": {
-        "states": ["connected", "pending", "degraded", "disconnected", "unavailable"],
+        "states": [
+          "connected",
+          "pending",
+          "degraded",
+          "disconnected",
+          "unavailable"
+        ],
         "authority": ["read-only", "proposal", "mutating", "local-authority"]
       }
     },

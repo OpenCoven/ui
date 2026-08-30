@@ -51,7 +51,10 @@ const assertions = [
   ],
   [
     "developer UI does not depend on SDK or CLI runtimes",
-    ![...Object.keys(manifest.dependencies), ...Object.keys(manifest.peerDependencies)].some(
+    ![
+      ...Object.keys(manifest.dependencies),
+      ...Object.keys(manifest.peerDependencies),
+    ].some(
       (name) =>
         name === "@opencoven/sdk" ||
         name === "@opencoven/sdk-core" ||
@@ -139,7 +142,9 @@ const assertions = [
   [
     "developer surface remains presentation only",
     developerSurface.includes("Presentation does not imply permission") &&
-      developerSurface.includes("performs no discovery or mutation on its own") &&
+      developerSurface.includes(
+        "performs no discovery or mutation on its own",
+      ) &&
       !developerSurface.includes("@opencoven/sdk") &&
       !developerSurface.includes("@opencoven/cli"),
   ],

@@ -100,7 +100,10 @@ function DeveloperSurface({
             </div>
           </section>
 
-          <section className="border-t border-border" aria-labelledby="developer-surface-activity">
+          <section
+            className="border-t border-border"
+            aria-labelledby="developer-surface-activity"
+          >
             <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
               <div>
                 <p className="numeric m-0 text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
@@ -128,8 +131,8 @@ function DeveloperSurface({
               </div>
             ) : (
               <p className="mx-5 mt-1 mb-5 rounded-lg border border-dashed border-border p-4 text-xs text-muted-foreground">
-                No invocation receipts yet. Keep empty states explicit rather than
-                fabricating execution history.
+                No invocation receipts yet. Keep empty states explicit rather
+                than fabricating execution history.
               </p>
             )}
           </section>
@@ -153,9 +156,9 @@ function DeveloperSurface({
                   Adapter boundary
                 </p>
                 <p className="mt-2 mb-0 text-xs leading-5 text-muted-foreground">
-                  Feed this block normalized view models from the SDK, CLI, daemon,
-                  runtime registry, or application state. The component performs no
-                  discovery or mutation on its own.
+                  Feed this block normalized view models from the SDK, CLI,
+                  daemon, runtime registry, or application state. The component
+                  performs no discovery or mutation on its own.
                 </p>
               </div>
             </div>

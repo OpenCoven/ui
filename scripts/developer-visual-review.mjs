@@ -49,11 +49,7 @@ const commonArgs = [
 ];
 const developerUrl = new URL("/developer", baseUrl).href;
 
-const dom = await runChrome([
-  ...commonArgs,
-  "--dump-dom",
-  developerUrl,
-]);
+const dom = await runChrome([...commonArgs, "--dump-dom", developerUrl]);
 
 for (const requiredText of [
   "OpenCoven development context",
@@ -66,7 +62,9 @@ for (const requiredText of [
   "Recent invocations",
 ]) {
   if (!dom.stdout.includes(requiredText)) {
-    throw new Error(`Developer surface is missing rendered text: ${requiredText}`);
+    throw new Error(
+      `Developer surface is missing rendered text: ${requiredText}`,
+    );
   }
 }
 
