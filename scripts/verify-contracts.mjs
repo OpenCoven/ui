@@ -126,6 +126,15 @@ const assertions = [
       ),
   ],
   [
+    "responsive grids remove intrinsic sizing floors",
+    specimenFixes.includes(
+      ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
+    ) &&
+      specimenFixes.includes(
+        ".catalog-group__grid {\n    grid-template-columns: minmax(0, 1fr);",
+      ),
+  ],
+  [
     "specimen chrome avoids decorative gradients",
     !specimenCss.includes("gradient("),
   ],
