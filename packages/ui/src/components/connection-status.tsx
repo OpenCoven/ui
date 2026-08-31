@@ -11,7 +11,11 @@ import type { ReactNode } from "react";
 import { cn } from "@opencoven/ui/lib/utils";
 
 type ConnectionState =
-  "connected" | "pending" | "degraded" | "disconnected" | "unavailable";
+  | "connected"
+  | "pending"
+  | "degraded"
+  | "disconnected"
+  | "unavailable";
 
 type AuthorityLevel = "read-only" | "proposal" | "mutating" | "local-authority";
 
@@ -107,57 +111,59 @@ function ConnectionStatus({
       data-authority={authority}
       aria-label={`${kind} ${name}: ${stateDetail.label}; ${authorityDetail.label}`}
       className={cn(
-        "grid min-w-0 gap-3 rounded-lg border border-border bg-card p-4 shadow-sm",
+        "grid w-full min-w-0 max-w-full gap-3 rounded-lg border border-border bg-card p-4 shadow-sm",
         className,
       )}
     >
-      <header className="flex min-w-0 items-start justify-between gap-3">
-        <span className="min-w-0">
-          <span className="numeric block text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+      <header className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+        <span className="min-w-0 max-w-full">
+          <span className="numeric block max-w-full text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">
             {kind}
           </span>
-          <strong className="mt-1 block truncate text-sm font-semibold">
+          <strong className="mt-1 block min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere]">
             {name}
           </strong>
         </span>
         {version ? (
-          <code className="numeric max-w-[45%] min-w-0 truncate rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] text-muted-foreground">
+          <code className="numeric min-w-0 max-w-full justify-self-start rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] whitespace-normal break-all text-muted-foreground [overflow-wrap:anywhere] sm:justify-self-end">
             {version}
           </code>
         ) : null}
       </header>
 
       {detail ? (
-        <p className="m-0 text-xs leading-5 break-words text-muted-foreground">
+        <p className="m-0 min-w-0 max-w-full text-xs leading-5 break-words text-muted-foreground [overflow-wrap:anywhere]">
           {detail}
         </p>
       ) : null}
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-[0.6875rem]">
+      <div className="flex w-full min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-[0.6875rem]">
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 font-semibold",
+            "inline-flex max-w-full flex-wrap items-center gap-1.5 font-semibold",
             stateDetail.className,
           )}
         >
-          <StateIcon aria-hidden="true" className="size-3.5" />
+          <StateIcon aria-hidden="true" className="size-3.5 shrink-0" />
           {stateDetail.label}
         </span>
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 font-medium",
+            "inline-flex max-w-full flex-wrap items-center gap-1.5 font-medium",
             authorityDetail.className,
           )}
         >
-          <AuthorityIcon aria-hidden="true" className="size-3.5" />
+          <AuthorityIcon aria-hidden="true" className="size-3.5 shrink-0" />
           {authorityDetail.label}
         </span>
         {meta ? (
-          <span className="numeric min-w-0 truncate text-muted-foreground">
+          <span className="numeric min-w-0 max-w-full break-words text-muted-foreground [overflow-wrap:anywhere]">
             {meta}
           </span>
         ) : null}
-        {action ? <span className="ms-auto shrink-0">{action}</span> : null}
+        {action ? (
+          <span className="max-w-full shrink-0 sm:ms-auto">{action}</span>
+        ) : null}
       </div>
     </article>
   );
