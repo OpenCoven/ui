@@ -116,21 +116,85 @@ try {
 
   let id = 0;
   const pending = new Map();
+  const listeners = new Map();
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
-    if (!message.id) return;
-    const waiter = pending.get(message.id);
-    if (!waiter) return;
-    pending.delete(message.id);
-    if (message.error) waiter.reject(new Error(message.error.message));
-    else waiter.resolve(message.result ?? {});
+    if (message.id) {
+      const waiter = pending.get(message.id);
+      if (!waiter) return;
+      pending.delete(message.id);
+      clearTimeout(waiter.timeout);
+      if (message.error) waiter.reject(new Error(message.error.message));
+      else waiter.resolve(message.result ?? {});
+      return;
+    }
+
+    for (const handler of listeners.get(message.method) ?? []) {
+      handler(message.params ?? {});
+    }
   });
+
+  const rejectPending = (error) => {
+    for (const waiter of pending.values()) {
+      clearTimeout(waiter.timeout);
+      waiter.reject(error);
+    }
+    pending.clear();
+  };
+
+  socket.addEventListener(
+    "close",
+    () => rejectPending(new Error("Chrome DevTools connection closed")),
+    { once: true },
+  );
+  socket.addEventListener(
+    "error",
+    () => rejectPending(new Error("Chrome DevTools connection failed")),
+    { once: true },
+  );
+
+  const on = (method, handler) => {
+    const handlers = listeners.get(method) ?? [];
+    handlers.push(handler);
+    listeners.set(method, handlers);
+
+    return () => {
+      listeners.set(
+        method,
+        (listeners.get(method) ?? []).filter(
+          (candidate) => candidate !== handler,
+        ),
+      );
+    };
+  };
 
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        reject(new Error("Chrome DevTools connection is not open"));
+        return;
+      }
+
       const requestId = ++id;
-      pending.set(requestId, { resolve, reject });
+      const timeout = setTimeout(() => {
+        pending.delete(requestId);
+        reject(new Error(`${method} timed out`));
+      }, 15_000);
+      pending.set(requestId, { resolve, reject, timeout });
       socket.send(JSON.stringify({ id: requestId, method, params }));
+    });
+
+  const waitForEvent = (method, timeoutMs = 15_000) =>
+    new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        removeListener();
+        reject(new Error(`Timed out waiting for ${method}`));
+      }, timeoutMs);
+      const removeListener = on(method, (params) => {
+        clearTimeout(timeout);
+        removeListener();
+        resolve(params);
+      });
     });
 
   const evaluate = async (expression) => {
@@ -150,9 +214,31 @@ try {
     return result.result?.value;
   };
 
+  const waitForRender = async (selector, timeoutMs = 15_000) => {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      if (
+        await evaluate(
+          `Boolean(document.querySelector(${JSON.stringify(selector)}))`,
+        )
+      ) {
+        return;
+      }
+      await sleep(100);
+    }
+
+    throw new Error(`Timed out waiting for ${selector}`);
+  };
+
   const navigate = async (url) => {
-    await send("Page.navigate", { url });
-    await sleep(500);
+    const loaded = waitForEvent("Page.loadEventFired");
+    const response = await send("Page.navigate", { url });
+    if (response.errorText) {
+      throw new Error(`Navigation failed: ${response.errorText}`);
+    }
+    await loaded;
+    await waitForRender("#specimen-main");
   };
 
   await send("Page.enable");

@@ -41,6 +41,10 @@ const manifest = JSON.parse(packageJson);
 const portable = JSON.parse(portableJson);
 const vectors = JSON.parse(vectorsJson);
 const specimenStyles = `${specimenCss}\n${specimenFixes}`;
+const specimenAt68 = specimenCss.slice(
+  specimenCss.indexOf("@media (max-width: 68rem)"),
+  specimenCss.indexOf("@media (max-width: 48rem)"),
+);
 const assertions = [
   ["style is base-nova", config.style === "base-nova"],
   ["base color is zinc", config.tailwind.baseColor === "zinc"],
@@ -129,13 +133,11 @@ const assertions = [
   ],
   [
     "responsive rail becomes compact navigation",
-    specimenCss.includes("@media (max-width: 68rem)") &&
-      /@media \(max-width: 68rem\)[\s\S]*?\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
-        specimenCss,
+    specimenAt68.startsWith("@media (max-width: 68rem)") &&
+      /\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
+        specimenAt68,
       ) &&
-      /@media \(max-width: 68rem\)[\s\S]*?\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(
-        specimenCss,
-      ),
+      /\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(specimenAt68),
   ],
   [
     "responsive grids remove intrinsic sizing floors",
