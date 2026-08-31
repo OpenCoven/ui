@@ -96,34 +96,34 @@ function CommandReceipt({
       data-status={status}
       aria-label={`${channel.toUpperCase()} invocation: ${statusDetail.label}`}
       className={cn(
-        "grid min-w-0 gap-3 border-b border-border px-4 py-3 last:border-b-0",
+        "grid w-full min-w-0 max-w-full gap-3 border-b border-border px-4 py-3 last:border-b-0",
         className,
       )}
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
         <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-border bg-muted text-muted-foreground">
           <TerminalSquare aria-hidden="true" className="size-3.5" />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="numeric text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
+        <span className="min-w-0">
+          <span className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="numeric max-w-full text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">
               {channel}
             </span>
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[0.6875rem] font-semibold",
+                "inline-flex max-w-full flex-wrap items-center gap-1 text-[0.6875rem] font-semibold",
                 statusDetail.className,
               )}
             >
-              <StatusIcon aria-hidden="true" className="size-3" />
+              <StatusIcon aria-hidden="true" className="size-3 shrink-0" />
               {statusDetail.label}
             </span>
           </span>
-          <code className="numeric mt-1.5 block min-w-0 text-xs leading-5 break-words whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">
+          <code className="numeric mt-1.5 block min-w-0 max-w-full text-xs leading-5 break-words whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">
             {displayCommand}
           </code>
           {summary ? (
-            <p className="mt-1.5 mb-0 text-xs leading-5 break-words text-muted-foreground">
+            <p className="mt-1.5 mb-0 min-w-0 max-w-full text-xs leading-5 break-words text-muted-foreground [overflow-wrap:anywhere]">
               {summary}
             </p>
           ) : null}
@@ -131,20 +131,30 @@ function CommandReceipt({
       </div>
 
       {receiptId || duration || exitCode !== undefined || timestamp ? (
-        <footer className="numeric flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 ps-10 text-[0.625rem] text-muted-foreground">
+        <footer className="numeric flex w-full min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1 text-[0.625rem] text-muted-foreground sm:ps-10">
           {receiptId ? (
-            <span className="min-w-0 max-w-full truncate" title={receiptId}>
+            <span
+              className="min-w-0 max-w-full break-all [overflow-wrap:anywhere]"
+              title={receiptId}
+            >
               receipt {receiptId}
             </span>
           ) : null}
           {duration ? (
-            <span className="inline-flex items-center gap-1">
-              <Clock3 aria-hidden="true" className="size-3" />
+            <span className="inline-flex max-w-full items-center gap-1">
+              <Clock3 aria-hidden="true" className="size-3 shrink-0" />
               {duration}
             </span>
           ) : null}
           {exitCode !== undefined ? <span>exit {exitCode}</span> : null}
-          {timestamp ? <time dateTime={timestamp}>{timestamp}</time> : null}
+          {timestamp ? (
+            <time
+              className="max-w-full break-all [overflow-wrap:anywhere]"
+              dateTime={timestamp}
+            >
+              {timestamp}
+            </time>
+          ) : null}
         </footer>
       ) : null}
     </article>
