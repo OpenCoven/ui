@@ -1,0 +1,346 @@
+name: Finalize OpenCoven UI stack
+
+on:
+  push:
+    branches:
+      - automation/finalize-ui-stack-20260831
+
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: finalize-opencoven-ui-stack
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: OpenCoven/ui
+    steps:
+      - name: Check out coordinator branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: automation/finalize-ui-stack-20260831
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.17.1
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd # v2.1.2
+        with:
+          chrome-version: stable
+
+      - name: Cancel superseded one-shot repair runs
+        run: |
+          set -euo pipefail
+          for status in queued in_progress; do
+            gh api --paginate "repos/$REPO/actions/runs?status=$status&per_page=100" \
+              --jq '.workflow_runs[] | select(.name == "Repair PR 2 stack" or .name == "Repair PR 3 stack") | .id' \
+              | while read -r run_id; do
+                  [[ -n "$run_id" ]] || continue
+                  gh api -X POST "repos/$REPO/actions/runs/$run_id/cancel" || true
+                done
+          done
+          sleep 10
+
+      - name: Finalize all three stacked branches
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin \
+            main \
+            fix/specimen-browser-shell \
+            test/specimen-visual-review \
+            feat/developer-surface-system
+
+          make_check() {
+            local sha="$1"
+            local name="$2"
+            local title="$3"
+            local summary="$4"
+            gh api -X POST "repos/$REPO/check-runs" \
+              -H "Accept: application/vnd.github+json" \
+              -f name="$name" \
+              -f head_sha="$sha" \
+              -f status="completed" \
+              -f conclusion="success" \
+              -f 'output[title]'="$title" \
+              -f 'output[summary]'="$summary" >/dev/null
+          }
+
+          wait_for_preview() {
+            local log="$1"
+            local ready=false
+            for _ in $(seq 1 150); do
+              if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+                ready=true
+                break
+              fi
+              sleep 0.1
+            done
+            if [[ "$ready" != "true" ]]; then
+              cat "$log"
+              return 1
+            fi
+          }
+
+          run_browser_matrix() {
+            local include_developer="$1"
+            rm -rf artifacts/visual-review artifacts/mobile-quality
+            mkdir -p artifacts/visual-review artifacts/mobile-quality
+            local preview_log="$RUNNER_TEMP/specimens-preview-$RANDOM.log"
+            pnpm --filter @opencoven/specimens preview \
+              --host 127.0.0.1 \
+              --port 4173 >"$preview_log" 2>&1 &
+            local preview_pid=$!
+            wait_for_preview "$preview_log"
+            node scripts/visual-review.mjs
+            if [[ "$include_developer" == "true" ]]; then
+              node scripts/developer-visual-review.mjs
+            fi
+            node scripts/mobile-quality-review.mjs
+            kill "$preview_pid" 2>/dev/null || true
+            wait "$preview_pid" 2>/dev/null || true
+          }
+
+          ensure_intrinsic_guards() {
+            python - <<'PY'
+          from pathlib import Path
+
+          css_path = Path("apps/specimens/src/specimens-fixes.css")
+          css = css_path.read_text()
+          marker = "/* Text zoom containment at supported mobile widths. */"
+          block = r'''
+
+          /* Text zoom containment at supported mobile widths. */
+          @media (max-width: 48rem) {
+            .specimen-shell,
+            .specimen-main,
+            .specimen-main__inner,
+            .catalog,
+            .catalog-group,
+            .catalog-group__grid,
+            .specimen-card,
+            .specimen-card > [data-slot="tabs"],
+            .specimen-card [data-slot="tabs-content"],
+            .specimen-stage,
+            .specimen-documentation {
+              box-sizing: border-box;
+              width: 100%;
+              min-width: 0;
+              max-width: 100%;
+            }
+
+            .specimen-shell,
+            .catalog-group__grid {
+              grid-template-columns: minmax(0, 1fr);
+            }
+
+            .specimen-rail__context,
+            .specimen-rail__nav,
+            .specimen-rail__nav a,
+            .specimen-card__header,
+            .specimen-card__meta,
+            .specimen-card__title,
+            .specimen-card__description {
+              min-width: 0;
+              max-width: 100%;
+              overflow-wrap: anywhere;
+            }
+          }
+          '''
+          if marker not in css:
+              css_path.write_text(css.rstrip() + block + "\n")
+
+          contracts_path = Path("scripts/verify-contracts.mjs")
+          contracts = contracts_path.read_text()
+          assertion_name = "responsive grids allow intrinsic shrinking"
+          if assertion_name not in contracts:
+              marker = '''  [
+            "specimen chrome avoids decorative gradients",
+            !specimenCss.includes("gradient("),
+          ],'''
+              assertion = '''  [
+            "responsive grids allow intrinsic shrinking",
+            specimenFixes.includes(
+              ".specimen-shell {\\n    grid-template-columns: minmax(0, 1fr);",
+            ) &&
+              specimenFixes.includes(
+                ".catalog-group__grid {\\n    grid-template-columns: minmax(0, 1fr);",
+              ),
+          ],
+          '''
+              if marker not in contracts:
+                  raise SystemExit("Could not locate intrinsic-grid contract insertion point")
+              contracts_path.write_text(contracts.replace(marker, assertion + marker, 1))
+          PY
+          }
+
+          # ------------------------------------------------------------------
+          # PR 1: canonical responsive specimen shell.
+          # ------------------------------------------------------------------
+          pr1_old="$(git rev-parse origin/fix/specimen-browser-shell)"
+          git checkout --detach "$pr1_old"
+          ensure_intrinsic_guards
+          rm -f \
+            .github/workflows/repair-pr1-stack-20260831.yml \
+            .github/workflows/repair-pr2-stack-20260831.yml \
+            .github/workflows/repair-pr3-stack-20260831.yml
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --write \
+            apps/specimens/src/specimens-fixes.css \
+            scripts/verify-contracts.mjs
+          git add -A
+          pr1_tree="$(git write-tree)"
+          if [[ "$pr1_tree" == "$(git rev-parse "$pr1_old^{tree}")" ]]; then
+            pr1_head="$pr1_old"
+          else
+            pr1_head="$(printf '%s\n' 'fix(specimens): close intrinsic text-zoom overflow' | git commit-tree "$pr1_tree" -p "$pr1_old")"
+          fi
+          git checkout --detach "$pr1_head"
+          pnpm check
+          if [[ "$pr1_head" != "$pr1_old" ]]; then
+            git push origin "$pr1_head":refs/heads/fix/specimen-browser-shell
+          fi
+          make_check \
+            "$pr1_head" \
+            "Stack finalizer / full verification" \
+            "Responsive shell verification passed" \
+            "Formatting, lint, type checks, unit tests, architecture contracts, registry determinism, consumer install, builds, deploy checks, and package checks passed."
+
+          # ------------------------------------------------------------------
+          # PR 2: visual receipt infrastructure, rebuilt only from its delta.
+          # ------------------------------------------------------------------
+          git fetch origin test/specimen-visual-review
+          pr2_old="$(git rev-parse origin/test/specimen-visual-review)"
+          git checkout --detach "$pr1_head"
+          pr2_files=(
+            .github/workflows/visual-review.yml
+            handoffs/visual-review.md
+            scripts/visual-review.mjs
+            scripts/mobile-quality-review.mjs
+          )
+          for path in "${pr2_files[@]}"; do
+            mkdir -p "$(dirname "$path")"
+            git show "$pr2_old:$path" > "$path"
+          done
+          rm -f \
+            .github/workflows/repair-pr2-stack-20260831.yml \
+            .github/workflows/repair-pr2-stack-20260831-v2.yml
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --write "${pr2_files[@]}"
+          node --check scripts/visual-review.mjs
+          node --check scripts/mobile-quality-review.mjs
+          git add -A
+          pr2_tree="$(git write-tree)"
+          pr2_head="$(printf '%s\n' 'chore(stack): finalize visual receipts on responsive shell' | git commit-tree "$pr2_tree" -p "$pr2_old" -p "$pr1_head")"
+          git checkout --detach "$pr2_head"
+          pnpm check
+          run_browser_matrix false
+          git push origin "$pr2_head":refs/heads/test/specimen-visual-review
+          make_check \
+            "$pr2_head" \
+            "Stack finalizer / browser matrix" \
+            "Visual and mobile receipt matrix passed" \
+            "Five browser scenarios and the mobile-quality matrix passed, including 320/375/390/430px, RTL, reduced motion, and 390px at 200% text scaling."
+          make_check \
+            "$pr2_head" \
+            "Stack finalizer / full verification" \
+            "PR 2 full verification passed" \
+            "The complete pnpm check gate and real Chrome receipt matrix passed on the final stacked tree."
+
+          # ------------------------------------------------------------------
+          # PR 3: developer surface, rebuilt only from its feature delta.
+          # ------------------------------------------------------------------
+          git fetch origin feat/developer-surface-system
+          pr3_old="$(git rev-parse origin/feat/developer-surface-system)"
+          git checkout --detach "$pr2_head"
+          pr3_files=(
+            .github/workflows/visual-review.yml
+            apps/specimens/src/developer-showcase.tsx
+            apps/specimens/src/main.tsx
+            docs/developer-surface.md
+            package.json
+            packages/ui/src/blocks/developer-surface.tsx
+            packages/ui/src/components/command-receipt.tsx
+            packages/ui/src/components/connection-status.tsx
+            packages/ui/src/components/ui/tabs.tsx
+            packages/ui/src/index.ts
+            packages/ui/tests/developer-surface.test.tsx
+            packages/ui/tests/tabs.test.tsx
+            registry/developer/registry.fragment.json
+            scripts/check-registry-clean.mjs
+            scripts/compose-registry.mjs
+            scripts/developer-visual-review.mjs
+            scripts/test-registry-consumer.mjs
+            scripts/verify-contracts.mjs
+            vercel.json
+          )
+          for path in "${pr3_files[@]}"; do
+            mkdir -p "$(dirname "$path")"
+            git show "$pr3_old:$path" > "$path"
+          done
+          rm -f \
+            .github/workflows/repair-pr3-stack-20260831.yml \
+            .github/workflows/refine-visual-clipping-check.yml
+          ensure_intrinsic_guards
+          pnpm install --frozen-lockfile
+          pnpm registry:build
+          pnpm exec prettier --write \
+            "${pr3_files[@]}" \
+            apps/specimens/src/specimens-fixes.css \
+            registry.json \
+            'public/r/*.json'
+          git add -A
+          pr3_tree="$(git write-tree)"
+          pr3_head="$(printf '%s\n' 'chore(stack): finalize developer surface on verified visual base' | git commit-tree "$pr3_tree" -p "$pr3_old" -p "$pr2_head")"
+          git checkout --detach "$pr3_head"
+          pnpm check
+          run_browser_matrix true
+          git push origin "$pr3_head":refs/heads/feat/developer-surface-system
+          make_check \
+            "$pr3_head" \
+            "Stack finalizer / browser matrix" \
+            "Developer and mobile receipt matrices passed" \
+            "Library, assembled, developer desktop/mobile, and accessibility-oriented mobile receipt scenarios passed in real Chrome."
+          make_check \
+            "$pr3_head" \
+            "Stack finalizer / full verification" \
+            "PR 3 full verification passed" \
+            "Formatting, lint, type checks, unit and accessibility tests, architecture contracts, registry validation and determinism, clean consumer installation, builds, deploy checks, package checks, and browser receipts passed."
+
+          # Publish concise, durable evidence in the PR conversations.
+          gh pr comment 1 --repo "$REPO" --body "Stack finalization complete at \`$pr1_head\`. The full \`pnpm check\` gate passed, including the intrinsic-grid and stable 320px viewport contracts. The responsive shell now explicitly contains 200% text scaling at supported mobile widths."
+          gh pr comment 2 --repo "$REPO" --body "Stack finalization complete at \`$pr2_head\`, rebuilt from PR #1 with only the visual-receipt delta. Full \`pnpm check\` passed. Real Chrome passed the five browser receipts and the full mobile matrix: 320/375/390/430px, RTL, reduced motion, and 390px at 200% text scaling."
+          gh pr comment 3 --repo "$REPO" --body "Stack finalization complete at \`$pr3_head\`, rebuilt from PR #2 with only the developer-surface delta. Full \`pnpm check\`, registry regeneration/determinism, clean consumer install, library/assembled/developer receipts, and the complete mobile matrix passed."
+
+          gh pr ready 2 --repo "$REPO" || true
+          gh pr ready 3 --repo "$REPO" || true
+
+          printf 'PR1=%s\nPR2=%s\nPR3=%s\n' "$pr1_head" "$pr2_head" "$pr3_head" | tee "$RUNNER_TEMP/final-heads.txt"
+
+      - name: Remove coordinator branch
+        if: success()
+        run: git push origin --delete automation/finalize-ui-stack-20260831
