@@ -4,3 +4,5 @@ dist/
 .worktrees/
 apps/specimens/dist/
 packages/ui/dist/
+artifacts/mobile-quality/
+artifacts/visual-review/

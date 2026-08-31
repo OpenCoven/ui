@@ -48,6 +48,13 @@ const cases = [
     density: "default",
     textScale: 2,
   },
+  {
+    name: "mobile-320-dark-text-200",
+    width: 320,
+    scheme: "dark",
+    density: "default",
+    textScale: 2,
+  },
 ];
 
 if (!chromePath) throw new Error("CHROME_PATH is required");
@@ -282,6 +289,17 @@ try {
       );
 
       const root = document.documentElement;
+      const topbar = document.querySelector(".specimen-topbar");
+      const rail = document.querySelector(".specimen-rail");
+      const railLinks = [
+        ...document.querySelectorAll(".specimen-rail__nav a"),
+      ];
+      const topbarControls = [
+        ...document.querySelectorAll(
+          ".specimen-brand, .surface-switcher, .specimen-search, .specimen-search input, .specimen-search kbd, .density-control, .scheme-control",
+        ),
+      ];
+      const firstCard = document.querySelector(".specimen-card");
       const cards = [...document.querySelectorAll(".specimen-card")];
       const stages = [...document.querySelectorAll(".specimen-stage")];
       const cardTabRoots = cards
@@ -339,10 +357,54 @@ try {
         .filter(({ overflow }) => overflow > 1)
         .sort((left, right) => right.overflow - left.overflow)
         .slice(0, 20);
+      const initialScrollY = scrollY;
+      document.querySelector(".skip-link")?.click();
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+      const skipTargetClearance = (() => {
+        const mainBounds = rect(document.querySelector("#specimen-main"));
+        const topbarBounds = rect(topbar);
+        return mainBounds
+          ? mainBounds.top - Math.max(0, topbarBounds?.bottom ?? 0)
+          : null;
+      })();
+      scrollTo(0, initialScrollY);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
 
       return {
         viewport: root.clientWidth,
         documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+        chromeBottom: Math.max(
+          rect(topbar)?.bottom ?? 0,
+          rect(rail)?.bottom ?? 0,
+        ),
+        firstCardTop: rect(firstCard)?.top ?? null,
+        railNavOverflow: clipped(
+          document.querySelector(".specimen-rail__nav"),
+        ),
+        maxRailLinkContentOverflow: Math.max(
+          0,
+          ...railLinks.map(clipped),
+        ),
+        maxRailLinkViewportOverflow: Math.max(
+          0,
+          ...railLinks.map((link) => {
+            const bounds = rect(link);
+            return bounds
+              ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
+              : 0;
+          }),
+        ),
+        maxTopbarControlViewportOverflow: Math.max(
+          0,
+          ...topbarControls.map((control) => {
+            const bounds = rect(control);
+            return bounds
+              ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
+              : 0;
+          }),
+        ),
         cardCount: cards.length,
         tabRootCount: cardTabRoots.length,
         tabListCount: cardLists.length,
@@ -373,6 +435,7 @@ try {
           : null,
         direction: root.dir,
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        skipTargetClearance,
         overflowingElements,
       };
     })()`);
@@ -406,6 +469,47 @@ try {
         `document overflow ${measurement.documentOverflow}px: ${measurement.overflowingElements
           .map(({ label, overflow }) => `${label} (${overflow}px)`)
           .join(", ")}`,
+      );
+    }
+    if (measurement.maxRailLinkViewportOverflow > 1) {
+      failures.push(
+        `rail link viewport overflow ${measurement.maxRailLinkViewportOverflow}px`,
+      );
+    }
+    if (measurement.railNavOverflow > 1) {
+      failures.push(
+        `rail navigation overflow ${measurement.railNavOverflow}px`,
+      );
+    }
+    if (measurement.maxRailLinkContentOverflow > 1) {
+      failures.push(
+        `rail link content overflow ${measurement.maxRailLinkContentOverflow}px`,
+      );
+    }
+    if (measurement.maxTopbarControlViewportOverflow > 1) {
+      failures.push(
+        `topbar control viewport overflow ${measurement.maxTopbarControlViewportOverflow}px`,
+      );
+    }
+    if (
+      measurement.skipTargetClearance === null ||
+      measurement.skipTargetClearance < 0
+    ) {
+      failures.push(
+        `skip target clearance ${measurement.skipTargetClearance ?? "missing"}px`,
+      );
+    }
+    if (!scenario.textScale && measurement.chromeBottom > 200) {
+      failures.push(
+        `mobile shell chrome ends at ${measurement.chromeBottom}px`,
+      );
+    }
+    if (
+      !scenario.textScale &&
+      (measurement.firstCardTop === null || measurement.firstCardTop > 640)
+    ) {
+      failures.push(
+        `first card starts at ${measurement.firstCardTop ?? "missing"}px`,
       );
     }
     if (measurement.maxCardOverflow > 1) {

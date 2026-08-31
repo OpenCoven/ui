@@ -48,21 +48,26 @@ type Specimen = {
 
 const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
 
-const groupDetails: Record<SpecimenGroup, { id: string; description: string }> =
-  {
-    Composer: {
-      id: "group-composer",
-      description: "Intent, authority, attachments, and send readiness.",
-    },
-    "Run rail": {
-      id: "group-run-rail",
-      description: "Execution evidence, limits, resources, and failure states.",
-    },
-    Blocks: {
-      id: "group-blocks",
-      description: "Complete surfaces assembled from the public component API.",
-    },
-  };
+const groupDetails: Record<
+  SpecimenGroup,
+  { id: string; eyebrow: string; description: string }
+> = {
+  Composer: {
+    id: "group-composer",
+    eyebrow: "Input layer",
+    description: "Intent, authority, attachments, and send readiness.",
+  },
+  "Run rail": {
+    id: "group-run-rail",
+    eyebrow: "Evidence layer",
+    description: "Execution evidence, limits, resources, and failure states.",
+  },
+  Blocks: {
+    id: "group-blocks",
+    eyebrow: "Complete surfaces",
+    description: "Public components assembled into reusable agent workflows.",
+  },
+};
 
 function SpecimenCard({
   specimen,
@@ -489,8 +494,11 @@ function Library({ density, query }: { density: Density; query: string }) {
           <section className="catalog-group" id={detail.id} key={group}>
             <header className="catalog-group__header">
               <div>
-                <p className="catalog-group__eyebrow numeric">{group}</p>
-                <h2>{detail.description}</h2>
+                <p className="catalog-group__eyebrow numeric">
+                  {detail.eyebrow}
+                </p>
+                <h2>{group}</h2>
+                <p className="catalog-group__summary">{detail.description}</p>
               </div>
               <span className="catalog-group__count numeric">
                 {groupedSpecimens.length}{" "}
@@ -832,18 +840,18 @@ function App() {
               <div className="specimen-hero__copy">
                 <p className="specimen-kicker numeric">
                   {isLab
-                    ? "Five assembled states"
-                    : "Registry-backed components"}
+                    ? "Five working views"
+                    : "Sixteen public building blocks"}
                 </p>
                 <h1>
                   {isLab
-                    ? "The agent surface, assembled."
-                    : "Quiet tools for active runs."}
+                    ? "One agent surface, five focused views."
+                    : "Agent UI, organized by the work it does."}
                 </h1>
                 <p>
-                  Greys carry structure. Color carries operational meaning.
-                  Every preview imports the same public modules consumers
-                  install.
+                  {isLab
+                    ? "Move through composition, messages, context, actions, and cards without leaving the shared public component system."
+                    : "Compose intent, read execution evidence, and assemble complete workflows. Every specimen maps to a public import and installable registry item."}
                 </p>
               </div>
               <dl className="specimen-stats" aria-label="Library summary">

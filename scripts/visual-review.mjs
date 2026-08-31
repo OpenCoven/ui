@@ -351,6 +351,10 @@ try {
         const topbar = document.querySelector(".specimen-topbar");
         const rail = document.querySelector(".specimen-rail");
         const main = document.querySelector("#specimen-main");
+        const hero = document.querySelector(".specimen-hero");
+        const firstContent = document.querySelector(
+          ".specimen-card, .assembled-lab",
+        );
         const cards = [...document.querySelectorAll(".specimen-card")];
         const groups = [...document.querySelectorAll(".catalog-group")];
         const lab = document.querySelector(".assembled-lab");
@@ -383,6 +387,11 @@ try {
             rect.height > 0
           );
         };
+        const bounds = (element) => element?.getBoundingClientRect();
+        const topbarBounds = bounds(topbar);
+        const railBounds = bounds(rail);
+        const heroBounds = bounds(hero);
+        const contentBounds = bounds(firstContent);
 
         return {
           pathname: location.pathname,
@@ -393,6 +402,13 @@ try {
           topbarVisible: isVisible(topbar),
           railVisible: isVisible(rail),
           mainVisible: isVisible(main),
+          topbarHeight: topbarBounds?.height ?? null,
+          mobileChromeBottom: Math.max(
+            topbarBounds?.bottom ?? 0,
+            railBounds?.bottom ?? 0,
+          ),
+          heroHeight: heroBounds?.height ?? null,
+          contentTop: contentBounds?.top ?? null,
           cardCount: cards.length,
           groupCount: groups.length,
           labVisible: isVisible(lab),
@@ -411,6 +427,32 @@ try {
     if (layout.horizontalOverflow > 1) {
       failures.push(
         `horizontal overflow is ${layout.horizontalOverflow}px at ${scenario.width}px`,
+      );
+    }
+    if (scenario.mobile && layout.mobileChromeBottom > 200) {
+      failures.push(
+        `mobile shell chrome ends at ${Math.round(layout.mobileChromeBottom)}px`,
+      );
+    }
+    if (
+      layout.heroHeight === null ||
+      layout.heroHeight > (scenario.mobile ? 330 : 310)
+    ) {
+      failures.push(
+        `hero height is ${layout.heroHeight === null ? "missing" : `${Math.round(layout.heroHeight)}px`}`,
+      );
+    }
+    const contentTopLimit =
+      scenario.expected === "lab"
+        ? scenario.mobile
+          ? 540
+          : 480
+        : scenario.mobile
+          ? 640
+          : 520;
+    if (layout.contentTop === null || layout.contentTop > contentTopLimit) {
+      failures.push(
+        `primary content starts at ${layout.contentTop === null ? "missing" : `${Math.round(layout.contentTop)}px`} (limit ${contentTopLimit}px)`,
       );
     }
     if (layout.internallyClipped.length > 0) {

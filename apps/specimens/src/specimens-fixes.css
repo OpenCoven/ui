@@ -22,7 +22,15 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   }
 
   .specimen-topbar__actions {
+    display: flex;
     flex: 1 0 100%;
+    flex-wrap: wrap;
+  }
+
+  .specimen-search {
+    width: auto;
+    min-width: 7rem;
+    flex: 1 1 10rem;
   }
 
   .specimen-shell {
@@ -86,6 +94,24 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   .specimen-rail__package code {
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  .specimen-rail__nav {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
+  }
+
+  .specimen-rail__nav:has(a:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .specimen-rail__nav a {
+    min-width: 0;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-inline: 0.375rem;
   }
 
   .specimen-grid {
@@ -233,6 +259,39 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   .assembled-lab__stage > * {
     min-width: 0;
     max-width: 100%;
+  }
+}
+
+@media (max-width: 20rem) {
+  .specimen-topbar__inner {
+    gap: 0.375rem;
+    padding-block: 0.375rem;
+  }
+
+  .specimen-main__inner {
+    padding-block-start: 0.75rem;
+  }
+
+  .specimen-hero {
+    gap: 0.75rem;
+    margin-block-end: 1.25rem;
+    padding-block-end: 0.75rem;
+  }
+
+  .specimen-hero h1 {
+    font-size: 2rem;
+  }
+
+  .specimen-hero__copy > p:last-child {
+    margin-block-start: 0.625rem;
+  }
+
+  .catalog-group__header {
+    gap: 0.375rem;
+  }
+
+  .catalog-group__count {
+    display: none;
   }
 }
 

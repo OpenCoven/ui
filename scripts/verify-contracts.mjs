@@ -113,7 +113,9 @@ const assertions = [
     "catalog restores task hierarchy",
     ["group-composer", "group-run-rail", "group-blocks"].every((id) =>
       specimenApp.includes(id),
-    ),
+    ) &&
+      specimenApp.includes('className="catalog-group__summary"') &&
+      specimenApp.includes("<h2>{group}</h2>"),
   ],
   [
     "density control is explicit",
@@ -149,12 +151,21 @@ const assertions = [
       ),
   ],
   [
+    "mobile catalog navigation exposes every section",
+    /\.specimen-rail__nav\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*5\.5rem\),\s*1fr\)\s*\);/.test(
+      specimenFixes,
+    ) && /\.specimen-rail__nav a\s*\{[^}]*min-width:\s*0;/.test(specimenFixes),
+  ],
+  [
     "text resize keeps shell chrome and hero contained",
     specimenFixes.includes(
       ".specimen-topbar__inner {\n    display: flex;\n    flex-wrap: wrap;",
     ) &&
-      specimenFixes.includes(
-        ".specimen-topbar__actions {\n    flex: 1 0 100%;",
+      /\.specimen-topbar__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 0 100%;[^}]*flex-wrap:\s*wrap;/.test(
+        specimenFixes,
+      ) &&
+      /\.specimen-search\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*7rem;[^}]*flex:\s*1 1 10rem;/.test(
+        specimenFixes,
       ) &&
       specimenFixes.includes(
         ".specimen-main__inner {\n    box-sizing: border-box;",
@@ -199,6 +210,11 @@ const specimenSelectorPairs = [
     "catalog eyebrow",
     'className="catalog-group__eyebrow numeric"',
     ".catalog-group__eyebrow",
+  ],
+  [
+    "catalog summary",
+    'className="catalog-group__summary"',
+    ".catalog-group__summary",
   ],
   ["specimen grid", 'className="specimen-grid"', ".specimen-grid"],
 ];

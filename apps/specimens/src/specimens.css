@@ -37,13 +37,13 @@ body {
 
 .specimen-topbar__inner {
   display: grid;
-  min-height: 4.25rem;
+  min-height: 3.75rem;
   max-width: 96rem;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-inline: auto;
-  padding-inline: clamp(1rem, 3vw, 2rem);
+  padding-inline: clamp(1rem, 3vw, 1.5rem);
 }
 
 .specimen-brand {
@@ -57,8 +57,8 @@ body {
 
 .specimen-brand__mark {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
   flex: none;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--presence) 42%, var(--border));
@@ -153,20 +153,20 @@ body {
 .specimen-shell {
   display: grid;
   max-width: 96rem;
-  min-height: calc(100vh - 4.25rem);
-  grid-template-columns: 15rem minmax(0, 1fr);
+  min-height: calc(100vh - 3.75rem);
+  grid-template-columns: 13.5rem minmax(0, 1fr);
   margin-inline: auto;
 }
 
 .specimen-rail {
   position: sticky;
-  inset-block-start: 4.25rem;
+  inset-block-start: 3.75rem;
   align-self: start;
-  height: calc(100vh - 4.25rem);
+  height: calc(100vh - 3.75rem);
   overflow-y: auto;
   border-inline-end: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 72%, var(--background));
-  padding: 2rem 1.25rem;
+  padding: 1.5rem 0.875rem;
   scrollbar-width: thin;
 }
 
@@ -200,7 +200,7 @@ body {
 .specimen-rail__nav {
   display: grid;
   gap: 0.25rem;
-  margin-block-start: 1.75rem;
+  margin-block-start: 1.25rem;
 }
 
 .specimen-rail__nav a {
@@ -210,7 +210,7 @@ body {
   gap: 0.75rem;
   border-radius: var(--radius-2);
   color: var(--muted-foreground);
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.625rem;
   font-size: 0.8125rem;
   font-weight: 650;
   text-decoration: none;
@@ -227,9 +227,9 @@ body {
 }
 
 .specimen-rail__package {
-  margin-block-start: 2rem;
+  margin-block-start: 1.5rem;
   border-block-start: 1px solid var(--border);
-  padding: 1.25rem 0.625rem 0;
+  padding: 1rem 0.625rem 0;
 }
 
 .specimen-rail__package code {
@@ -254,53 +254,54 @@ body {
 }
 
 .specimen-main__inner {
-  width: min(100%, 78rem);
+  width: min(100%, 82.5rem);
   margin-inline: auto;
-  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3.5rem) 7rem;
+  padding: clamp(1.5rem, 3vw, 2.75rem) clamp(1rem, 3vw, 2.5rem) 5rem;
 }
 
 .specimen-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 2rem;
-  margin-block-end: clamp(3rem, 6vw, 5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+  align-items: center;
+  gap: 1.5rem;
+  margin-block-end: clamp(2rem, 4vw, 3rem);
   border-block-end: 1px solid var(--border);
-  padding-block-end: clamp(2rem, 4vw, 3rem);
+  padding-block-end: clamp(1.5rem, 3vw, 2rem);
 }
 
 .specimen-hero__copy {
-  max-width: 47rem;
+  max-width: 52rem;
 }
 
 .specimen-hero h1 {
-  max-width: 14ch;
-  margin: 0.65rem 0 0;
+  max-width: 19ch;
+  margin: 0.5rem 0 0;
   font-family: var(--font-editorial);
-  font-size: clamp(2.75rem, 6vw, 5.25rem);
+  font-size: clamp(2.4rem, 4.6vw, 4.25rem);
   font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--foreground);
   text-wrap: balance;
 }
 
 .specimen-hero__copy > p:last-child {
-  max-width: 60ch;
-  margin: 1.25rem 0 0;
+  max-width: 68ch;
+  margin: 0.875rem 0 0;
   color: var(--muted-foreground);
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 .specimen-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
   margin: 0;
 }
 
 .specimen-stats div {
-  min-width: 5rem;
+  min-width: 0;
   border-inline-start: 1px solid var(--border);
   padding-inline-start: 0.875rem;
 }
@@ -322,7 +323,7 @@ body {
 
 .catalog {
   display: grid;
-  gap: clamp(4rem, 8vw, 7rem);
+  gap: clamp(2.75rem, 5vw, 4.5rem);
 }
 
 .catalog-group {
@@ -334,7 +335,7 @@ body {
   align-items: end;
   justify-content: space-between;
   gap: 2rem;
-  margin-block-end: 1.25rem;
+  margin-block-end: 0.875rem;
 }
 
 .catalog-group__eyebrow {
@@ -348,12 +349,21 @@ body {
 
 .catalog-group__header h2 {
   max-width: 34rem;
-  margin: 0.45rem 0 0;
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.2;
+  color: var(--foreground);
   text-wrap: balance;
+}
+
+.catalog-group__summary {
+  max-width: 52ch;
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .catalog-group__count {
@@ -367,7 +377,7 @@ body {
 .specimen-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .specimen-card {
@@ -377,6 +387,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-3);
   background: var(--card);
+  color: var(--card-foreground);
   box-shadow: var(--elevation-1);
   transition:
     border-color var(--motion-standard) var(--motion-ease),
@@ -392,9 +403,9 @@ body {
 }
 
 .specimen-card__header {
-  min-height: 9.75rem;
+  min-height: 8.25rem;
   border-block-end: 1px solid var(--border);
-  padding: 1.125rem 1.25rem 1.25rem;
+  padding: 1rem;
 }
 
 .specimen-card__meta {
@@ -412,7 +423,7 @@ body {
 }
 
 .specimen-card__title {
-  margin: 1rem 0 0;
+  margin: 0.75rem 0 0;
   font-size: 1.0625rem;
   font-weight: 750;
   letter-spacing: -0.015em;
@@ -428,13 +439,13 @@ body {
 
 .specimen-stage {
   display: grid;
-  min-height: 17rem;
+  min-height: 12.5rem;
   align-content: center;
   justify-items: center;
   border-block-start: 1px solid
     color-mix(in srgb, var(--border) 62%, transparent);
   background: color-mix(in srgb, var(--muted) 48%, var(--background));
-  padding: clamp(1rem, 3vw, 2rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
 }
 
 .specimen-stage > * {
@@ -456,7 +467,7 @@ body {
 
 .specimen-documentation {
   display: grid;
-  min-height: 17rem;
+  min-height: 12.5rem;
   align-content: start;
   gap: 0.875rem;
   padding: 1.25rem;
@@ -536,6 +547,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-3);
   background: var(--card);
+  color: var(--card-foreground);
   box-shadow: var(--elevation-2);
 }
 
@@ -563,17 +575,17 @@ body {
 
 .assembled-lab__stage {
   display: grid;
-  min-height: 34rem;
+  min-height: 27rem;
   align-content: center;
   background: color-mix(in srgb, var(--muted) 42%, var(--background));
-  padding: clamp(1rem, 4vw, 3rem);
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
 .lab-composer,
 .lab-message-stack {
   display: grid;
   width: min(100%, 48rem);
-  gap: 2rem;
+  gap: 1.25rem;
   margin-inline: auto;
 }
 
@@ -592,7 +604,7 @@ body {
 
 @media (max-width: 68rem) {
   html {
-    scroll-padding-top: 10rem;
+    scroll-padding-top: 8.5rem;
   }
 
   .specimen-topbar__inner {
@@ -627,7 +639,7 @@ body {
     overflow-x: auto;
     border-inline-end: 0;
     border-block-end: 1px solid var(--border);
-    padding: 0.75rem clamp(1rem, 4vw, 2rem);
+    padding: 0.5rem clamp(1rem, 4vw, 2rem);
   }
 
   .specimen-rail__context,
@@ -651,7 +663,7 @@ body {
   }
 
   .specimen-main__inner {
-    padding-block-start: clamp(2rem, 5vw, 3.5rem);
+    padding-block-start: clamp(1.5rem, 4vw, 2.5rem);
   }
 }
 
@@ -663,6 +675,12 @@ body {
 
   .specimen-stats {
     width: 100%;
+  }
+
+  .specimen-hero {
+    gap: 1.25rem;
+    margin-block-end: 2rem;
+    padding-block-end: 1.25rem;
   }
 
   .catalog-group__header {
@@ -680,7 +698,7 @@ body {
 
 @media (max-width: 36rem) {
   html {
-    scroll-padding-top: 12rem;
+    scroll-padding-top: 9rem;
   }
 
   .specimen-topbar__inner {
@@ -692,11 +710,11 @@ body {
   }
 
   .specimen-topbar__actions {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 
   .specimen-search {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .scheme-control span {
@@ -708,15 +726,15 @@ body {
   }
 
   .specimen-hero {
-    margin-block-end: 3rem;
+    margin-block-end: 2rem;
   }
 
   .specimen-hero h1 {
-    font-size: clamp(2.5rem, 14vw, 3.75rem);
+    font-size: clamp(2.25rem, 11vw, 3.25rem);
   }
 
   .catalog {
-    gap: 4rem;
+    gap: 3rem;
   }
 
   .catalog-group__header {
@@ -734,7 +752,7 @@ body {
   }
 
   .assembled-lab__stage {
-    min-height: 30rem;
+    min-height: 24rem;
   }
 
   .lab-card-grid {
@@ -743,6 +761,14 @@ body {
 }
 
 @media (max-width: 24.375rem) {
+  .specimen-topbar {
+    position: static;
+  }
+
+  .specimen-brand > span:last-child {
+    display: none;
+  }
+
   .specimen-brand__mark {
     width: 2rem;
     height: 2rem;
@@ -750,7 +776,8 @@ body {
 
   .surface-switcher a,
   .density-control button {
-    padding-inline: 0.55rem;
+    padding-inline: 0.45rem;
+    font-size: 0.6875rem;
   }
 
   .specimen-topbar__actions {
@@ -758,7 +785,21 @@ body {
   }
 
   .specimen-hero h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
+  }
+
+  .specimen-main__inner {
+    padding-block-start: 1rem;
+  }
+
+  .specimen-hero {
+    gap: 1rem;
+    margin-block-end: 1.5rem;
+  }
+
+  .specimen-hero__copy > p:last-child {
+    font-size: 0.8125rem;
+    line-height: 1.5;
   }
 
   .specimen-stats div {
