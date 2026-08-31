@@ -9,6 +9,8 @@ const [
   packageJson,
   tokens,
   specimenCss,
+  specimenFixes,
+  specimenApp,
   button,
   tooltip,
   menu,
@@ -22,6 +24,8 @@ const [
   read("packages/ui/package.json"),
   read("packages/ui/src/styles/globals.css"),
   read("apps/specimens/src/specimens.css"),
+  read("apps/specimens/src/specimens-fixes.css"),
+  read("apps/specimens/src/app.tsx"),
   read("packages/ui/src/components/ui/button.tsx"),
   read("packages/ui/src/components/ui/tooltip.tsx"),
   read("packages/ui/src/components/ui/dropdown-menu.tsx"),
@@ -94,8 +98,57 @@ const assertions = [
     ),
   ],
   [
+    "specimen shell has stable landmarks",
+    specimenApp.includes('className="specimen-topbar"') &&
+      specimenApp.includes('className="specimen-rail"') &&
+      specimenApp.includes('id="specimen-main"') &&
+      specimenApp.includes('className="skip-link"'),
+  ],
+  [
+    "catalog restores task hierarchy",
+    ["group-composer", "group-run-rail", "group-blocks"].every((id) =>
+      specimenApp.includes(id),
+    ),
+  ],
+  [
+    "density control is explicit",
+    specimenApp.includes('aria-label="Display density"') &&
+      !specimenApp.includes("nth-child(2)"),
+  ],
+  [
     "mobile layout covers 390px",
-    specimenCss.includes("@media (max-width: 24.375rem)"),
+    specimenFixes.includes("@media (max-width: 24.375rem)") &&
+      specimenFixes.includes(
+        "grid-template-columns: repeat(5, minmax(0, 1fr))",
+      ),
+  ],
+  [
+    "minimum viewport floor does not scale with text",
+    /html\s*\{[^}]*min-width:\s*320px/.test(specimenFixes),
+  ],
+  [
+    "responsive rail becomes compact navigation",
+    specimenCss.includes("@media (max-width: 68rem)") &&
+      specimenCss.includes(
+        ".specimen-shell {\n    grid-template-columns: 1fr;",
+      ) &&
+      specimenCss.includes("@media (max-width: 48rem)") &&
+      specimenCss.includes(
+        ".specimen-rail__nav {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
+      ),
+  ],
+  [
+    "responsive grids remove intrinsic sizing floors",
+    specimenFixes.includes(
+      ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
+    ) &&
+      specimenFixes.includes(
+        ".catalog-group__grid {\n    grid-template-columns: minmax(0, 1fr);",
+      ),
+  ],
+  [
+    "specimen chrome avoids decorative gradients",
+    !specimenCss.includes("gradient("),
   ],
   [
     "filled action variants are explicit",

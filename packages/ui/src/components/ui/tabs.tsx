@@ -14,8 +14,10 @@ function Tabs({
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
+      orientation={orientation}
       className={cn(
-        "group/tabs flex gap-2 data-horizontal:flex-col",
+        "group/tabs flex gap-2",
+        orientation === "horizontal" && "flex-col",
         className,
       )}
       {...props}
@@ -24,7 +26,7 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-md p-[3px] text-muted-foreground group-data-vertical/tabs:flex-col",
+  "group/tabs-list inline-flex w-fit items-center justify-center rounded-md p-[3px] text-muted-foreground data-[orientation=vertical]:flex-col",
   {
     variants: {
       variant: {
@@ -76,7 +78,7 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      className={cn("min-w-0 flex-1 text-sm outline-none", className)}
       {...props}
     />
   );
