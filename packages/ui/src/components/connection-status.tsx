@@ -11,11 +11,7 @@ import type { ReactNode } from "react";
 import { cn } from "@opencoven/ui/lib/utils";
 
 type ConnectionState =
-  | "connected"
-  | "pending"
-  | "degraded"
-  | "disconnected"
-  | "unavailable";
+  "connected" | "pending" | "degraded" | "disconnected" | "unavailable";
 
 type AuthorityLevel = "read-only" | "proposal" | "mutating" | "local-authority";
 
