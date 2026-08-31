@@ -789,7 +789,8 @@ body {
   }
 
   .specimen-main__inner {
-    padding-block-start: 1rem;
+    padding-block-start: 16px;
+    padding-inline: 16px;
   }
 
   .specimen-hero {
