@@ -22,4 +22,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Print formatter diff for portable verifier
+        run: |
+          pnpm exec prettier --write scripts/verify-contracts.mjs
+          git diff -- scripts/verify-contracts.mjs
+          exit 1
       - run: pnpm check
