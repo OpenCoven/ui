@@ -118,6 +118,45 @@ const assertions = [
       specimenApp.includes("<h2>{group}</h2>"),
   ],
   [
+    "install tab separates CLI from package API",
+    specimenApp.includes(
+      '<TabsTrigger value="install">Install</TabsTrigger>',
+    ) &&
+      !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
+      specimenApp.includes("<span>CLI</span>") &&
+      specimenApp.includes("<span>TypeScript</span>") &&
+      specimenApp.includes("<small>package API</small>"),
+  ],
+  [
+    "install snippets derive valid registry and package paths",
+    specimenApp.includes(
+      'specimen.group === "Blocks" ? "blocks" : "components"',
+    ) &&
+      specimenApp.includes(
+        "const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;",
+      ) &&
+      specimenApp.includes(
+        "const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;",
+      ) &&
+      specimenApp.includes('.split("-")') &&
+      specimenApp.includes(".toUpperCase()"),
+  ],
+  [
+    "install snippets use visible syntax roles",
+    [
+      "syntax-command",
+      "syntax-keyword",
+      "syntax-package",
+      "syntax-string",
+      "syntax-symbol",
+      "syntax-punctuation",
+    ].every(
+      (className) =>
+        specimenApp.includes(`className="${className}"`) &&
+        specimenCss.includes(`.${className}`),
+    ),
+  ],
+  [
     "density control is explicit",
     specimenApp.includes('aria-label="Display density"') &&
       !specimenApp.includes("nth-child(2)"),
@@ -155,6 +194,21 @@ const assertions = [
     /\.specimen-rail__nav\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*5\.5rem\),\s*1fr\)\s*\);/.test(
       specimenFixes,
     ) && /\.specimen-rail__nav a\s*\{[^}]*min-width:\s*0;/.test(specimenFixes),
+  ],
+  [
+    "mobile card tabs preserve enlarged labels",
+    /\.specimen-card > \[data-slot="tabs"\] > \[data-slot="tabs-list"\]\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(5\.25rem,\s*1fr\)\);[^}]*overflow-x:\s*auto;/.test(
+      specimenFixes,
+    ),
+  ],
+  [
+    "mobile tab selection and focus stay inside scrollport",
+    /\[data-slot="tabs-trigger"\]\[data-active\]::after\s*\{[^}]*inset-block-end:\s*0 !important;/.test(
+      specimenFixes,
+    ) &&
+      /\[data-slot="tabs-trigger"\]:focus-visible\s*\{[^}]*outline-offset:\s*-3px;/.test(
+        specimenFixes,
+      ),
   ],
   [
     "text resize keeps shell chrome and hero contained",

@@ -213,6 +213,39 @@ const scenarios = [
     expected: "library",
   },
   {
+    name: "library-install-desktop",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "dark",
+    density: "default",
+    mobile: false,
+    expected: "library",
+    revealInstall: true,
+    installTargetId: "mode-switch",
+    expectedCli:
+      "pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/mode-switch.json",
+    expectedImport:
+      'import { ModeSwitch } from "@opencoven/ui/components/mode-switch";',
+  },
+  {
+    name: "library-install-mobile-text-200",
+    pathname: "/",
+    width: 320,
+    height: 900,
+    scheme: "dark",
+    density: "default",
+    mobile: true,
+    expected: "library",
+    textScale: 2,
+    revealInstall: true,
+    installTargetId: "session-header",
+    expectedCli:
+      "pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/session-header.json",
+    expectedImport:
+      'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
+  },
+  {
     name: "library-light-desktop",
     pathname: "/",
     width: 1440,
@@ -360,6 +393,29 @@ try {
       })()`,
       true,
     );
+    if (scenario.revealInstall) {
+      await evaluateValue(
+        client,
+        `(async () => {
+          const card = document.getElementById(${JSON.stringify(
+            scenario.installTargetId,
+          )});
+          const installTab = card
+            ? [...card.querySelectorAll('[role="tab"]')].find(
+                (tab) => tab.textContent?.trim() === "Install",
+              )
+            : null;
+          if (!installTab) throw new Error("Install tab is missing");
+          installTab.click();
+          card.scrollIntoView({ block: "center" });
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+          return true;
+        })()`,
+        true,
+      );
+    }
 
     const layout = await evaluateValue(
       client,
@@ -377,6 +433,21 @@ try {
             ".specimen-brand, .surface-switcher, .specimen-search, .density-control, .scheme-control",
           ),
         ];
+        const installCard = document.getElementById(${JSON.stringify(
+          scenario.installTargetId ?? "mode-switch",
+        )});
+        const installGrid = installCard?.querySelector(
+          ".specimen-install-grid",
+        );
+        const installSnippets = installGrid
+          ? [...installGrid.querySelectorAll(".specimen-code-snippet")]
+          : [];
+        const installCommands = installGrid
+          ? [...installGrid.querySelectorAll(".specimen-command")]
+          : [];
+        const syntaxTokens = installGrid
+          ? [...installGrid.querySelectorAll('[class^="syntax-"]')]
+          : [];
         const cards = [...document.querySelectorAll(".specimen-card")];
         const groups = [...document.querySelectorAll(".catalog-group")];
         const lab = document.querySelector(".assembled-lab");
@@ -459,6 +530,27 @@ try {
           tabCount: tabs.length,
           scheme: root.classList.contains("dark") ? "dark" : "light",
           density: root.dataset.density,
+          installVisible: isVisible(installGrid),
+          installSnippetCount: installSnippets.length,
+          installCommandTexts: installCommands.map((command) =>
+            command.textContent?.trim(),
+          ),
+          maxInstallCommandOverflow: Math.max(
+            0,
+            ...installCommands.map((command) =>
+              Math.max(0, command.scrollWidth - command.clientWidth),
+            ),
+          ),
+          syntaxRoles: [
+            ...new Set(
+              syntaxTokens.flatMap((token) =>
+                [...token.classList].filter((name) =>
+                  name.startsWith("syntax-"),
+                ),
+              ),
+            ),
+          ].sort(),
+          syntaxTokenCount: syntaxTokens.length,
           topbarOverlaps,
           internallyClipped,
         };
@@ -501,6 +593,27 @@ try {
       );
     }
     if (
+      scenario.revealInstall &&
+      (!layout.installVisible ||
+        layout.installSnippetCount !== 2 ||
+        layout.syntaxTokenCount < 8 ||
+        layout.maxInstallCommandOverflow > 1 ||
+        !layout.installCommandTexts.includes(scenario.expectedCli) ||
+        !layout.installCommandTexts.includes(scenario.expectedImport) ||
+        ![
+          "syntax-command",
+          "syntax-keyword",
+          "syntax-package",
+          "syntax-punctuation",
+          "syntax-string",
+          "syntax-symbol",
+        ].every((role) => layout.syntaxRoles.includes(role)))
+    ) {
+      failures.push(
+        `install panel visible=${layout.installVisible} snippets=${layout.installSnippetCount} syntaxTokens=${layout.syntaxTokenCount} overflow=${layout.maxInstallCommandOverflow}px commands=${layout.installCommandTexts.join(" | ")} roles=${layout.syntaxRoles.join(",")}`,
+      );
+    }
+    if (
       !scenario.mobile &&
       (layout.stickyRailClearance === null || layout.stickyRailClearance < -1)
     ) {
@@ -508,7 +621,11 @@ try {
         `sticky rail clearance is ${layout.stickyRailClearance ?? "missing"}px`,
       );
     }
-    if (scenario.mobile && layout.mobileChromeBottom > 200) {
+    if (
+      scenario.mobile &&
+      !scenario.textScale &&
+      layout.mobileChromeBottom > 200
+    ) {
       failures.push(
         `mobile shell chrome ends at ${Math.round(layout.mobileChromeBottom)}px`,
       );

@@ -484,8 +484,39 @@ body {
   margin: 0;
 }
 
+.specimen-install-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.specimen-code-snippet {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.specimen-code-snippet__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.specimen-code-snippet__header span {
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.specimen-code-snippet__header small {
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+}
+
 .specimen-command {
   display: block;
+  margin: 0;
   overflow-wrap: anywhere;
   border: 1px solid var(--border);
   border-radius: var(--radius-2);
@@ -494,6 +525,45 @@ body {
   padding: 0.75rem;
   font-size: 0.7rem;
   line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.syntax-command,
+.syntax-symbol {
+  color: var(--foreground);
+  font-weight: 750;
+}
+
+.syntax-keyword {
+  color: var(--presence);
+}
+
+.syntax-package {
+  color: color-mix(in srgb, var(--presence) 72%, var(--foreground));
+}
+
+.syntax-string {
+  color: color-mix(in srgb, var(--information) 70%, var(--foreground));
+}
+
+.syntax-punctuation {
+  color: var(--muted-foreground);
+}
+
+.specimen-install-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.specimen-install-meta span {
+  color: var(--presence);
+  font-size: 0.625rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .run-spine {

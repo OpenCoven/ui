@@ -78,6 +78,12 @@ function SpecimenCard({
 }) {
   const sourceKind = specimen.group === "Blocks" ? "blocks" : "components";
   const headingId = `${specimen.id}-title`;
+  const exportName = specimen.id
+    .split("-")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join("");
+  const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;
+  const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;
 
   return (
     <article
@@ -100,24 +106,59 @@ function SpecimenCard({
       <Tabs defaultValue="preview">
         <TabsList variant="line" className="mx-4 mt-3">
           <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="api">API</TabsTrigger>
+          <TabsTrigger value="install">Install</TabsTrigger>
           <TabsTrigger value="usage">Usage</TabsTrigger>
         </TabsList>
         <TabsContent value="preview">
           <div className="specimen-stage">{specimen.preview}</div>
         </TabsContent>
-        <TabsContent value="api" className="specimen-documentation">
-          <code className="specimen-command numeric">
-            {`pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/${specimen.id}.json`}
-          </code>
-          <p>
-            Import from{" "}
-            <code className="numeric text-presence">
-              @opencoven/ui/{sourceKind}/{specimen.id}
-            </code>
-            .
+        <TabsContent value="install" className="specimen-documentation">
+          <div className="specimen-install-grid">
+            <section className="specimen-code-snippet">
+              <header className="specimen-code-snippet__header">
+                <span>CLI</span>
+                <small>shadcn registry</small>
+              </header>
+              <pre
+                className="specimen-command numeric"
+                aria-label={`CLI install command for ${specimen.title}`}
+              >
+                <code>
+                  <span className="syntax-command">pnpm</span>{" "}
+                  <span className="syntax-keyword">dlx</span>{" "}
+                  <span className="syntax-package">shadcn@latest</span>{" "}
+                  <span className="syntax-keyword">add</span>{" "}
+                  <span className="syntax-string">{registryUrl}</span>
+                </code>
+              </pre>
+            </section>
+            <section className="specimen-code-snippet">
+              <header className="specimen-code-snippet__header">
+                <span>TypeScript</span>
+                <small>package API</small>
+              </header>
+              <pre
+                className="specimen-command numeric"
+                aria-label={`TypeScript import for ${specimen.title}`}
+              >
+                <code>
+                  <span className="syntax-keyword">import</span>{" "}
+                  <span className="syntax-punctuation">{"{ "}</span>
+                  <span className="syntax-symbol">{exportName}</span>
+                  <span className="syntax-punctuation">{" }"}</span>{" "}
+                  <span className="syntax-keyword">from</span>{" "}
+                  <span className="syntax-string">
+                    &quot;{packagePath}&quot;
+                  </span>
+                  <span className="syntax-punctuation">;</span>
+                </code>
+              </pre>
+            </section>
+          </div>
+          <p className="specimen-install-meta">
+            <span className="numeric">States</span>
+            {specimen.states}
           </p>
-          <p className="text-muted-foreground">States: {specimen.states}.</p>
         </TabsContent>
         <TabsContent value="usage" className="specimen-documentation">
           <p className="text-muted-foreground">

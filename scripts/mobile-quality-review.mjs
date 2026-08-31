@@ -333,6 +333,9 @@ try {
           (tab) => rect(tab)?.height ?? 0,
         ),
       );
+      const tabTargets = cardLists.flatMap((list) => [
+        ...list.querySelectorAll('[role="tab"]'),
+      ]);
       const label = (element) =>
         element
           ? [
@@ -443,6 +446,11 @@ try {
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
+        maxTabListOverflow: Math.max(0, ...cardLists.map(clipped)),
+        maxTabTargetContentOverflow: Math.max(
+          0,
+          ...tabTargets.map(clipped),
+        ),
         minTabHeight: tabHeights.length > 0 ? Math.min(...tabHeights) : null,
         stackedTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
@@ -560,6 +568,14 @@ try {
     }
     if (measurement.maxTabRootOverflow > 1) {
       failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);
+    }
+    if (!scenario.textScale && measurement.maxTabListOverflow > 1) {
+      failures.push(`tab-list overflow ${measurement.maxTabListOverflow}px`);
+    }
+    if (measurement.maxTabTargetContentOverflow > 1) {
+      failures.push(
+        `tab target content overflow ${measurement.maxTabTargetContentOverflow}px`,
+      );
     }
     if (measurement.minTabHeight === null || measurement.minTabHeight < 44) {
       failures.push(

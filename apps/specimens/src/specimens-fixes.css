@@ -140,11 +140,13 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     min-width: 0;
     max-width: 100%;
     min-height: 2.75rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(5.25rem, 1fr));
     gap: 0;
     margin: 0 !important;
+    overflow-x: auto;
     border-block-end: 1px solid var(--border);
     padding: 0 0.75rem;
+    scrollbar-width: thin;
   }
 
   .specimen-card
@@ -155,6 +157,20 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     max-width: 100%;
     min-height: 2.75rem;
     padding: 0.625rem 0.5rem;
+  }
+
+  .specimen-card
+    > [data-slot="tabs"]
+    > [data-slot="tabs-list"]
+    > [data-slot="tabs-trigger"][data-active]::after {
+    inset-block-end: 0 !important;
+  }
+
+  .specimen-card
+    > [data-slot="tabs"]
+    > [data-slot="tabs-list"]
+    > [data-slot="tabs-trigger"]:focus-visible {
+    outline-offset: -3px;
   }
 
   .specimen-card > [data-slot="tabs"] > [data-slot="tabs-content"] {
