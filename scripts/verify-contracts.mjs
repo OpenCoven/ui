@@ -137,7 +137,10 @@ requirePortable(
     /^\d+\.\d+\.\d+$/.test(portable.contractVersion),
   "portable contract and vector semver must match",
 );
-requirePortable(portable.owner === "OpenCoven/ui", "portable owner must be OpenCoven/ui");
+requirePortable(
+  portable.owner === "OpenCoven/ui",
+  "portable owner must be OpenCoven/ui",
+);
 for (const law of [
   "nativeFirst",
   "staticFirst",
@@ -147,7 +150,10 @@ for (const law of [
   "modalOnlyFocusTrap",
   "unsupportedIsNotPass",
 ]) {
-  requirePortable(portable.global?.[law] === true, `missing global law: ${law}`);
+  requirePortable(
+    portable.global?.[law] === true,
+    `missing global law: ${law}`,
+  );
 }
 requirePortable(
   portable.global?.targetMinimumCssPx?.every((value) => value >= 44),
@@ -176,7 +182,10 @@ for (const id of requiredPrimitives) {
     requirePortable(primitive[field] !== undefined, `${id} missing ${field}`);
   }
   for (const state of primitive.states ?? []) {
-    requirePortable(allowedStates.has(state), `${id} has unknown state ${state}`);
+    requirePortable(
+      allowedStates.has(state),
+      `${id} has unknown state ${state}`,
+    );
   }
 }
 
@@ -191,14 +200,26 @@ for (const vector of vectors.vectors ?? []) {
     `${vector.id} has unknown primitive`,
   );
   for (const field of ["modes", "steps", "assertions", "mutationGuard"]) {
-    requirePortable(vector[field] !== undefined, `${vector.id} missing ${field}`);
+    requirePortable(
+      vector[field] !== undefined,
+      `${vector.id} missing ${field}`,
+    );
   }
 }
-requirePortable(vectorIds.size >= 24, "at least 24 shared vectors are required");
+requirePortable(
+  vectorIds.size >= 24,
+  "at least 24 shared vectors are required",
+);
 for (const id of requiredPrimitives.filter((id) => id !== "disclosure")) {
   requirePortable(covered.has(id), `no vector covers ${id}`);
 }
-for (const mode of ["no-js", "reduced-motion", "forced-colors", "320px", "200%-zoom"]) {
+for (const mode of [
+  "no-js",
+  "reduced-motion",
+  "forced-colors",
+  "320px",
+  "200%-zoom",
+]) {
   requirePortable(
     vectors.vectors.some((vector) => vector.modes.includes(mode)),
     `no vector covers ${mode}`,
@@ -216,11 +237,13 @@ requirePortable(
   "mobile reference must be static-first",
 );
 requirePortable(
-  fixture.includes('aria-live="polite"') && fixture.includes('aria-atomic="true"'),
+  fixture.includes('aria-live="polite"') &&
+    fixture.includes('aria-atomic="true"'),
   "async reference status must be polite and atomic",
 );
 requirePortable(
-  fixture.includes('href="/download/mac"') && fixture.includes("releases/latest"),
+  fixture.includes('href="/download/mac"') &&
+    fixture.includes("releases/latest"),
   "download reference must retain links and fallback",
 );
 requirePortable(
