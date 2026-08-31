@@ -147,6 +147,21 @@ const assertions = [
       ),
   ],
   [
+    "text resize keeps shell chrome and hero contained",
+    specimenFixes.includes(
+      ".specimen-topbar__inner {\n    display: flex;\n    flex-wrap: wrap;",
+    ) &&
+      specimenFixes.includes(
+        ".specimen-topbar__actions {\n    flex: 1 0 100%;",
+      ) &&
+      specimenFixes.includes(
+        ".specimen-main__inner {\n    box-sizing: border-box;",
+      ) &&
+      specimenFixes.includes(
+        ".specimen-stats {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
+      ),
+  ],
+  [
     "specimen chrome avoids decorative gradients",
     !specimenCss.includes("gradient("),
   ],

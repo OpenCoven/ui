@@ -12,6 +12,19 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 }
 
 @media (max-width: 68rem) {
+  .specimen-topbar__inner {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .surface-switcher {
+    margin-inline-start: auto;
+  }
+
+  .specimen-topbar__actions {
+    flex: 1 0 100%;
+  }
+
   .specimen-shell {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -24,6 +37,32 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     min-width: 0;
     max-width: 100vw;
     margin-inline: 0;
+  }
+
+  .specimen-main__inner {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-hero,
+  .specimen-hero__copy,
+  .specimen-stats {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .specimen-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .specimen-stats div {
+    min-width: 0;
+  }
+
+  .specimen-stats :where(dt, dd) {
+    overflow-wrap: anywhere;
   }
 
   .specimen-rail {
