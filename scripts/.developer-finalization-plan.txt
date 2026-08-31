@@ -1,1 +1,0 @@
-This temporary marker is intentionally replaced by the atomic source tree commit.
