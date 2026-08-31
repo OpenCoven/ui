@@ -1,0 +1,119 @@
+name: Visual review
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/visual-review.yml"
+      - "apps/specimens/**"
+      - "packages/ui/**"
+      - "scripts/visual-review.mjs"
+      - "scripts/mobile-quality-review.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  specimens:
+    name: Specimen browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.17.1
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package and specimen app
+        run: pnpm build
+
+      - name: Set up Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd # v2.1.2
+        with:
+          chrome-version: stable
+
+      - name: Capture visual and mobile-quality receipts
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p artifacts/visual-review artifacts/mobile-quality
+          preview_log="$RUNNER_TEMP/specimens-preview.log"
+
+          pnpm --filter @opencoven/specimens preview \
+            --host 127.0.0.1 \
+            --port 4173 >"$preview_log" 2>&1 &
+          preview_pid=$!
+
+          cleanup() {
+            kill "$preview_pid" 2>/dev/null || true
+            wait "$preview_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 100); do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 0.1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            cp "$preview_log" artifacts/visual-review/preview.log
+            echo "Specimen preview did not become ready." >&2
+            exit 1
+          fi
+
+          set +e
+          node scripts/visual-review.mjs
+          visual_status=$?
+          node scripts/mobile-quality-review.mjs
+          mobile_status=$?
+          set -e
+
+          cp "$preview_log" artifacts/visual-review/preview.log
+
+          if [[ "$visual_status" -ne 0 || "$mobile_status" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Upload visual-review artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: specimen-visual-review-${{ github.event.pull_request.number || github.run_number }}
+          path: artifacts/visual-review
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload mobile-quality artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: specimen-mobile-quality-${{ github.event.pull_request.number || github.run_number }}
+          path: artifacts/mobile-quality
+          if-no-files-found: error
+          retention-days: 14
