@@ -35,7 +35,6 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 
   .specimen-rail > *,
   .specimen-rail__context,
-  .specimen-rail__intro,
   .specimen-rail__nav,
   .specimen-rail__package {
     box-sizing: border-box;
@@ -44,14 +43,13 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   }
 
   .specimen-rail__context,
-  .specimen-rail__intro,
   .specimen-rail__package,
   .specimen-rail__package code {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  .catalog-group__grid {
+  .specimen-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

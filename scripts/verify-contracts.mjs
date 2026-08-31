@@ -40,6 +40,7 @@ const config = JSON.parse(componentsJson);
 const manifest = JSON.parse(packageJson);
 const portable = JSON.parse(portableJson);
 const vectors = JSON.parse(vectorsJson);
+const specimenStyles = `${specimenCss}\n${specimenFixes}`;
 const assertions = [
   ["style is base-nova", config.style === "base-nova"],
   ["base color is zinc", config.tailwind.baseColor === "zinc"],
@@ -129,12 +130,11 @@ const assertions = [
   [
     "responsive rail becomes compact navigation",
     specimenCss.includes("@media (max-width: 68rem)") &&
-      specimenCss.includes(
-        ".specimen-shell {\n    grid-template-columns: 1fr;",
+      /@media \(max-width: 68rem\)[\s\S]*?\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
+        specimenCss,
       ) &&
-      specimenCss.includes("@media (max-width: 48rem)") &&
-      specimenCss.includes(
-        ".specimen-rail__nav {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
+      /@media \(max-width: 68rem\)[\s\S]*?\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(
+        specimenCss,
       ),
   ],
   [
@@ -143,7 +143,7 @@ const assertions = [
       ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
     ) &&
       specimenFixes.includes(
-        ".catalog-group__grid {\n    grid-template-columns: minmax(0, 1fr);",
+        ".specimen-grid {\n    grid-template-columns: minmax(0, 1fr);",
       ),
   ],
   [
@@ -155,6 +155,59 @@ const assertions = [
     button.includes("primary:") && button.includes("presence:"),
   ],
 ];
+
+const specimenSelectorPairs = [
+  [
+    "topbar actions",
+    'className="specimen-topbar__actions"',
+    ".specimen-topbar__actions",
+  ],
+  ["density control", 'className="density-control"', ".density-control"],
+  ["scheme control", 'className="scheme-control"', ".scheme-control"],
+  [
+    "rail context",
+    'className="specimen-rail__context"',
+    ".specimen-rail__context",
+  ],
+  ["rail kicker", 'className="specimen-kicker numeric"', ".specimen-kicker"],
+  [
+    "rail package",
+    'className="specimen-rail__package"',
+    ".specimen-rail__package",
+  ],
+  ["hero", 'className="specimen-hero"', ".specimen-hero"],
+  ["hero copy", 'className="specimen-hero__copy"', ".specimen-hero__copy"],
+  ["hero stats", 'className="specimen-stats"', ".specimen-stats"],
+  [
+    "catalog eyebrow",
+    'className="catalog-group__eyebrow numeric"',
+    ".catalog-group__eyebrow",
+  ],
+  ["specimen grid", 'className="specimen-grid"', ".specimen-grid"],
+];
+
+for (const [name, markup, selector] of specimenSelectorPairs) {
+  assertions.push([
+    `${name} markup and CSS stay paired`,
+    specimenApp.includes(markup) && specimenStyles.includes(selector),
+  ]);
+}
+
+const obsoleteSpecimenSelectors = [
+  ".specimen-topbar__tools",
+  ".specimen-density",
+  ".specimen-topbar__icon",
+  ".specimen-rail__intro",
+  ".specimen-eyebrow",
+  ".catalog-group__grid",
+];
+
+for (const selector of obsoleteSpecimenSelectors) {
+  assertions.push([
+    `obsolete specimen selector is absent: ${selector}`,
+    !specimenStyles.includes(selector),
+  ]);
+}
 
 const requiredPrimitives = [
   "action",
