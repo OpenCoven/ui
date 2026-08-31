@@ -1,6 +1,7 @@
 html {
   min-width: 320px;
-  scroll-padding-top: 7rem;
+  --specimen-topbar-height: 3.75rem;
+  scroll-padding-top: calc(var(--specimen-topbar-height) + 1rem);
 }
 
 body {
@@ -36,10 +37,10 @@ body {
 }
 
 .specimen-topbar__inner {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   min-height: 3.75rem;
   max-width: 96rem;
-  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   margin-inline: auto;
@@ -130,6 +131,8 @@ body {
 
 .specimen-topbar__actions {
   display: flex;
+  flex: 1 1 34rem;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
@@ -138,6 +141,8 @@ body {
 
 .specimen-search {
   width: min(20rem, 34vw);
+  max-width: 20rem;
+  flex: 1 1 16rem;
 }
 
 .scheme-control {
@@ -153,16 +158,16 @@ body {
 .specimen-shell {
   display: grid;
   max-width: 96rem;
-  min-height: calc(100vh - 3.75rem);
+  min-height: calc(100vh - var(--specimen-topbar-height));
   grid-template-columns: 13.5rem minmax(0, 1fr);
   margin-inline: auto;
 }
 
 .specimen-rail {
   position: sticky;
-  inset-block-start: 3.75rem;
+  inset-block-start: var(--specimen-topbar-height);
   align-self: start;
-  height: calc(100vh - 3.75rem);
+  height: calc(100vh - var(--specimen-topbar-height));
   overflow-y: auto;
   border-inline-end: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 72%, var(--background));
@@ -327,7 +332,7 @@ body {
 }
 
 .catalog-group {
-  scroll-margin-block-start: 7rem;
+  scroll-margin-block-start: 0;
 }
 
 .catalog-group__header {
@@ -383,7 +388,7 @@ body {
 .specimen-card {
   min-width: 0;
   overflow: hidden;
-  scroll-margin-block-start: 7rem;
+  scroll-margin-block-start: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-3);
   background: var(--card);
@@ -543,7 +548,7 @@ body {
 
 .assembled-lab {
   overflow: hidden;
-  scroll-margin-block-start: 7rem;
+  scroll-margin-block-start: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-3);
   background: var(--card);
@@ -603,10 +608,6 @@ body {
 }
 
 @media (max-width: 68rem) {
-  html {
-    scroll-padding-top: 8.5rem;
-  }
-
   .specimen-topbar__inner {
     grid-template-columns: auto 1fr;
     padding-block: 0.75rem;
@@ -697,10 +698,6 @@ body {
 }
 
 @media (max-width: 36rem) {
-  html {
-    scroll-padding-top: 9rem;
-  }
-
   .specimen-topbar__inner {
     gap: 0.75rem;
   }
@@ -761,6 +758,10 @@ body {
 }
 
 @media (max-width: 24.375rem) {
+  html {
+    scroll-padding-top: 1rem;
+  }
+
   .specimen-topbar {
     position: static;
   }

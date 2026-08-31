@@ -223,6 +223,17 @@ const scenarios = [
     expected: "library",
   },
   {
+    name: "library-dark-desktop-text-200",
+    pathname: "/",
+    width: 1280,
+    height: 1000,
+    scheme: "dark",
+    density: "default",
+    mobile: false,
+    expected: "library",
+    textScale: 2,
+  },
+  {
     name: "assembled-dark-desktop",
     pathname: "/lab",
     width: 1440,
@@ -334,6 +345,12 @@ try {
     await waitForRender(client, "#specimen-main");
     await evaluateValue(
       client,
+      `document.documentElement.style.fontSize = ${JSON.stringify(
+        scenario.textScale ? `${scenario.textScale * 100}%` : "",
+      )};`,
+    );
+    await evaluateValue(
+      client,
       `(async () => {
         await document.fonts.ready;
         await new Promise((resolve) =>
@@ -355,6 +372,11 @@ try {
         const firstContent = document.querySelector(
           ".specimen-card, .assembled-lab",
         );
+        const topbarControls = [
+          ...document.querySelectorAll(
+            ".specimen-brand, .surface-switcher, .specimen-search, .density-control, .scheme-control",
+          ),
+        ];
         const cards = [...document.querySelectorAll(".specimen-card")];
         const groups = [...document.querySelectorAll(".catalog-group")];
         const lab = document.querySelector(".assembled-lab");
@@ -388,10 +410,32 @@ try {
           );
         };
         const bounds = (element) => element?.getBoundingClientRect();
+        const intersects = (left, right) =>
+          left.left < right.right &&
+          left.right > right.left &&
+          left.top < right.bottom &&
+          left.bottom > right.top;
         const topbarBounds = bounds(topbar);
         const railBounds = bounds(rail);
         const heroBounds = bounds(hero);
         const contentBounds = bounds(firstContent);
+        const visibleTopbarControls = topbarControls
+          .filter(isVisible)
+          .map((element) => ({
+            label: element.className,
+            bounds: element.getBoundingClientRect(),
+          }));
+        const topbarOverlaps = visibleTopbarControls.flatMap(
+          (control, index) =>
+            visibleTopbarControls
+              .slice(index + 1)
+              .filter((candidate) =>
+                intersects(control.bounds, candidate.bounds),
+              )
+              .map(
+                (candidate) => control.label + " / " + candidate.label,
+              ),
+        );
 
         return {
           pathname: location.pathname,
@@ -415,9 +459,31 @@ try {
           tabCount: tabs.length,
           scheme: root.classList.contains("dark") ? "dark" : "light",
           density: root.dataset.density,
+          topbarOverlaps,
           internallyClipped,
         };
       })()`,
+    );
+    layout.stickyRailClearance = await evaluateValue(
+      client,
+      `(async () => {
+        const topbar = document.querySelector(".specimen-topbar");
+        const rail = document.querySelector(".specimen-rail");
+        const initialScrollY = scrollY;
+        scrollTo(0, Math.min(500, document.documentElement.scrollHeight - innerHeight));
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        const clearance =
+          rail && topbar
+            ? rail.getBoundingClientRect().top -
+              topbar.getBoundingClientRect().bottom
+            : null;
+        scrollTo(0, initialScrollY);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        return clearance;
+      })()`,
+      true,
     );
 
     const failures = [];
@@ -429,14 +495,28 @@ try {
         `horizontal overflow is ${layout.horizontalOverflow}px at ${scenario.width}px`,
       );
     }
+    if (layout.topbarOverlaps.length > 0) {
+      failures.push(
+        `overlapping topbar controls: ${layout.topbarOverlaps.join(", ")}`,
+      );
+    }
+    if (
+      !scenario.mobile &&
+      (layout.stickyRailClearance === null || layout.stickyRailClearance < -1)
+    ) {
+      failures.push(
+        `sticky rail clearance is ${layout.stickyRailClearance ?? "missing"}px`,
+      );
+    }
     if (scenario.mobile && layout.mobileChromeBottom > 200) {
       failures.push(
         `mobile shell chrome ends at ${Math.round(layout.mobileChromeBottom)}px`,
       );
     }
     if (
-      layout.heroHeight === null ||
-      layout.heroHeight > (scenario.mobile ? 330 : 310)
+      !scenario.textScale &&
+      (layout.heroHeight === null ||
+        layout.heroHeight > (scenario.mobile ? 330 : 310))
     ) {
       failures.push(
         `hero height is ${layout.heroHeight === null ? "missing" : `${Math.round(layout.heroHeight)}px`}`,
@@ -450,7 +530,10 @@ try {
         : scenario.mobile
           ? 640
           : 520;
-    if (layout.contentTop === null || layout.contentTop > contentTopLimit) {
+    if (
+      !scenario.textScale &&
+      (layout.contentTop === null || layout.contentTop > contentTopLimit)
+    ) {
       failures.push(
         `primary content starts at ${layout.contentTop === null ? "missing" : `${Math.round(layout.contentTop)}px`} (limit ${contentTopLimit}px)`,
       );

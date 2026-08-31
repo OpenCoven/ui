@@ -720,6 +720,7 @@ function App() {
   );
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const topbarRef = useRef<HTMLElement>(null);
   const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isLab = normalizedPath === "/lab";
 
@@ -742,12 +743,33 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const topbar = topbarRef.current;
+    if (!topbar) return;
+
+    const updateTopbarHeight = () => {
+      document.documentElement.style.setProperty(
+        "--specimen-topbar-height",
+        `${Math.ceil(topbar.getBoundingClientRect().height)}px`,
+      );
+    };
+    const observer = new ResizeObserver(updateTopbarHeight);
+
+    updateTopbarHeight();
+    observer.observe(topbar);
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--specimen-topbar-height");
+    };
+  }, []);
+
   return (
     <TooltipProvider>
       <a className="skip-link" href="#specimen-main">
         Skip to specimens
       </a>
-      <header className="specimen-topbar">
+      <header className="specimen-topbar" ref={topbarRef}>
         <div className="specimen-topbar__inner">
           <a href="/" className="specimen-brand" aria-label="OpenCoven UI home">
             <span className="specimen-brand__mark" aria-hidden="true">
@@ -834,7 +856,7 @@ function App() {
             </p>
           </div>
         </aside>
-        <main className="specimen-main" id="specimen-main">
+        <main className="specimen-main" id="specimen-main" tabIndex={-1}>
           <div className="specimen-main__inner">
             <header className="specimen-hero">
               <div className="specimen-hero__copy">

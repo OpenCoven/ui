@@ -55,6 +55,13 @@ const cases = [
     density: "default",
     textScale: 2,
   },
+  {
+    name: "mobile-430-dark-text-200",
+    width: 430,
+    scheme: "dark",
+    density: "default",
+    textScale: 2,
+  },
 ];
 
 if (!chromePath) throw new Error("CHROME_PATH is required");
@@ -362,11 +369,34 @@ try {
       await new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       );
-      const skipTargetClearance = (() => {
-        const mainBounds = rect(document.querySelector("#specimen-main"));
+      const skipMainBounds = rect(document.querySelector("#specimen-main"));
+      const skipTopbarBounds = rect(topbar);
+      const skipNavigation = {
+        clearance: skipMainBounds
+          ? skipMainBounds.top - Math.max(0, skipTopbarBounds?.bottom ?? 0)
+          : null,
+        scrollY,
+        mainTop: skipMainBounds?.top ?? null,
+        topbarBottom: skipTopbarBounds?.bottom ?? null,
+        topbarHeight: skipTopbarBounds?.height ?? null,
+        topbarPosition: topbar ? getComputedStyle(topbar).position : null,
+        scrollPaddingTop: getComputedStyle(root).scrollPaddingTop,
+      };
+      scrollTo(0, initialScrollY);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const railLink = document.querySelector(".specimen-rail__nav a");
+      const railTarget = railLink
+        ? document.querySelector(railLink.getAttribute("href"))
+        : null;
+      railLink?.click();
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+      const railTargetClearance = (() => {
+        const targetBounds = rect(railTarget);
         const topbarBounds = rect(topbar);
-        return mainBounds
-          ? mainBounds.top - Math.max(0, topbarBounds?.bottom ?? 0)
+        return targetBounds
+          ? targetBounds.top - Math.max(0, topbarBounds?.bottom ?? 0)
           : null;
       })();
       scrollTo(0, initialScrollY);
@@ -435,7 +465,8 @@ try {
           : null,
         direction: root.dir,
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
-        skipTargetClearance,
+        skipNavigation,
+        railTargetClearance,
         overflowingElements,
       };
     })()`);
@@ -492,11 +523,20 @@ try {
       );
     }
     if (
-      measurement.skipTargetClearance === null ||
-      measurement.skipTargetClearance < 0
+      measurement.skipNavigation.clearance === null ||
+      measurement.skipNavigation.clearance < 0
     ) {
       failures.push(
-        `skip target clearance ${measurement.skipTargetClearance ?? "missing"}px`,
+        `skip target clearance ${measurement.skipNavigation.clearance ?? "missing"}px`,
+      );
+    }
+    if (
+      measurement.railTargetClearance === null ||
+      measurement.railTargetClearance < 0 ||
+      measurement.railTargetClearance > 64
+    ) {
+      failures.push(
+        `rail target clearance ${measurement.railTargetClearance ?? "missing"}px`,
       );
     }
     if (!scenario.textScale && measurement.chromeBottom > 200) {

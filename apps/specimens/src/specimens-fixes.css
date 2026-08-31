@@ -29,6 +29,7 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 
   .specimen-search {
     width: auto;
+    max-width: none;
     min-width: 7rem;
     flex: 1 1 10rem;
   }
