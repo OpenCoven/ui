@@ -34,31 +34,12 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          visual = Path("scripts/visual-review.mjs")
-          source = visual.read_text()
-          before = '''async function waitForJson(url, timeoutMs = 15_000) {
-            const deadline = Date.now() + timeoutMs;
-            let lastError;
+          visual_path = Path("scripts/visual-review.mjs")
+          visual = visual_path.read_text()
 
-            while (Date.now() < deadline) {
-              try {
-                const response = await globalThis.fetch(url);
-                if (response.ok) {
-                  return await response.json();
-                }
-                lastError = new Error(`${response.status} ${response.statusText}`);
-              } catch (error) {
-                lastError = error;
-              }
-
-              await new Promise((resolve) => setTimeout(resolve, 150));
-            }
-
-            throw new Error(
-              `Chrome debugging endpoint did not become ready: ${lastError}`,
-            );
-          }'''
-          after = '''async function waitForPageTarget(
+          function_start = visual.index("async function waitForJson(")
+          function_end = visual.index("\n\nasync function waitForRender", function_start)
+          page_target_function = '''async function waitForPageTarget(
             url,
             chromeProcess,
             output,
@@ -114,52 +95,60 @@ jobs:
               }`,
             );
           }'''
-          if before not in source:
-              raise SystemExit("waitForJson anchor not found")
-          source = source.replace(before, after, 1)
+          visual = (
+              visual[:function_start]
+              + page_target_function
+              + visual[function_end:]
+          )
 
-          before = '''  const targets = await waitForJson(
-            `http://127.0.0.1:${debuggingPort}/json/list`,
-          );
-          const page = targets.find((target) => target.type === "page");
-
-          if (!page?.webSocketDebuggerUrl) {
-            throw new Error("Chrome did not expose a page debugging target");
-          }'''
-          after = '''  const page = await waitForPageTarget(
+          startup_start = visual.index("  const targets = await waitForJson(")
+          client_anchor = "  client = new CdpClient(page.webSocketDebuggerUrl);"
+          startup_end = visual.index(client_anchor, startup_start)
+          startup = '''  const page = await waitForPageTarget(
             `http://127.0.0.1:${debuggingPort}/json/list`,
             chrome,
             chromeOutput,
-          );'''
-          if before not in source:
-              raise SystemExit("page-target startup anchor not found")
-          visual.write_text(source.replace(before, after, 1))
+          );
 
-          contracts = Path("scripts/verify-contracts.mjs")
-          source = contracts.read_text()
-          before = '''  specimenMain,
-            button,'''
-          after = '''  specimenMain,
-            visualReview,
-            button,'''
-          if before not in source:
-              raise SystemExit("contract destructuring anchor not found")
-          source = source.replace(before, after, 1)
+          '''
+          visual = visual[:startup_start] + startup + visual[startup_end:]
+          visual_path.write_text(visual)
 
-          before = '''  read("apps/specimens/src/main.tsx"),
-            read("packages/ui/src/components/ui/button.tsx"),'''
-          after = '''  read("apps/specimens/src/main.tsx"),
-            read("scripts/visual-review.mjs"),
-            read("packages/ui/src/components/ui/button.tsx"),'''
-          if before not in source:
+          contracts_path = Path("scripts/verify-contracts.mjs")
+          contracts = contracts_path.read_text()
+
+          variable_anchor = "  specimenApp,\n  button,"
+          if variable_anchor not in contracts:
+              raise SystemExit("contract variable anchor not found")
+          contracts = contracts.replace(
+              variable_anchor,
+              "  specimenApp,\n  visualReview,\n  button,",
+              1,
+          )
+
+          read_anchor = (
+              '  read("apps/specimens/src/app.tsx"),\n'
+              '  read("packages/ui/src/components/ui/button.tsx"),'
+          )
+          if read_anchor not in contracts:
               raise SystemExit("contract read anchor not found")
-          source = source.replace(before, after, 1)
+          contracts = contracts.replace(
+              read_anchor,
+              '  read("apps/specimens/src/app.tsx"),\n'
+              '  read("scripts/visual-review.mjs"),\n'
+              '  read("packages/ui/src/components/ui/button.tsx"),',
+              1,
+          )
 
-          before = '''  [
+          assertion_anchor = '''  [
             "specimen chrome avoids decorative gradients",
             !specimenCss.includes("gradient("),
           ],'''
-          after = '''  [
+          if assertion_anchor not in contracts:
+              raise SystemExit("contract assertion anchor not found")
+          contracts = contracts.replace(
+              assertion_anchor,
+              '''  [
             "visual review waits for a real Chrome page target",
             visualReview.includes("async function waitForPageTarget") &&
               visualReview.includes('target.type === "page"') &&
@@ -169,10 +158,10 @@ jobs:
           [
             "specimen chrome avoids decorative gradients",
             !specimenCss.includes("gradient("),
-          ],'''
-          if before not in source:
-              raise SystemExit("contract assertion anchor not found")
-          contracts.write_text(source.replace(before, after, 1))
+          ],''',
+              1,
+          )
+          contracts_path.write_text(contracts)
           PY
 
       - name: Format and verify non-browser gates
@@ -191,7 +180,10 @@ jobs:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           set -euo pipefail
-          pnpm --filter @opencoven/specimens preview --host 127.0.0.1 --port 4173 >"$RUNNER_TEMP/specimens-preview.log" 2>&1 &
+          preview_log="$RUNNER_TEMP/specimens-preview.log"
+          pnpm --filter @opencoven/specimens preview \
+            --host 127.0.0.1 \
+            --port 4173 >"$preview_log" 2>&1 &
           preview_pid=$!
           cleanup() {
             kill "$preview_pid" 2>/dev/null || true
@@ -199,12 +191,18 @@ jobs:
           }
           trap cleanup EXIT
 
+          ready=false
           for _ in $(seq 1 100); do
             if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              ready=true
               break
             fi
             sleep 0.1
           done
+          if [[ "$ready" != "true" ]]; then
+            cat "$preview_log"
+            exit 1
+          fi
 
           node scripts/visual-review.mjs
           MOBILE_CHROME_PORT=9233 node scripts/mobile-quality-review.mjs
