@@ -14,6 +14,15 @@ if (!root) {
 }
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+const storedScheme =
+  localStorage.getItem("coven-ui:scheme") === "light" ? "light" : "dark";
+const storedDensity =
+  localStorage.getItem("coven-ui:density") === "compact"
+    ? "compact"
+    : "default";
+
+document.documentElement.classList.toggle("dark", storedScheme === "dark");
+document.documentElement.dataset.density = storedDensity;
 
 if (normalizedPath !== "/") {
   window.addEventListener(
