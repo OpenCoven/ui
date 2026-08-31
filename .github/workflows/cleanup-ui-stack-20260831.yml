@@ -1,0 +1,52 @@
+name: Cleanup verified OpenCoven UI stack
+
+on:
+  push:
+    branches:
+      - automation/cleanup-ui-stack-20260831
+
+permissions:
+  checks: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: OpenCoven/ui
+    steps:
+      - name: Confirm all finalizer evidence and clean temporary branches
+        run: |
+          set -euo pipefail
+
+          has_success_check() {
+            local sha="$1"
+            local name="$2"
+            gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" \
+              -H "Accept: application/vnd.github+json" \
+              --jq ".check_runs[] | select(.name == \"$name\" and .conclusion == \"success\") | .id" \
+              | grep -q .
+          }
+
+          pr1="$(gh pr view 1 --repo "$REPO" --json headRefOid --jq .headRefOid)"
+          pr2="$(gh pr view 2 --repo "$REPO" --json headRefOid --jq .headRefOid)"
+          pr3="$(gh pr view 3 --repo "$REPO" --json headRefOid --jq .headRefOid)"
+
+          has_success_check "$pr1" "Stack finalizer / full verification"
+          has_success_check "$pr2" "Stack finalizer / browser matrix"
+          has_success_check "$pr2" "Stack finalizer / full verification"
+          has_success_check "$pr3" "Stack finalizer / browser matrix"
+          has_success_check "$pr3" "Stack finalizer / full verification"
+
+          gh pr ready 2 --repo "$REPO" || true
+          gh pr ready 3 --repo "$REPO" || true
+
+          for branch in \
+            automation/finalize-ui-stack-20260831 \
+            automation/verify-ui-stack-20260831-v2 \
+            automation/cleanup-ui-stack-20260831; do
+            gh api -X DELETE "repos/$REPO/git/refs/heads/${branch//\//%2F}" || true
+          done
