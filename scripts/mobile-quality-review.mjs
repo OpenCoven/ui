@@ -53,22 +53,28 @@ const cases = [
 if (!chromePath) throw new Error("CHROME_PATH is required");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const waitForJson = async (url, timeoutMs = 15_000) => {
+const waitForPageTarget = async (url, timeoutMs = 30_000) => {
   const deadline = Date.now() + timeoutMs;
   let lastError;
 
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url);
-      if (response.ok) return await response.json();
-      lastError = new Error(`${response.status} ${response.statusText}`);
+      if (response.ok) {
+        const targets = await response.json();
+        const page = targets.find((entry) => entry.type === "page");
+        if (page?.webSocketDebuggerUrl) return page;
+        lastError = new Error("Chrome has not exposed a page target");
+      } else {
+        lastError = new Error(`${response.status} ${response.statusText}`);
+      }
     } catch (error) {
       lastError = error;
     }
     await sleep(150);
   }
 
-  throw new Error(`Chrome debugging endpoint unavailable: ${lastError}`);
+  throw new Error(`Chrome page target unavailable: ${lastError}`);
 };
 const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
@@ -100,12 +106,7 @@ chrome.stderr.on("data", (chunk) => chromeOutput.push(String(chunk)));
 
 let socket;
 try {
-  const targets = await waitForJson(`http://127.0.0.1:${port}/json/list`);
-  const target = targets.find((entry) => entry.type === "page");
-
-  if (!target?.webSocketDebuggerUrl) {
-    throw new Error("Chrome debugging target unavailable");
-  }
+  const target = await waitForPageTarget(`http://127.0.0.1:${port}/json/list`);
 
   socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {

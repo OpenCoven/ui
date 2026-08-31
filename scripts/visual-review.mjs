@@ -118,7 +118,7 @@ class CdpClient {
   }
 }
 
-async function waitForJson(url, timeoutMs = 15_000) {
+async function waitForPageTarget(url, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
 
@@ -126,9 +126,13 @@ async function waitForJson(url, timeoutMs = 15_000) {
     try {
       const response = await globalThis.fetch(url);
       if (response.ok) {
-        return await response.json();
+        const targets = await response.json();
+        const page = targets.find((target) => target.type === "page");
+        if (page?.webSocketDebuggerUrl) return page;
+        lastError = new Error("Chrome has not exposed a page target");
+      } else {
+        lastError = new Error(`${response.status} ${response.statusText}`);
       }
-      lastError = new Error(`${response.status} ${response.statusText}`);
     } catch (error) {
       lastError = error;
     }
@@ -136,9 +140,7 @@ async function waitForJson(url, timeoutMs = 15_000) {
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
-  throw new Error(
-    `Chrome debugging endpoint did not become ready: ${lastError}`,
-  );
+  throw new Error(`Chrome page target did not become ready: ${lastError}`);
 }
 
 async function waitForRender(client, selector, timeoutMs = 15_000) {
@@ -273,14 +275,9 @@ let client;
 const results = [];
 
 try {
-  const targets = await waitForJson(
+  const page = await waitForPageTarget(
     `http://127.0.0.1:${debuggingPort}/json/list`,
   );
-  const page = targets.find((target) => target.type === "page");
-
-  if (!page?.webSocketDebuggerUrl) {
-    throw new Error("Chrome did not expose a page debugging target");
-  }
 
   client = new CdpClient(page.webSocketDebuggerUrl);
   await client.connect();
