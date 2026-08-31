@@ -19,7 +19,7 @@
     "registry:compose": "node scripts/compose-registry.mjs",
     "registry:validate": "pnpm registry:compose && shadcn registry validate registry.json",
     "registry:build": "pnpm registry:compose && shadcn build registry.json && node scripts/normalize-registry-aliases.mjs",
-    "registry:check": "pnpm registry:build && git diff --exit-code -- public/r",
+    "registry:check": "pnpm registry:build && node scripts/check-registry-clean.mjs",
     "test:consumer": "node scripts/test-registry-consumer.mjs",
     "package:check": "node scripts/check-package-exports.mjs",
     "deploy:check": "node scripts/verify-deploy-output.mjs",
