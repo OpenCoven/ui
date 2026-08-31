@@ -1,0 +1,410 @@
+name: Finalize developer surface once
+
+on:
+  push:
+    branches:
+      - feat/developer-surface-system
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: feat/developer-surface-system
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Patch package resolution, persisted presentation state, and text-zoom reflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, before: str, after: str) -> None:
+              target = Path(path)
+              source = target.read_text()
+              if before not in source:
+                  raise SystemExit(f"Anchor not found in {path}: {before[:120]!r}")
+              target.write_text(source.replace(before, after, 1))
+
+          def replace_all(path: str, before: str, after: str, expected: int) -> None:
+              target = Path(path)
+              source = target.read_text()
+              count = source.count(before)
+              if count != expected:
+                  raise SystemExit(
+                      f"Expected {expected} anchors in {path}, found {count}: {before[:120]!r}"
+                  )
+              target.write_text(source.replace(before, after))
+
+          replace_once(
+              "packages/ui/tsconfig.json",
+              '''    "paths": {
+                  "@opencoven/ui/*": ["./src/*"]
+                },''',
+              '''    "paths": {
+                  "@opencoven/ui": ["./src/index.ts"],
+                  "@opencoven/ui/*": ["./src/*"]
+                },''',
+          )
+
+          replace_once(
+              "apps/specimens/src/main.tsx",
+              '''const normalizedPath = window.location.pathname.replace(/\\/+$/, "") || "/";
+
+          if (normalizedPath !== "/") {''',
+              '''const normalizedPath = window.location.pathname.replace(/\\/+$/, "") || "/";
+          const storedScheme =
+            localStorage.getItem("coven-ui:scheme") === "light" ? "light" : "dark";
+          const storedDensity =
+            localStorage.getItem("coven-ui:density") === "compact"
+              ? "compact"
+              : "default";
+
+          document.documentElement.classList.toggle("dark", storedScheme === "dark");
+          document.documentElement.dataset.density = storedDensity;
+
+          if (normalizedPath !== "/") {''',
+          )
+
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">',
+              '        <div className="mx-auto grid min-h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 sm:flex sm:gap-3 sm:px-6">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '''            className="inline-flex items-center gap-2 text-sm font-semibold text-foreground no-underline"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            OpenCoven UI''',
+              '''            className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground no-underline"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+              OpenCoven UI
+            </span>''',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '          <span className="h-4 w-px bg-border" aria-hidden="true" />',
+              '          <span className="hidden h-4 w-px bg-border sm:block" aria-hidden="true" />',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '          <span className="numeric text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">',
+              '          <span className="numeric hidden text-[0.625rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:inline-flex">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '            className="ms-auto flex items-center gap-2"',
+              '            className="ms-auto flex min-w-0 items-center justify-end gap-1 sm:gap-2"',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '''            <a
+              href="https://github.com/OpenCoven"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium text-muted-foreground no-underline hover:bg-muted hover:text-foreground"
+            >
+              <Boxes aria-hidden="true" className="size-3.5" />
+              Repositories
+            </a>''',
+              '''            <a
+              href="https://github.com/OpenCoven"
+              aria-label="OpenCoven repositories"
+              className="inline-flex min-w-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-xs font-medium text-muted-foreground no-underline hover:bg-muted hover:text-foreground"
+            >
+              <Boxes aria-hidden="true" className="size-3.5 shrink-0" />
+              <span className="hidden sm:inline">Repositories</span>
+            </a>''',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">',
+              '      <main className="mx-auto min-w-0 max-w-7xl px-4 py-10 sm:px-6 sm:py-14">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '        <section className="grid gap-8 border-b border-border pb-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">',
+              '        <section className="grid min-w-0 gap-8 border-b border-border pb-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '          <div>\n            <p className="numeric m-0 text-[0.625rem] font-semibold tracking-[0.14em] text-presence uppercase">',
+              '          <div className="min-w-0">\n            <p className="numeric m-0 max-w-full text-[0.625rem] font-semibold tracking-[0.14em] text-presence uppercase break-words [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '            <h1 className="editorial mt-3 mb-0 max-w-3xl text-4xl tracking-[-0.04em] text-balance sm:text-6xl">',
+              '            <h1 className="editorial mt-3 mb-0 max-w-3xl text-4xl tracking-[-0.04em] text-balance break-words [overflow-wrap:anywhere] sm:text-6xl">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '            <p className="mt-5 mb-0 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">',
+              '            <p className="mt-5 mb-0 max-w-2xl text-sm leading-7 break-words text-muted-foreground [overflow-wrap:anywhere] sm:text-base">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '          <dl className="grid grid-cols-3 gap-2 lg:grid-cols-1">',
+              '          <dl className="grid min-w-0 grid-cols-3 gap-2 lg:grid-cols-1">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '              <div key={label} className="border-l border-border ps-3 lg:py-1">',
+              '              <div key={label} className="min-w-0 border-l border-border ps-3 lg:py-1">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '                <dd className="numeric mt-1 mb-0 text-sm font-semibold">',
+              '                <dd className="numeric mt-1 mb-0 min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "apps/specimens/src/developer-showcase.tsx",
+              '        <section className="py-10 sm:py-14">',
+              '        <section className="min-w-0 py-10 sm:py-14">',
+          )
+          replace_all(
+              "apps/specimens/src/developer-showcase.tsx",
+              '                  <code className="numeric mt-2 block overflow-x-auto rounded-md border border-border bg-background p-3 text-[0.6875rem] leading-5">',
+              '                  <code className="numeric mt-2 block max-w-full rounded-md border border-border bg-background p-3 text-[0.6875rem] leading-5 whitespace-pre-wrap break-all [overflow-wrap:anywhere]">',
+              2,
+          )
+
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '        "overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm",',
+              '        "w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm",',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '      <header className="grid gap-4 border-b border-border px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">',
+              '      <header className="grid min-w-0 gap-4 border-b border-border px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '          <span className="numeric inline-flex items-center gap-1.5 text-[0.625rem] font-semibold tracking-[0.12em] text-presence uppercase">',
+              '          <span className="numeric inline-flex max-w-full flex-wrap items-center gap-1.5 text-[0.625rem] font-semibold tracking-[0.12em] text-presence uppercase [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '            className="mt-1.5 mb-0 text-lg font-semibold tracking-tight"',
+              '            className="mt-1.5 mb-0 min-w-0 text-lg font-semibold tracking-tight break-words [overflow-wrap:anywhere]"',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '          <p className="mt-1 mb-0 max-w-2xl text-xs leading-5 text-muted-foreground">',
+              '          <p className="mt-1 mb-0 min-w-0 max-w-2xl text-xs leading-5 break-words text-muted-foreground [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}',
+              '        {actions ? (\n          <div className="flex min-w-0 max-w-full flex-wrap gap-2">{actions}</div>\n        ) : null}',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '      <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_20rem]">',
+              '      <div className="grid w-full min-w-0 max-w-full lg:grid-cols-[minmax(0,1fr)_20rem]">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-muted/35 px-5 py-3 text-xs">',
+              '          <div className="grid min-w-0 gap-2 border-b border-border bg-muted/35 px-5 py-3 text-xs sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '            <span className="inline-flex min-w-0 items-center gap-1.5 font-semibold">',
+              '            <span className="inline-flex min-w-0 max-w-full items-start gap-1.5 font-semibold">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <Code2 aria-hidden="true" className="size-3.5 text-presence" />\n              <span className="truncate">{project}</span>',
+              '              <Code2 aria-hidden="true" className="size-3.5 shrink-0 text-presence" />\n              <span className="min-w-0 break-words [overflow-wrap:anywhere]">\n                {project}\n              </span>',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <span className="numeric inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">',
+              '              <span className="numeric inline-flex min-w-0 max-w-full items-start gap-1.5 text-muted-foreground">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '                <GitBranch aria-hidden="true" className="size-3.5" />\n                <span className="truncate">{branch}</span>',
+              '                <GitBranch aria-hidden="true" className="size-3.5 shrink-0" />\n                <span className="min-w-0 break-words [overflow-wrap:anywhere]">\n                  {branch}\n                </span>',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '            <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">\n              <div>',
+              '            <header className="grid min-w-0 gap-2 px-5 pt-5 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">\n              <div className="min-w-0">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '                  className="mt-1 mb-0 text-sm font-semibold"\n                >\n                  Connected development context',
+              '                  className="mt-1 mb-0 min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere]"\n                >\n                  Connected development context',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <span className="numeric text-[0.625rem] text-muted-foreground">\n                {connections.length}',
+              '              <span className="numeric justify-self-start text-[0.625rem] text-muted-foreground sm:justify-self-end">\n                {connections.length}',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <div className="grid gap-3 px-5 pb-5 md:grid-cols-2">',
+              '              <div className="grid min-w-0 gap-3 px-5 pb-5 md:grid-cols-2">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '            <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">\n              <div>',
+              '            <header className="grid min-w-0 gap-2 px-5 pt-5 pb-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">\n              <div className="min-w-0">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '                  className="mt-1 mb-0 text-sm font-semibold"\n                >\n                  Recent invocations',
+              '                  className="mt-1 mb-0 min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere]"\n                >\n                  Recent invocations',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <span className="numeric text-[0.625rem] text-muted-foreground">\n                {activity.length}',
+              '              <span className="numeric justify-self-start text-[0.625rem] text-muted-foreground sm:justify-self-end">\n                {activity.length}',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '              <div className="pb-2">',
+              '              <div className="min-w-0 pb-2">',
+          )
+          replace_once(
+              "packages/ui/src/blocks/developer-surface.tsx",
+              '          className="min-w-0 border-t border-border bg-muted/25 p-5 lg:border-t-0 lg:border-l"',
+              '          className="w-full min-w-0 max-w-full border-t border-border bg-muted/25 p-5 [overflow-wrap:anywhere] [&_*]:min-w-0 lg:border-t-0 lg:border-l"',
+          )
+
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '        "grid min-w-0 gap-3 rounded-lg border border-border bg-card p-4 shadow-sm",',
+              '        "grid w-full min-w-0 max-w-full gap-3 rounded-lg border border-border bg-card p-4 shadow-sm",',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '      <header className="flex min-w-0 items-start justify-between gap-3">',
+              '      <header className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '        <span className="min-w-0">',
+              '        <span className="min-w-0 max-w-full">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '          <strong className="mt-1 block truncate text-sm font-semibold">',
+              '          <strong className="mt-1 block min-w-0 text-sm font-semibold break-words [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '          <code className="numeric max-w-[45%] min-w-0 truncate rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] text-muted-foreground">',
+              '          <code className="numeric min-w-0 max-w-full justify-self-start rounded-md border border-border bg-muted px-2 py-1 text-[0.625rem] whitespace-normal break-all text-muted-foreground [overflow-wrap:anywhere] sm:justify-self-end">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '        <p className="m-0 text-xs leading-5 break-words text-muted-foreground">',
+              '        <p className="m-0 min-w-0 max-w-full text-xs leading-5 break-words text-muted-foreground [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-[0.6875rem]">',
+              '      <div className="flex w-full min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-[0.6875rem]">',
+          )
+          replace_all(
+              "packages/ui/src/components/connection-status.tsx",
+              '            "inline-flex items-center gap-1.5',
+              '            "inline-flex max-w-full flex-wrap items-center gap-1.5',
+              2,
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '          <span className="numeric min-w-0 truncate text-muted-foreground">',
+              '          <span className="numeric min-w-0 max-w-full break-words text-muted-foreground [overflow-wrap:anywhere]">',
+          )
+          replace_once(
+              "packages/ui/src/components/connection-status.tsx",
+              '        {action ? <span className="ms-auto shrink-0">{action}</span> : null}',
+              '        {action ? (\n          <span className="max-w-full shrink-0 sm:ms-auto">{action}</span>\n        ) : null}',
+          )
+
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '        "grid min-w-0 gap-3 border-b border-border px-4 py-3 last:border-b-0",',
+              '        "grid w-full min-w-0 max-w-full gap-3 border-b border-border px-4 py-3 last:border-b-0",',
+          )
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '      <div className="flex min-w-0 items-start gap-3">',
+              '      <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3">',
+          )
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '                "inline-flex items-center gap-1 text-[0.6875rem] font-semibold",',
+              '                "inline-flex max-w-full flex-wrap items-center gap-1 text-[0.6875rem] font-semibold",',
+          )
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '        <footer className="numeric flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 ps-10 text-[0.625rem] text-muted-foreground">',
+              '        <footer className="numeric flex w-full min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1 text-[0.625rem] text-muted-foreground sm:ps-10">',
+          )
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '            <span className="min-w-0 max-w-full truncate" title={receiptId}>',
+              '            <span className="min-w-0 max-w-full break-all [overflow-wrap:anywhere]" title={receiptId}>',
+          )
+          replace_once(
+              "packages/ui/src/components/command-receipt.tsx",
+              '          {timestamp ? <time dateTime={timestamp}>{timestamp}</time> : null}',
+              '          {timestamp ? (\n            <time\n              className="max-w-full break-all [overflow-wrap:anywhere]"\n              dateTime={timestamp}\n            >\n              {timestamp}\n            </time>\n          ) : null}',
+          )
+          PY
+      - name: Format touched source
+        run: >-
+          pnpm exec prettier --write
+          apps/specimens/src/main.tsx
+          apps/specimens/src/developer-showcase.tsx
+          packages/ui/tsconfig.json
+          packages/ui/src/blocks/developer-surface.tsx
+          packages/ui/src/components/connection-status.tsx
+          packages/ui/src/components/command-receipt.tsx
+      - name: Regenerate registry artifacts
+        run: pnpm registry:build
+      - name: Verify focused gates before publishing the patch
+        run: >-
+          pnpm lint &&
+          pnpm typecheck &&
+          pnpm test &&
+          pnpm contracts:check &&
+          pnpm registry:validate &&
+          pnpm test:consumer &&
+          pnpm build &&
+          pnpm deploy:check &&
+          pnpm package:check
+      - name: Commit finalized patch and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -- apps/specimens/tsconfig.tsbuildinfo 2>/dev/null || true
+          git rm .github/workflows/finalize-developer-surface-once.yml
+          git add \
+            apps/specimens/src/main.tsx \
+            apps/specimens/src/developer-showcase.tsx \
+            packages/ui/tsconfig.json \
+            packages/ui/src/blocks/developer-surface.tsx \
+            packages/ui/src/components/connection-status.tsx \
+            packages/ui/src/components/command-receipt.tsx \
+            registry.json \
+            public/r
+          git commit -m "fix(developer): preserve preferences and reflow at text zoom"
+          git push origin HEAD:feat/developer-surface-system
