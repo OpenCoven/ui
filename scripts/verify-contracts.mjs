@@ -49,6 +49,7 @@ const developerRegistry = JSON.parse(developerRegistryJson);
 const commandReceiptItem = developerRegistry.items.find(
   (item) => item.name === "command-receipt",
 );
+const normalizedDeveloperDocs = developerDocs.replace(/\s+/g, " ");
 const assertions = [
   ["style is base-nova", config.style === "base-nova"],
   ["base color is zinc", config.tailwind.baseColor === "zinc"],
@@ -212,10 +213,14 @@ const assertions = [
   ],
   [
     "developer docs preserve current SDK and CLI truth",
-    developerDocs.includes("@opencoven/cli") &&
-      developerDocs.includes("private repository-development workspace") &&
-      developerDocs.includes("currently private and not published") &&
-      developerDocs.includes("first public release is deliberately read-only"),
+    normalizedDeveloperDocs.includes("@opencoven/cli") &&
+      normalizedDeveloperDocs.includes(
+        "private repository-development workspace",
+      ) &&
+      normalizedDeveloperDocs.includes("currently private and not published") &&
+      normalizedDeveloperDocs.includes(
+        "first public release is deliberately read-only",
+      ),
   ],
   [
     "developer docs prohibit unreviewed protected data",
