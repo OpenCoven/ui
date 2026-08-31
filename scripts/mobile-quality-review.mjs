@@ -53,35 +53,55 @@ const cases = [
 if (!chromePath) throw new Error("CHROME_PATH is required");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const waitForJson = async (url, timeoutMs = 15_000) => {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return await response.json();
+      lastError = new Error(`${response.status} ${response.statusText}`);
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(150);
+  }
+
+  throw new Error(`Chrome debugging endpoint unavailable: ${lastError}`);
+};
 const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
 
-const chrome = spawn(chromePath, [
-  "--headless=new",
-  "--no-sandbox",
-  "--disable-dev-shm-usage",
-  "--disable-gpu",
-  "--hide-scrollbars",
-  `--remote-debugging-port=${port}`,
-  `--user-data-dir=${profile}`,
-  "about:blank",
-]);
+const chromeOutput = [];
+const chrome = spawn(
+  chromePath,
+  [
+    "--headless=new",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-component-update",
+    `--remote-debugging-port=${port}`,
+    `--user-data-dir=${profile}`,
+    "about:blank",
+  ],
+  {
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
+
+chrome.stdout.on("data", (chunk) => chromeOutput.push(String(chunk)));
+chrome.stderr.on("data", (chunk) => chromeOutput.push(String(chunk)));
 
 let socket;
 try {
-  let target;
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
-        (response) => response.json(),
-      );
-      target = targets.find((entry) => entry.type === "page");
-      if (target?.webSocketDebuggerUrl) break;
-    } catch {
-      // Chrome may not have exposed the debugging endpoint yet.
-    }
-    await sleep(100);
-  }
+  const targets = await waitForJson(`http://127.0.0.1:${port}/json/list`);
+  const target = targets.find((entry) => entry.type === "page");
 
   if (!target?.webSocketDebuggerUrl) {
     throw new Error("Chrome debugging target unavailable");
@@ -201,24 +221,37 @@ try {
           (tab) => rect(tab)?.height ?? 0,
         ),
       );
+      const label = (element) =>
+        element
+          ? [
+              element.tagName.toLowerCase(),
+              element.id ? "#" + element.id : "",
+              ...[...element.classList]
+                .slice(0, 3)
+                .map((name) => "." + name),
+            ].join("")
+          : null;
       const overflowingElements = [...document.querySelectorAll("body *")]
         .map((element) => {
           const bounds = rect(element);
           const overflow = bounds
             ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
             : 0;
-          const label = [
-            element.tagName.toLowerCase(),
-            element.id ? "#" + element.id : "",
-            ...[...element.classList]
-              .slice(0, 3)
-              .map((name) => "." + name),
-          ].join("");
-          return { label, overflow };
+          return {
+            label: label(element),
+            parent: label(element.parentElement),
+            left: bounds?.left ?? null,
+            right: bounds?.right ?? null,
+            width: bounds?.width ?? null,
+            overflow,
+            parentOverflowX: element.parentElement
+              ? getComputedStyle(element.parentElement).overflowX
+              : null,
+          };
         })
         .filter(({ overflow }) => overflow > 1)
         .sort((left, right) => right.overflow - left.overflow)
-        .slice(0, 5);
+        .slice(0, 20);
 
       return {
         viewport: root.clientWidth,
@@ -372,6 +405,12 @@ try {
         .join("\n"),
     );
   }
+} catch (error) {
+  await writeFile(
+    path.join(outputDir, "chrome.log"),
+    `${chromeOutput.join("")}\n`,
+  );
+  throw error;
 } finally {
   socket?.close();
   chrome.kill();
