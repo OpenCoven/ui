@@ -20,7 +20,7 @@ createServer(async (request, response) => {
   const requested = decodeURIComponent(
     new URL(request.url, "http://x").pathname,
   );
-  const candidate = path.join(root, requested.slice(1));
+  const candidate = path.join(root, requested.replace(/^\/+/, ""));
 
   for (const file of [candidate, path.join(root, "index.html")]) {
     if (!path.resolve(file).startsWith(root)) continue;
