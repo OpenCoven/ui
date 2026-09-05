@@ -118,14 +118,14 @@ const assertions = [
       specimenApp.includes("<h2>{group}</h2>"),
   ],
   [
-    "install tab separates CLI from package API",
-    specimenApp.includes(
-      '<TabsTrigger value="install">Install</TabsTrigger>',
-    ) &&
+    "install tabs separate CLI from React API",
+    specimenApp.includes('<TabsTrigger value="cli">CLI</TabsTrigger>') &&
+      specimenApp.includes(
+        '<TabsTrigger value="react-api">React API</TabsTrigger>',
+      ) &&
       !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
-      specimenApp.includes("<span>CLI</span>") &&
       specimenApp.includes("<span>TypeScript</span>") &&
-      specimenApp.includes("<small>package API</small>"),
+      specimenApp.includes("<small>React package API</small>"),
   ],
   [
     "install snippets derive valid registry and package paths",
@@ -228,9 +228,44 @@ const assertions = [
         ".specimen-stats {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
       ),
   ],
+  /*
+   * The original guard here was a blanket ban on `gradient(` in the specimen
+   * stylesheet. It was a blunt proxy, added while recovering a broken shell,
+   * for the real fear: chrome turning gaudy, unreadable, or distracting from
+   * the components on display.
+   *
+   * The approved layout-parity direction supersedes that ban. The design doc
+   * calls for "subtle grid or radial treatment that does not compete with the
+   * component", and the approved plan writes literal linear-gradient rules
+   * into this very file for the preview canvas. A blanket ban would now fail
+   * the repository's own accepted design.
+   *
+   * These three contracts replace it with the intent it was standing in for.
+   */
   [
-    "specimen chrome avoids decorative gradients",
-    !specimenCss.includes("gradient("),
+    "decorative layers stay out of public component surfaces",
+    !/\[data-slot="[^"]+"\][^{}]*\{[^}]*gradient\(/.test(specimenCss),
+  ],
+  [
+    "decorative layers yield to contrast and forced-colors preferences",
+    /@media \(prefers-contrast: more\)\s*\{[^@]*background-image:\s*none;/.test(
+      specimenCss,
+    ) &&
+      /@media \(forced-colors: active\)\s*\{[^@]*background-image:\s*none;/.test(
+        specimenCss,
+      ),
+  ],
+  [
+    "specimen chrome never animates perpetually",
+    // Comments are stripped first so prose describing the rule cannot satisfy
+    // or violate it.
+    (() => {
+      const code = specimenCss.replace(/\/\*[\s\S]*?\*\//g, "");
+      return (
+        !code.includes("@keyframes") &&
+        !/animation(-name)?:\s*(?!none)/.test(code)
+      );
+    })(),
   ],
   [
     "filled action variants are explicit",

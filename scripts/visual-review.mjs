@@ -213,7 +213,7 @@ const scenarios = [
     expected: "library",
   },
   {
-    name: "library-install-desktop",
+    name: "library-cli-desktop",
     pathname: "/",
     width: 1440,
     height: 1000,
@@ -221,15 +221,39 @@ const scenarios = [
     density: "default",
     mobile: false,
     expected: "library",
-    revealInstall: true,
-    installTargetId: "mode-switch",
-    expectedCli:
+    revealCodeTab: "CLI",
+    codeTargetId: "mode-switch",
+    expectedCode:
       "pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/mode-switch.json",
-    expectedImport:
-      'import { ModeSwitch } from "@opencoven/ui/components/mode-switch";',
+    expectedSyntaxRoles: [
+      "syntax-command",
+      "syntax-keyword",
+      "syntax-package",
+      "syntax-string",
+    ],
   },
   {
-    name: "library-install-mobile-text-200",
+    name: "library-react-api-desktop",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+    density: "compact",
+    mobile: false,
+    expected: "library",
+    revealCodeTab: "React API",
+    codeTargetId: "session-header",
+    expectedCode:
+      'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
+    expectedSyntaxRoles: [
+      "syntax-keyword",
+      "syntax-punctuation",
+      "syntax-string",
+      "syntax-symbol",
+    ],
+  },
+  {
+    name: "library-react-api-mobile-text-200",
     pathname: "/",
     width: 320,
     height: 900,
@@ -238,12 +262,17 @@ const scenarios = [
     mobile: true,
     expected: "library",
     textScale: 2,
-    revealInstall: true,
-    installTargetId: "session-header",
-    expectedCli:
-      "pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/session-header.json",
-    expectedImport:
+    revealCodeTab: "React API",
+    codeTargetId: "session-header",
+    expectedCode:
       'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
+    expectedSyntaxRoles: [
+      "syntax-keyword",
+      "syntax-punctuation",
+      "syntax-string",
+      "syntax-symbol",
+    ],
+    expectScrollableCodeTabs: true,
   },
   {
     name: "library-light-desktop",
@@ -393,20 +422,28 @@ try {
       })()`,
       true,
     );
-    if (scenario.revealInstall) {
+    if (scenario.revealCodeTab) {
       await evaluateValue(
         client,
         `(async () => {
           const card = document.getElementById(${JSON.stringify(
-            scenario.installTargetId,
+            scenario.codeTargetId,
           )});
-          const installTab = card
+          const codeTab = card
             ? [...card.querySelectorAll('[role="tab"]')].find(
-                (tab) => tab.textContent?.trim() === "Install",
+                (tab) =>
+                  tab.textContent?.trim() === ${JSON.stringify(
+                    scenario.revealCodeTab,
+                  )},
               )
             : null;
-          if (!installTab) throw new Error("Install tab is missing");
-          installTab.click();
+          if (!codeTab) throw new Error("Requested code tab is missing");
+          const tabList = codeTab.closest('[data-slot="tabs-list"]');
+          if (${Boolean(scenario.expectScrollableCodeTabs)} && tabList) {
+            tabList.scrollLeft = tabList.scrollWidth;
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+          }
+          codeTab.click();
           card.scrollIntoView({ block: "center" });
           await new Promise((resolve) =>
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
@@ -433,21 +470,22 @@ try {
             ".specimen-brand, .surface-switcher, .specimen-search, .density-control, .scheme-control",
           ),
         ];
-        const installCard = document.getElementById(${JSON.stringify(
-          scenario.installTargetId ?? "mode-switch",
+        const codeCard = document.getElementById(${JSON.stringify(
+          scenario.codeTargetId ?? "mode-switch",
         )});
-        const installGrid = installCard?.querySelector(
-          ".specimen-install-grid",
+        const codeSnippets = codeCard
+          ? [...codeCard.querySelectorAll(".specimen-code-snippet")]
+          : [];
+        const codeCommands = codeCard
+          ? [...codeCard.querySelectorAll(".specimen-command")]
+          : [];
+        const syntaxTokens = codeCard
+          ? [...codeCard.querySelectorAll('[class^="syntax-"]')]
+          : [];
+        const codeTabList = codeCard?.querySelector('[data-slot="tabs-list"]');
+        const activeCodeTab = codeTabList?.querySelector(
+          '[role="tab"][aria-selected="true"]',
         );
-        const installSnippets = installGrid
-          ? [...installGrid.querySelectorAll(".specimen-code-snippet")]
-          : [];
-        const installCommands = installGrid
-          ? [...installGrid.querySelectorAll(".specimen-command")]
-          : [];
-        const syntaxTokens = installGrid
-          ? [...installGrid.querySelectorAll('[class^="syntax-"]')]
-          : [];
         const cards = [...document.querySelectorAll(".specimen-card")];
         const groups = [...document.querySelectorAll(".catalog-group")];
         const lab = document.querySelector(".assembled-lab");
@@ -507,6 +545,11 @@ try {
                 (candidate) => control.label + " / " + candidate.label,
               ),
         );
+        const visibleCodeSnippets = codeSnippets.filter(isVisible);
+        const visibleCodeCommands = codeCommands.filter(isVisible);
+        const visibleSyntaxTokens = syntaxTokens.filter(isVisible);
+        const codeTabListBounds = bounds(codeTabList);
+        const activeCodeTabBounds = bounds(activeCodeTab);
 
         return {
           pathname: location.pathname,
@@ -530,27 +573,34 @@ try {
           tabCount: tabs.length,
           scheme: root.classList.contains("dark") ? "dark" : "light",
           density: root.dataset.density,
-          installVisible: isVisible(installGrid),
-          installSnippetCount: installSnippets.length,
-          installCommandTexts: installCommands.map((command) =>
+          codeSnippetCount: visibleCodeSnippets.length,
+          codeCommandTexts: visibleCodeCommands.map((command) =>
             command.textContent?.trim(),
           ),
-          maxInstallCommandOverflow: Math.max(
+          maxCodeCommandOverflow: Math.max(
             0,
-            ...installCommands.map((command) =>
+            ...visibleCodeCommands.map((command) =>
               Math.max(0, command.scrollWidth - command.clientWidth),
             ),
           ),
           syntaxRoles: [
             ...new Set(
-              syntaxTokens.flatMap((token) =>
+              visibleSyntaxTokens.flatMap((token) =>
                 [...token.classList].filter((name) =>
                   name.startsWith("syntax-"),
                 ),
               ),
             ),
           ].sort(),
-          syntaxTokenCount: syntaxTokens.length,
+          syntaxTokenCount: visibleSyntaxTokens.length,
+          codeTabListOverflow: codeTabList
+            ? Math.max(0, codeTabList.scrollWidth - codeTabList.clientWidth)
+            : null,
+          activeCodeTabFullyVisible:
+            codeTabListBounds && activeCodeTabBounds
+              ? activeCodeTabBounds.left >= codeTabListBounds.left - 1 &&
+                activeCodeTabBounds.right <= codeTabListBounds.right + 1
+              : null,
           topbarOverlaps,
           internallyClipped,
         };
@@ -593,24 +643,21 @@ try {
       );
     }
     if (
-      scenario.revealInstall &&
-      (!layout.installVisible ||
-        layout.installSnippetCount !== 2 ||
-        layout.syntaxTokenCount < 8 ||
-        layout.maxInstallCommandOverflow > 1 ||
-        !layout.installCommandTexts.includes(scenario.expectedCli) ||
-        !layout.installCommandTexts.includes(scenario.expectedImport) ||
-        ![
-          "syntax-command",
-          "syntax-keyword",
-          "syntax-package",
-          "syntax-punctuation",
-          "syntax-string",
-          "syntax-symbol",
-        ].every((role) => layout.syntaxRoles.includes(role)))
+      scenario.revealCodeTab &&
+      (layout.codeSnippetCount !== 1 ||
+        layout.syntaxTokenCount < 4 ||
+        layout.maxCodeCommandOverflow > 1 ||
+        !layout.codeCommandTexts.includes(scenario.expectedCode) ||
+        !scenario.expectedSyntaxRoles.every((role) =>
+          layout.syntaxRoles.includes(role),
+        ) ||
+        (scenario.expectScrollableCodeTabs &&
+          (layout.codeTabListOverflow === null ||
+            layout.codeTabListOverflow <= 1 ||
+            !layout.activeCodeTabFullyVisible)))
     ) {
       failures.push(
-        `install panel visible=${layout.installVisible} snippets=${layout.installSnippetCount} syntaxTokens=${layout.syntaxTokenCount} overflow=${layout.maxInstallCommandOverflow}px commands=${layout.installCommandTexts.join(" | ")} roles=${layout.syntaxRoles.join(",")}`,
+        `code panel=${scenario.revealCodeTab} snippets=${layout.codeSnippetCount} syntaxTokens=${layout.syntaxTokenCount} commandOverflow=${layout.maxCodeCommandOverflow}px tabOverflow=${layout.codeTabListOverflow}px activeTabVisible=${layout.activeCodeTabFullyVisible} commands=${layout.codeCommandTexts.join(" | ")} roles=${layout.syntaxRoles.join(",")}`,
       );
     }
     if (

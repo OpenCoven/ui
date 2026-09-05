@@ -484,11 +484,6 @@ body {
   margin: 0;
 }
 
-.specimen-install-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
 .specimen-code-snippet {
   display: grid;
   gap: 0.4rem;
@@ -908,5 +903,263 @@ body {
   .surface-switcher a[aria-current="page"],
   .density-control button[aria-pressed="true"] {
     border: 1px solid Highlight;
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Ritual-tech finish
+ * ---------------------------------------------------------------------------
+ *
+ * Carries the OpenCoven Chat visual language (chat/src/styles.css) onto the
+ * specimen browser: near-black surfaces separated by depth rather than by
+ * borders alone, violet depth, cyan reserved for circuitry and focus, and
+ * restrained sacred geometry held at texture strength.
+ *
+ * Two constraints from that direction are doing as much work here as the
+ * palette. No terminal cosplay: no scan lines, no monospace body text. And no
+ * perpetual animation: atmosphere comes from depth and colour, never from
+ * something that moves forever behind a component being evaluated. A specimen
+ * browser has a stricter version of that rule than a chat app, because any
+ * ambient movement here would be mistaken for the component's own behaviour.
+ *
+ * These rules deliberately style the specimen shell only. The design doc holds
+ * public package and registry output fixed, so nothing here reaches into
+ * packages/ui tokens or a public component's own surface.
+ */
+
+:root {
+  /* Cyan is the one hue the shared token set does not already carry. Chat
+     reserves it for attention and interaction so it keeps meaning something;
+     the same reservation applies here. */
+  --specimen-cyan: #22d3ee;
+  --specimen-cyan-bright: #67e8f9;
+
+  /*
+   * Circuitry and focus resolve per scheme rather than being cyan everywhere.
+   * Cyan earns its keep against near-black, but on the light paper surface it
+   * goes weak and slightly sickly, so light falls back to the semantic
+   * presence and ring tokens that already own accent duty there.
+   */
+  --specimen-circuit: var(--presence);
+  --specimen-focus: var(--ring);
+
+  /* Geometry and depth are expressed as ready-made layers so the light and
+     dark shells differ only in these two declarations. */
+  --specimen-weave: none;
+  --specimen-depth: radial-gradient(
+    ellipse 120% 80% at 50% -20%,
+    color-mix(in srgb, var(--presence) 10%, transparent) 0%,
+    transparent 60%
+  );
+  --specimen-panel: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--card) 94%, var(--foreground)) 0%,
+    var(--card) 100%
+  );
+  --specimen-trace: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--presence) 55%, transparent) 0%,
+    color-mix(in srgb, var(--presence) 14%, transparent) 30%,
+    transparent 70%
+  );
+  --specimen-elevation: 0 18px 48px
+    color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
+.dark {
+  --specimen-circuit: var(--specimen-cyan);
+  --specimen-focus: var(--specimen-cyan-bright);
+
+  /*
+   * The hexagonal field: two opposed 60deg rules at an alpha where the eye
+   * reads texture and not pattern. 46px spacing matches the chat shell so the
+   * two products feel cut from one material when placed side by side.
+   */
+  --specimen-weave:
+    repeating-linear-gradient(
+      60deg,
+      rgb(147 134 208 / 4.5%) 0 1px,
+      transparent 1px 46px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      rgb(147 134 208 / 4.5%) 0 1px,
+      transparent 1px 46px
+    );
+  --specimen-depth: radial-gradient(
+    ellipse 130% 90% at 50% -15%,
+    #2c1c3f 0%,
+    #12101a 45%,
+    #07060b 100%
+  );
+  --specimen-panel: linear-gradient(160deg, #17151f 0%, #101017 100%);
+  --specimen-trace: linear-gradient(
+    90deg,
+    var(--specimen-cyan) 0%,
+    rgb(34 211 238 / 15%) 30%,
+    transparent 70%
+  );
+  --specimen-elevation: 0 18px 48px rgb(3 2 5 / 45%);
+}
+
+/*
+ * The atmosphere lives on body so it sits behind the whole shell. The main
+ * column and specimen shell carry no background of their own, so the depth
+ * reads continuously beneath the content rather than stopping at a panel edge.
+ *
+ * globals.css sets body background inside @layer base; this file is unlayered,
+ * so it wins without needing !important.
+ */
+body {
+  background-color: var(--background);
+  background-image: var(--specimen-weave), var(--specimen-depth);
+  background-attachment: fixed;
+}
+
+/*
+ * Cyan focus, applied once and globally. :focus-visible rather than :focus so
+ * a mouse click does not leave a ring behind, and offset so it never sits on
+ * top of an element's own border.
+ */
+.specimen-shell :focus-visible,
+.specimen-topbar :focus-visible {
+  outline: 2px solid var(--specimen-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--presence) 32%, transparent);
+  color: var(--foreground);
+}
+
+/* The chrome turns to glass so the depth behind it stays legible. */
+.specimen-topbar {
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.specimen-rail {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--card) 55%, transparent) 0%,
+    color-mix(in srgb, var(--card) 22%, transparent) 100%
+  );
+  backdrop-filter: blur(12px);
+}
+
+/*
+ * Specimen panels. The gradient gives the card an internal light direction, the
+ * top-edge trace gives it a single mark of circuitry, and the shadow does the
+ * separating that a border alone was doing before.
+ */
+.specimen-card {
+  position: relative;
+  background: var(--specimen-panel);
+  box-shadow: var(--specimen-elevation);
+}
+
+.specimen-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 1px;
+  background: var(--specimen-trace);
+}
+
+.specimen-card:hover,
+.specimen-card:focus-within {
+  border-color: color-mix(in srgb, var(--presence) 42%, var(--border));
+  box-shadow:
+    var(--specimen-elevation),
+    0 0 0 1px color-mix(in srgb, var(--presence) 18%, transparent);
+}
+
+/*
+ * The stage is where the component itself lives, so it goes quieter than the
+ * card around it: a soft well, lit from above, with no texture of its own to
+ * compete with what is being evaluated.
+ */
+.specimen-stage {
+  position: relative;
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      color-mix(in srgb, var(--presence) 7%, transparent) 0%,
+      transparent 70%
+    ),
+    color-mix(in srgb, var(--muted) 38%, var(--background));
+}
+
+/*
+ * A single circuit trace leading into each eyebrow. One mark, not a motif: the
+ * rule appears on the section eyebrows only, never on ordinary labels.
+ */
+.specimen-kicker,
+.catalog-group__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.specimen-kicker::before,
+.catalog-group__eyebrow::before {
+  content: "";
+  flex: none;
+  width: 1.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--specimen-circuit));
+}
+
+/* The active surface reads as lit rather than merely filled. */
+.surface-switcher a[aria-current="page"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--presence) 30%, transparent);
+}
+
+.specimen-rail__nav a:hover {
+  background: color-mix(in srgb, var(--presence) 12%, transparent);
+}
+
+/* Install commands sit in a faint cyan well, matching chat's inline code. */
+.specimen-command {
+  background: color-mix(in srgb, var(--specimen-circuit) 5%, var(--muted));
+}
+
+/*
+ * Increased contrast strengthens lines and drops the ambient geometry first:
+ * texture is the least useful pixel on the screen for someone who asked for
+ * more contrast.
+ */
+@media (prefers-contrast: more) {
+  body {
+    background-image: none;
+  }
+
+  .specimen-card,
+  .specimen-rail,
+  .specimen-topbar {
+    background: var(--card);
+    backdrop-filter: none;
+  }
+
+  .specimen-card::before {
+    display: none;
+  }
+}
+
+/*
+ * Forced colours discard the decorative layers entirely rather than trying to
+ * translate them, so the system palette stays authoritative.
+ */
+@media (forced-colors: active) {
+  body {
+    background-image: none;
+  }
+
+  .specimen-card::before,
+  .specimen-kicker::before,
+  .catalog-group__eyebrow::before {
+    display: none;
   }
 }

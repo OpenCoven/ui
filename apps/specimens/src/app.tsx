@@ -106,65 +106,64 @@ function SpecimenCard({
       <Tabs defaultValue="preview">
         <TabsList variant="line" className="mx-4 mt-3">
           <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="install">Install</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsTrigger value="cli">CLI</TabsTrigger>
+          <TabsTrigger value="react-api">React API</TabsTrigger>
         </TabsList>
         <TabsContent value="preview">
           <div className="specimen-stage">{specimen.preview}</div>
         </TabsContent>
-        <TabsContent value="install" className="specimen-documentation">
-          <div className="specimen-install-grid">
-            <section className="specimen-code-snippet">
-              <header className="specimen-code-snippet__header">
-                <span>CLI</span>
-                <small>shadcn registry</small>
-              </header>
-              <pre
-                className="specimen-command numeric"
-                aria-label={`CLI install command for ${specimen.title}`}
-              >
-                <code>
-                  <span className="syntax-command">pnpm</span>{" "}
-                  <span className="syntax-keyword">dlx</span>{" "}
-                  <span className="syntax-package">shadcn@latest</span>{" "}
-                  <span className="syntax-keyword">add</span>{" "}
-                  <span className="syntax-string">{registryUrl}</span>
-                </code>
-              </pre>
-            </section>
-            <section className="specimen-code-snippet">
-              <header className="specimen-code-snippet__header">
-                <span>TypeScript</span>
-                <small>package API</small>
-              </header>
-              <pre
-                className="specimen-command numeric"
-                aria-label={`TypeScript import for ${specimen.title}`}
-              >
-                <code>
-                  <span className="syntax-keyword">import</span>{" "}
-                  <span className="syntax-punctuation">{"{ "}</span>
-                  <span className="syntax-symbol">{exportName}</span>
-                  <span className="syntax-punctuation">{" }"}</span>{" "}
-                  <span className="syntax-keyword">from</span>{" "}
-                  <span className="syntax-string">
-                    &quot;{packagePath}&quot;
-                  </span>
-                  <span className="syntax-punctuation">;</span>
-                </code>
-              </pre>
-            </section>
-          </div>
+        <TabsContent value="cli" className="specimen-documentation">
+          <section className="specimen-code-snippet">
+            <header className="specimen-code-snippet__header">
+              <span>shadcn CLI</span>
+              <small>registry install</small>
+            </header>
+            <pre
+              className="specimen-command numeric"
+              aria-label={`CLI install command for ${specimen.title}`}
+            >
+              <code>
+                <span className="syntax-command">pnpm</span>{" "}
+                <span className="syntax-keyword">dlx</span>{" "}
+                <span className="syntax-package">shadcn@latest</span>{" "}
+                <span className="syntax-keyword">add</span>{" "}
+                <span className="syntax-string">{registryUrl}</span>
+              </code>
+            </pre>
+          </section>
+          <p className="text-muted-foreground">
+            Installs the source-owned component and its declared dependencies
+            through the published shadcn registry.
+          </p>
+        </TabsContent>
+        <TabsContent value="react-api" className="specimen-documentation">
+          <section className="specimen-code-snippet">
+            <header className="specimen-code-snippet__header">
+              <span>TypeScript</span>
+              <small>React package API</small>
+            </header>
+            <pre
+              className="specimen-command numeric"
+              aria-label={`TypeScript import for ${specimen.title}`}
+            >
+              <code>
+                <span className="syntax-keyword">import</span>{" "}
+                <span className="syntax-punctuation">{"{ "}</span>
+                <span className="syntax-symbol">{exportName}</span>
+                <span className="syntax-punctuation">{" }"}</span>{" "}
+                <span className="syntax-keyword">from</span>{" "}
+                <span className="syntax-string">&quot;{packagePath}&quot;</span>
+                <span className="syntax-punctuation">;</span>
+              </code>
+            </pre>
+          </section>
+          <p className="text-muted-foreground">
+            The React package API is the SDK surface for these UI components;
+            there is no separate OpenCoven UI SDK layer.
+          </p>
           <p className="specimen-install-meta">
             <span className="numeric">States</span>
             {specimen.states}
-          </p>
-        </TabsContent>
-        <TabsContent value="usage" className="specimen-documentation">
-          <p className="text-muted-foreground">
-            Uses semantic tokens, visible focus, non-color state cues, logical
-            properties, and reduced-motion-safe feedback. Compact density is an
-            explicit prop, never a global compression shortcut.
           </p>
         </TabsContent>
       </Tabs>
