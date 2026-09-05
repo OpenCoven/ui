@@ -9,6 +9,7 @@
  * The evaluate callbacks below run in the page, not in Node.
  */
 /* global getComputedStyle, document */
+import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:4321";
@@ -19,6 +20,7 @@ const browser = await chromium.launch({
   executablePath,
   args: ["--no-sandbox"],
 });
+await mkdir(outDir, { recursive: true });
 const page = await browser.newPage({
   viewport: { width: 1440, height: 1000 },
   deviceScaleFactor: 3,

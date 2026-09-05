@@ -118,7 +118,7 @@ const assertions = [
       specimenApp.includes("<h2>{group}</h2>"),
   ],
   [
-    "install tab separates CLI from package API",
+    "install tabs separate CLI from React API",
     specimenApp.includes('<TabsTrigger value="cli">CLI</TabsTrigger>') &&
       specimenApp.includes(
         '<TabsTrigger value="react-api">React API</TabsTrigger>',
