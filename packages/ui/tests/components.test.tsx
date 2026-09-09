@@ -8,6 +8,7 @@ import { axe } from "vitest-axe";
 import { Composer } from "@opencoven/ui/blocks/composer";
 import { AttachmentChip } from "@opencoven/ui/components/attachment-chip";
 import { ModeSwitch } from "@opencoven/ui/components/mode-switch";
+import { CompletionPalette } from "@opencoven/ui/components/completion-palette";
 import { ToolClassBadge } from "@opencoven/ui/components/tool-class-badge";
 import { Button } from "@opencoven/ui/components/ui/button";
 
@@ -20,6 +21,26 @@ describe("OpenCoven UI", () => {
     await user.click(screen.getByRole("button", { name: "Run check" }));
 
     expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("opens labeled slash commands and selects a command without a missing group context", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const command = {
+      id: "plan",
+      label: "/plan",
+      description: "Think before acting",
+    };
+    render(
+      <CompletionPalette
+        trigger={<Button>Open commands</Button>}
+        commands={[command]}
+        onSelect={onSelect}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Open commands" }));
+    await user.click(await screen.findByRole("menuitem", { name: /\/plan/ }));
+    expect(onSelect).toHaveBeenCalledWith(command);
   });
 
   it("exposes typed mode state with a non-color pressed cue", () => {
