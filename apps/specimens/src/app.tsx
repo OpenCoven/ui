@@ -46,6 +46,14 @@ type Specimen = {
   preview: ReactNode;
 };
 
+function preference(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
 
 const groupDetails: Record<
@@ -751,10 +759,10 @@ function DensityControl({
 
 function App() {
   const [scheme, setScheme] = useState<Scheme>(() =>
-    localStorage.getItem("coven-ui:scheme") === "light" ? "light" : "dark",
+    preference("coven-ui:scheme", "dark") === "light" ? "light" : "dark",
   );
   const [density, setDensity] = useState<Density>(() =>
-    localStorage.getItem("coven-ui:density") === "compact"
+    preference("coven-ui:density", "default") === "compact"
       ? "compact"
       : "default",
   );
@@ -767,8 +775,12 @@ function App() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", scheme === "dark");
     document.documentElement.dataset.density = density;
-    localStorage.setItem("coven-ui:scheme", scheme);
-    localStorage.setItem("coven-ui:density", density);
+    try {
+      localStorage.setItem("coven-ui:scheme", scheme);
+      localStorage.setItem("coven-ui:density", density);
+    } catch {
+      /* Preferences remain session-local when browser storage is blocked. */
+    }
   }, [density, scheme]);
 
   useEffect(() => {
