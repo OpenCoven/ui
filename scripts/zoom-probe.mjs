@@ -16,6 +16,8 @@ const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:4321";
 const outDir = process.env.ZOOM_OUTPUT_DIR ?? "artifacts/visual-luxe";
 const executablePath = process.env.CHROME_PATH;
 
+await mkdir(outDir, { recursive: true });
+
 const browser = await chromium.launch({
   executablePath,
   args: ["--no-sandbox"],
