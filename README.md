@@ -30,7 +30,7 @@ as `background`, `card`, `presence`, `success`, and the canonical
 
 ```text
 .
-├── apps/specimens/              React/Vite component library and five-state lab
+├── apps/specimens/              React/Vite component library and six-scene lab
 ├── packages/ui/
 │   └── src/
 │       ├── components/ui/       Base UI and native primitives
@@ -53,6 +53,17 @@ pnpm dev
 
 The specimen app opens at `http://127.0.0.1:5173/`. Its assembled lab is at
 `http://127.0.0.1:5173/lab`.
+
+The library keeps live previews above syntax-highlighted Bash and TypeScript
+source, with copy controls and explicit clipboard-failure feedback. The Lab
+fits the viewport and offers six scenes through tabs, previous/next controls,
+and touch swipes. Only the active scene scrolls when space is limited or text
+is enlarged; the page and navigation stay fixed. Demo actions are local and
+do not send agent requests.
+
+The monochrome crown/lotus mark in `public/opencoven-mark.svg` is vendored
+unchanged from `OpenCoven/brand`'s `web/assets/mark.svg`, pinned to commit
+`798e2f5f2f1a69f5d156ccc0a9aafc4f7da55fc8`.
 
 ## Consume the package
 
@@ -130,6 +141,11 @@ The initial migration includes:
   Item, Resource Row, Tool Mix, Failure Surface, Context Meter, Budget Pill,
   Search Field, Empty State, and Error State.
 - Blocks: Composer, Run Rail, Transcript Turn, and Session Header.
+
+Composer accepts an optional `tools` slot for supporting controls and supports
+Ctrl/Cmd+Enter to send a non-empty draft while idle. Run Rail accepts optional
+`plan` and `resources` arrays using the public Plan Row and Resource Row props;
+omit them to retain the metrics/activity/limits composition.
 
 No Radix implementation existed to retain. No React Aria dependency was added;
 the current component set does not require its collection or

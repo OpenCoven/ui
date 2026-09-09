@@ -62,15 +62,14 @@ body {
   height: 2rem;
   flex: none;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--presence) 42%, var(--border));
-  border-radius: var(--radius-2);
-  background: color-mix(in srgb, var(--presence) 12%, var(--card));
-  color: var(--presence);
+  color: var(--foreground);
 }
 
-.specimen-brand__mark svg {
-  width: 1rem;
-  height: 1rem;
+.specimen-brand__mark > span {
+  width: 1.875rem;
+  height: 1.875rem;
+  background: currentColor;
+  mask: url("/opencoven-mark.svg") center / contain no-repeat;
 }
 
 .specimen-brand > span:last-child {
@@ -290,6 +289,19 @@ body {
   text-wrap: balance;
 }
 
+.specimen-hero h1 em {
+  color: var(--presence);
+  font-style: italic;
+}
+
+.specimen-stats div:nth-child(2) dd {
+  color: var(--information);
+}
+
+.specimen-stats div:nth-child(3) dd {
+  color: var(--success);
+}
+
 .specimen-hero__copy > p:last-child {
   max-width: 68ch;
   margin: 0.875rem 0 0;
@@ -332,7 +344,16 @@ body {
 }
 
 .catalog-group {
+  --section-color: var(--presence);
   scroll-margin-block-start: 0;
+}
+
+#group-run-rail {
+  --section-color: var(--information);
+}
+
+#group-blocks {
+  --section-color: var(--success);
 }
 
 .catalog-group__header {
@@ -345,7 +366,7 @@ body {
 
 .catalog-group__eyebrow {
   margin: 0;
-  color: var(--presence);
+  color: var(--section-color);
   font-size: 0.625rem;
   font-weight: 750;
   letter-spacing: 0.14em;
@@ -359,7 +380,7 @@ body {
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.2;
-  color: var(--foreground);
+  color: var(--section-color);
   text-wrap: balance;
 }
 
@@ -382,10 +403,12 @@ body {
 .specimen-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 1.25rem;
 }
 
 .specimen-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   overflow: hidden;
   scroll-margin-block-start: 0;
@@ -402,15 +425,14 @@ body {
 
 .specimen-card:hover,
 .specimen-card:focus-within {
-  border-color: color-mix(in srgb, var(--presence) 34%, var(--border));
+  border-color: color-mix(in srgb, var(--section-color) 48%, var(--border));
   box-shadow: var(--elevation-2);
   translate: 0 -1px;
 }
 
 .specimen-card__header {
   min-height: 8.25rem;
-  border-block-end: 1px solid var(--border);
-  padding: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
 }
 
 .specimen-card__meta {
@@ -420,16 +442,26 @@ body {
   gap: 1rem;
 }
 
-.specimen-card__index {
-  color: var(--muted-foreground);
+.specimen-card__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--section-color);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.specimen-card__kind svg {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .specimen-card__title {
   margin: 0.75rem 0 0;
-  font-size: 1.0625rem;
+  color: color-mix(in srgb, var(--section-color) 55%, var(--foreground));
+  font-size: 1.25rem;
   font-weight: 750;
   letter-spacing: -0.015em;
 }
@@ -442,19 +474,78 @@ body {
   line-height: 1.55;
 }
 
+.specimen-preview {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0 0.75rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--section-color) 24%, var(--border));
+  border-radius: var(--radius-2);
+  background: color-mix(in srgb, var(--section-color) 5%, var(--background));
+  box-shadow: inset 0 1px 0
+    color-mix(in srgb, var(--section-color) 18%, transparent);
+}
+
+.specimen-preview__label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0;
+  color: var(--section-color);
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.specimen-preview__label > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.specimen-preview__label > span:last-child {
+  color: var(--muted-foreground);
+}
+
+.specimen-preview__label svg {
+  width: 0.45rem;
+  height: 0.45rem;
+  fill: currentColor;
+}
+
 .specimen-stage {
   display: grid;
-  min-height: 12.5rem;
+  flex: 1;
+  min-height: 14rem;
   align-content: center;
   justify-items: center;
-  border-block-start: 1px solid
-    color-mix(in srgb, var(--border) 62%, transparent);
-  background: color-mix(in srgb, var(--muted) 48%, var(--background));
-  padding: clamp(1rem, 2vw, 1.5rem);
+  padding: clamp(1rem, 2.5vw, 2rem);
 }
 
 .specimen-stage > * {
+  min-width: 0;
   max-width: 100%;
+}
+
+.composer-demo {
+  width: 100%;
+  min-width: 0;
+}
+
+.demo-status {
+  margin: 0.75rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.specimen-stage > .composer-demo,
+.specimen-stage > [data-slot="card"] {
+  width: 100%;
 }
 
 .specimen-stage > [data-slot="composer"],
@@ -472,12 +563,36 @@ body {
 
 .specimen-documentation {
   display: grid;
-  min-height: 12.5rem;
+  min-height: 7.5rem;
   align-content: start;
   gap: 0.875rem;
-  padding: 1.25rem;
+  padding: 0.75rem 1rem 1rem;
   font-size: 0.8125rem;
   line-height: 1.6;
+}
+
+.specimen-card > [data-slot="tabs"] {
+  gap: 0;
+  border-block-start: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 70%, var(--card));
+}
+
+.specimen-code-tabs {
+  margin: 0;
+  padding: 0.375rem 0.75rem;
+}
+
+.specimen-code-tabs [role="tab"] {
+  min-height: 2.75rem;
+  font-size: 0.6875rem;
+}
+
+.specimen-code-tabs [role="tab"][data-active] {
+  color: var(--section-color);
+}
+
+.specimen-code-tabs [role="tab"][data-active]::after {
+  background: var(--section-color);
 }
 
 .specimen-documentation p {
@@ -491,22 +606,35 @@ body {
 
 .specimen-code-snippet__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
 
 .specimen-code-snippet__header span {
-  color: var(--foreground);
-  font-size: 0.6875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted-foreground);
+  font-size: 0.6rem;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.specimen-code-snippet__header small {
-  color: var(--muted-foreground);
+.specimen-code-snippet__header svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.specimen-code-snippet__header button {
+  min-height: 2.75rem;
   font-size: 0.625rem;
+}
+
+.code-copy-error {
+  color: var(--destructive);
+  font-size: 0.75rem;
 }
 
 .specimen-command {
@@ -515,7 +643,7 @@ body {
   overflow-wrap: anywhere;
   border: 1px solid var(--border);
   border-radius: var(--radius-2);
-  background: var(--muted);
+  background: var(--background);
   color: var(--foreground);
   padding: 0.75rem;
   font-size: 0.7rem;
@@ -524,26 +652,53 @@ body {
   word-break: break-word;
 }
 
-.syntax-command,
-.syntax-symbol {
+.hljs {
   color: var(--foreground);
-  font-weight: 750;
+  font-family: var(--font-numeric);
 }
 
-.syntax-keyword {
+.hljs-keyword,
+.hljs-built_in,
+.hljs-selector-tag,
+.hljs-meta {
   color: var(--presence);
 }
 
-.syntax-package {
-  color: color-mix(in srgb, var(--presence) 72%, var(--foreground));
+.hljs-string,
+.hljs-regexp,
+.hljs-template-tag {
+  color: var(--success);
 }
 
-.syntax-string {
-  color: color-mix(in srgb, var(--information) 70%, var(--foreground));
+.hljs-title,
+.hljs-name,
+.hljs-attr,
+.hljs-property,
+.hljs-type {
+  color: var(--information);
 }
 
-.syntax-punctuation {
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+  color: var(--warning);
+}
+
+.hljs-comment,
+.hljs-punctuation {
   color: var(--muted-foreground);
+}
+
+p > .hljs {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--muted);
+  padding: 0.1em 0.3em;
+  color: var(--information);
+  font-size: 0.8em;
+  overflow-wrap: anywhere;
 }
 
 .specimen-install-meta {
@@ -559,6 +714,11 @@ body {
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.specimen-install-meta svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .run-spine {

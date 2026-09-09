@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import "@opencoven/ui/globals.css";
 import "./specimens.css";
 import "./specimens-fixes.css";
+import "./lab.css";
 import { App } from "./app";
 
 const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";

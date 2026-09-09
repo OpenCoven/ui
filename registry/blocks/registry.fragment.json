@@ -5,7 +5,8 @@
       "name": "composer",
       "type": "registry:block",
       "title": "Composer",
-      "description": "Intent-taking surface with draft, attachments, mode, model, and send state.",
+      "description": "Intent-taking surface with draft, attachments, tools, mode guidance, model, and send state.",
+      "dependencies": ["lucide-react"],
       "registryDependencies": [
         "attachment-chip",
         "mode-switch",
@@ -28,12 +29,15 @@
       "name": "run-rail",
       "type": "registry:block",
       "title": "Run rail",
-      "description": "Live metrics, activity, context-window use, and budget.",
+      "description": "Live metrics, optional plan and changed files, activity, context-window use, and budget.",
+      "dependencies": ["lucide-react"],
       "registryDependencies": [
         "activity-item",
         "budget-pill",
         "context-meter",
         "metric-display",
+        "plan-row",
+        "resource-row",
         "card"
       ],
       "files": [

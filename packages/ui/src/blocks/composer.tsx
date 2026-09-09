@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Bot, CornerDownLeft, PenLine } from "lucide-react";
 
 import { AttachmentChip } from "@opencoven/ui/components/attachment-chip";
 import {
@@ -28,6 +29,7 @@ type ComposerProps = {
   running?: boolean;
   onStop?: () => void;
   model?: string;
+  tools?: React.ReactNode;
   density?: "default" | "compact";
   className?: string;
 };
@@ -43,29 +45,61 @@ function Composer({
   running = false,
   onStop,
   model = "GPT-5.6 Sol",
+  tools,
   density = "default",
   className,
 }: ComposerProps) {
+  const messageId = React.useId();
+  const hintId = React.useId();
+  const modeHint = {
+    chat: "Explore ideas without changing files.",
+    do: "Make changes with the context you provide.",
+    plan: "Map the approach before making changes.",
+  }[mode];
+
   return (
     <section
       data-slot="composer"
       data-density={density}
       aria-label="Message composer"
       className={cn(
-        "surface grid gap-[var(--density-gap)] p-[var(--density-panel)]",
+        "surface grid min-w-0 gap-[var(--density-gap)] border-presence/30 p-[var(--density-panel)]",
         className,
       )}
     >
-      <label className="sr-only" htmlFor="coven-composer-message">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-sm font-semibold text-presence">
+          <PenLine aria-hidden="true" className="size-4" />
+          Compose
+        </span>
+        <span className="numeric flex items-center gap-1.5 rounded-md border border-presence/20 bg-presence/5 px-2 py-1 text-[0.65rem] text-presence">
+          <Bot aria-hidden="true" className="size-3" />
+          {model}
+        </span>
+      </header>
+      <label className="sr-only" htmlFor={messageId}>
         Message
       </label>
       <Textarea
-        id="coven-composer-message"
+        id={messageId}
+        aria-describedby={hintId}
         value={value}
         density={density}
         onChange={(event) => onValueChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" &&
+            (event.metaKey || event.ctrlKey) &&
+            !event.nativeEvent.isComposing &&
+            !running &&
+            value.trim()
+          ) {
+            event.preventDefault();
+            onSend?.();
+          }
+        }}
         placeholder="Describe the change, attach context, pick a mode…"
-        className="min-h-24 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+        className="min-h-24 resize-y border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
       />
       {attachments.length > 0 ? (
         <div className="flex flex-wrap gap-2" aria-label="Attachments">
@@ -83,14 +117,25 @@ function Composer({
           ))}
         </div>
       ) : null}
-      <footer className="flex flex-wrap items-center gap-2">
+      {tools ? (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          aria-label="Composer tools"
+        >
+          {tools}
+        </div>
+      ) : null}
+      <footer className="flex flex-wrap items-center gap-2 border-t border-presence/15 pt-3">
         <ModeSwitch
           value={mode}
           onValueChange={onModeChange}
           density={density}
         />
-        <span className="numeric ms-auto text-xs text-muted-foreground">
-          {model}
+        <span
+          className="numeric ms-auto flex items-center gap-1 text-[0.65rem] text-muted-foreground"
+          aria-hidden="true"
+        >
+          Ctrl / ⌘ <CornerDownLeft className="size-3" />
         </span>
         <SendControl
           running={running}
@@ -100,6 +145,9 @@ function Composer({
           onStop={onStop}
         />
       </footer>
+      <p id={hintId} className="m-0 text-xs text-muted-foreground">
+        {running ? "Running. Stop the run to take back control." : modeHint}
+      </p>
     </section>
   );
 }
