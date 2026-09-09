@@ -41,9 +41,20 @@ const manifest = JSON.parse(packageJson);
 const portable = JSON.parse(portableJson);
 const vectors = JSON.parse(vectorsJson);
 const specimenStyles = `${specimenCss}\n${specimenFixes}`;
-const specimenAt68 = specimenCss.slice(
-  specimenCss.indexOf("@media (max-width: 68rem)"),
-  specimenCss.indexOf("@media (max-width: 48rem)"),
+const [home, docs, catalog, codeBlock, examples, lab, main, registryJson] =
+  await Promise.all([
+    read("apps/specimens/src/home.tsx"),
+    read("apps/specimens/src/docs.tsx"),
+    read("apps/specimens/src/catalog.ts"),
+    read("apps/specimens/src/code-block.tsx"),
+    read("apps/specimens/src/examples.tsx"),
+    read("apps/specimens/src/lab.tsx"),
+    read("apps/specimens/src/main.tsx"),
+    read("registry.json"),
+  ]);
+const siteMarkup = [specimenApp, home, docs, codeBlock, lab].join("\n");
+const visualItems = JSON.parse(registryJson).items.filter((item) =>
+  ["registry:ui", "registry:component", "registry:block"].includes(item.type),
 );
 const assertions = [
   ["style is base-nova", config.style === "base-nova"],
@@ -103,130 +114,103 @@ const assertions = [
     ),
   ],
   [
-    "specimen shell has stable landmarks",
-    specimenApp.includes('className="specimen-topbar"') &&
-      specimenApp.includes('className="specimen-rail"') &&
-      specimenApp.includes('id="specimen-main"') &&
-      specimenApp.includes('className="skip-link"'),
+    "site shell has stable landmarks",
+    specimenApp.includes('className="site-header"') &&
+      specimenApp.includes('className="skip-link"') &&
+      [home, docs, lab].every((source) => source.includes('id="main-content"')),
   ],
   [
-    "catalog restores task hierarchy",
-    ["group-composer", "group-run-rail", "group-blocks"].every((id) =>
-      specimenApp.includes(id),
-    ) &&
-      specimenApp.includes('className="catalog-group__summary"') &&
-      specimenApp.includes("<h2>{group}</h2>"),
+    "catalog preserves task hierarchy",
+    ["Foundations", "Composer controls", "Run & evidence", "Blocks"].every(
+      (group) => catalog.includes(group),
+    ) && docs.includes("groups.map"),
   ],
   [
-    "install tab separates CLI from package API",
-    specimenApp.includes(
-      '<TabsTrigger value="install">Install</TabsTrigger>',
-    ) &&
-      !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
-      specimenApp.includes("<span>CLI</span>") &&
-      specimenApp.includes("<span>TypeScript</span>") &&
-      specimenApp.includes("<small>package API</small>"),
+    "documentation separates registry and package consumption",
+    docs.includes('id="installation"') &&
+      docs.includes('label="Registry import"') &&
+      docs.includes("packagePath") &&
+      docs.includes("package imports"),
   ],
   [
-    "install snippets derive valid registry and package paths",
-    specimenApp.includes(
-      'specimen.group === "Blocks" ? "blocks" : "components"',
-    ) &&
-      specimenApp.includes(
-        "const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;",
-      ) &&
-      specimenApp.includes(
-        "const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;",
-      ) &&
-      specimenApp.includes('.split("-")') &&
-      specimenApp.includes(".toUpperCase()"),
+    "install paths come from real registry metadata",
+    catalog.includes('"../../../registry.json?raw"') &&
+      catalog.includes("file.target") &&
+      catalog.includes('replace("packages/ui/src/", "@opencoven/ui/")') &&
+      catalog.includes("https://ui.opencoven.ai/r"),
   ],
   [
-    "install snippets use visible syntax roles",
-    [
-      "syntax-command",
-      "syntax-keyword",
-      "syntax-package",
-      "syntax-string",
-      "syntax-symbol",
-      "syntax-punctuation",
-    ].every(
-      (className) =>
-        specimenApp.includes(`className="${className}"`) &&
-        specimenCss.includes(`.${className}`),
-    ),
+    "every visual registry item has a working example export",
+    visualItems.every((item) => {
+      const name = item.name
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+      return examples.includes(`export function ${name}Example(`);
+    }),
   ],
   [
-    "density control is explicit",
-    specimenApp.includes('aria-label="Display density"') &&
-      !specimenApp.includes("nth-child(2)"),
+    "code examples are grounded in rendered source",
+    catalog.includes('"./examples.tsx?raw"') &&
+      docs.includes("exampleCode(entry)") &&
+      docs.includes("<entry.Component density={density}"),
+  ],
+  [
+    "copy controls expose success and failure",
+    codeBlock.includes("navigator.clipboard.writeText") &&
+      codeBlock.includes('setStatus("Copied")') &&
+      codeBlock.includes("Copy unavailable") &&
+      codeBlock.includes('role="status"'),
+  ],
+  [
+    "density control remains explicit and persisted",
+    docs.includes("Preview density") &&
+      docs.includes('value="compact"') &&
+      specimenApp.includes('"coven-ui:density"'),
   ],
   [
     "mobile layout covers 390px",
-    specimenFixes.includes("@media (max-width: 24.375rem)") &&
-      specimenFixes.includes(
-        "grid-template-columns: repeat(5, minmax(0, 1fr))",
-      ),
+    specimenCss.includes("@media (max-width: 479px)") &&
+      specimenCss.includes("grid-template-columns: minmax(0, 1fr)"),
   ],
   [
     "minimum viewport floor does not scale with text",
     /html\s*\{[^}]*min-width:\s*320px/.test(specimenFixes),
   ],
   [
-    "responsive rail becomes compact navigation",
-    specimenAt68.startsWith("@media (max-width: 68rem)") &&
-      /\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
-        specimenAt68,
-      ) &&
-      /\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(specimenAt68),
+    "responsive documentation has labeled expandable navigation",
+    docs.includes('aria-controls="docs-sidebar"') &&
+      docs.includes("aria-expanded={menuOpen}") &&
+      specimenCss.includes('.docs-sidebar[data-open="true"]'),
   ],
   [
-    "responsive grids remove intrinsic sizing floors",
-    specimenFixes.includes(
-      ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
-    ) &&
-      specimenFixes.includes(
-        ".specimen-grid {\n    grid-template-columns: minmax(0, 1fr);",
-      ),
+    "search works across documentation routes",
+    specimenApp.includes("searchRef.current?.focus()") &&
+      specimenApp.includes('event.key === "Escape"') &&
+      !main.includes("stopImmediatePropagation"),
   ],
   [
-    "mobile catalog navigation exposes every section",
-    /\.specimen-rail__nav\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*5\.5rem\),\s*1fr\)\s*\);/.test(
-      specimenFixes,
-    ) && /\.specimen-rail__nav a\s*\{[^}]*min-width:\s*0;/.test(specimenFixes),
+    "search respects IME composition",
+    specimenApp.includes("event.nativeEvent.isComposing") &&
+      specimenApp.includes("event.keyCode === 229"),
   ],
   [
-    "mobile card tabs preserve enlarged labels",
-    /\.specimen-card > \[data-slot="tabs"\] > \[data-slot="tabs-list"\]\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(5\.25rem,\s*1fr\)\);[^}]*overflow-x:\s*auto;/.test(
-      specimenFixes,
+    "preview tabs use accessible primitives",
+    docs.includes('<TabsTrigger value="preview">Preview</TabsTrigger>') &&
+      docs.includes('<TabsTrigger value="code">Code</TabsTrigger>') &&
+      docs.includes('<TabsContent value="preview">'),
+  ],
+  [
+    "responsive previews remove intrinsic sizing floors",
+    specimenFixes.includes("min-width: 0") &&
+      specimenFixes.includes("max-width: 100%") &&
+      specimenFixes.includes("overflow-x: auto"),
+  ],
+  [
+    "all five lab views remain available",
+    ["composer", "messages", "context", "actions", "cards"].every((name) =>
+      lab.includes(`<TabsContent value="${name}">`),
     ),
-  ],
-  [
-    "mobile tab selection and focus stay inside scrollport",
-    /\[data-slot="tabs-trigger"\]\[data-active\]::after\s*\{[^}]*inset-block-end:\s*0 !important;/.test(
-      specimenFixes,
-    ) &&
-      /\[data-slot="tabs-trigger"\]:focus-visible\s*\{[^}]*outline-offset:\s*-3px;/.test(
-        specimenFixes,
-      ),
-  ],
-  [
-    "text resize keeps shell chrome and hero contained",
-    specimenFixes.includes(
-      ".specimen-topbar__inner {\n    display: flex;\n    flex-wrap: wrap;",
-    ) &&
-      /\.specimen-topbar__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 0 100%;[^}]*flex-wrap:\s*wrap;/.test(
-        specimenFixes,
-      ) &&
-      /\.specimen-search\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*7rem;[^}]*flex:\s*1 1 10rem;/.test(
-        specimenFixes,
-      ) &&
-      specimenFixes.includes(
-        ".specimen-main__inner {\n    box-sizing: border-box;",
-      ) &&
-      specimenFixes.includes(
-        ".specimen-stats {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
-      ),
   ],
   [
     "specimen chrome avoids decorative gradients",
@@ -239,44 +223,29 @@ const assertions = [
 ];
 
 const specimenSelectorPairs = [
+  ["header actions", 'className="header-tools"', ".header-tools"],
+  ["density control", 'className="density-select"', ".density-select"],
+  ["documentation rail", 'className="docs-sidebar"', ".docs-sidebar"],
   [
-    "topbar actions",
-    'className="specimen-topbar__actions"',
-    ".specimen-topbar__actions",
+    "mobile navigation",
+    'className="docs-mobile-toggle"',
+    ".docs-mobile-toggle",
   ],
-  ["density control", 'className="density-control"', ".density-control"],
-  ["scheme control", 'className="scheme-control"', ".scheme-control"],
+  ["homepage hero", 'className="home-hero"', ".home-hero"],
+  ["live showcase", 'className="agent-showcase"', ".agent-showcase"],
   [
-    "rail context",
-    'className="specimen-rail__context"',
-    ".specimen-rail__context",
+    "component gallery",
+    'className="home-component-grid"',
+    ".home-component-grid",
   ],
-  ["rail kicker", 'className="specimen-kicker numeric"', ".specimen-kicker"],
-  [
-    "rail package",
-    'className="specimen-rail__package"',
-    ".specimen-rail__package",
-  ],
-  ["hero", 'className="specimen-hero"', ".specimen-hero"],
-  ["hero copy", 'className="specimen-hero__copy"', ".specimen-hero__copy"],
-  ["hero stats", 'className="specimen-stats"', ".specimen-stats"],
-  [
-    "catalog eyebrow",
-    'className="catalog-group__eyebrow numeric"',
-    ".catalog-group__eyebrow",
-  ],
-  [
-    "catalog summary",
-    'className="catalog-group__summary"',
-    ".catalog-group__summary",
-  ],
-  ["specimen grid", 'className="specimen-grid"', ".specimen-grid"],
+  ["documentation preview", 'className="component-stage"', ".component-stage"],
+  ["search results", 'className="search-results"', ".search-results"],
 ];
 
 for (const [name, markup, selector] of specimenSelectorPairs) {
   assertions.push([
     `${name} markup and CSS stay paired`,
-    specimenApp.includes(markup) && specimenStyles.includes(selector),
+    siteMarkup.includes(markup) && specimenStyles.includes(selector),
   ]);
 }
 

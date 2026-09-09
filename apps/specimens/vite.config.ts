@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: { host: "0.0.0.0" },
   // The generated shadcn registry lives in the workspace-root `public/` so that
   // `shadcn build` and the deployed site publish the same files.
   publicDir: new URL("../../public", import.meta.url).pathname,
