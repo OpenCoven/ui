@@ -62,6 +62,14 @@ const cases = [
     density: "default",
     textScale: 2,
   },
+  {
+    name: "mobile-320-dark-wide-display",
+    width: 320,
+    scheme: "dark",
+    density: "default",
+    textScale: 2,
+    wideDisplayFont: true,
+  },
 ];
 
 if (!chromePath) throw new Error("CHROME_PATH is required");
@@ -287,6 +295,9 @@ try {
       document.documentElement.style.fontSize = ${JSON.stringify(
         scenario.textScale ? `${scenario.textScale * 100}%` : "",
       )};
+      if (${Boolean(scenario.wideDisplayFont)}) {
+        document.documentElement.style.setProperty("--oc-font-display", "ui-monospace, monospace");
+      }
     })()`);
 
     const measurement = await evaluate(`(async () => {
@@ -443,6 +454,19 @@ try {
         tabListCount: cardLists.length,
         activePanelCount: activePanels.length,
         tabTargetCount: tabHeights.length,
+        viewTabCount: document.querySelectorAll(".specimen-view-tabs [role=tab]").length,
+        stateFooterCount: document.querySelectorAll(".specimen-states").length,
+        clippedCards: cards.filter(card => clipped(card) > 1).map(card => ({ id: card.id, overflow: clipped(card) })),
+        clippedStages: stages.filter(stage => clipped(stage) > 1).map(stage => ({
+          id: stage.closest(".specimen-card").id,
+          overflow: clipped(stage),
+          children: [...stage.querySelectorAll("*")].filter(child => clipped(child) > 1).map(child => ({
+            slot: child.dataset.slot,
+            tag: child.tagName,
+            text: child.textContent.slice(0, 80),
+            overflow: clipped(child),
+          })),
+        })),
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
@@ -480,6 +504,43 @@ try {
     })()`);
 
     const failures = [];
+    if (
+      measurement.documentOverflow > 1 ||
+      measurement.maxRailLinkContentOverflow > 1
+    ) {
+      measurement.overflowDiagnostic = await evaluate(`(() => {
+        const root = document.documentElement;
+        const owners = [];
+        for (const selector of [
+          ".specimen-topbar", ".specimen-rail", ".specimen-hero", ".catalog",
+          ".specimen-preview", ".specimen-view-tabs", ".specimen-code-tabs",
+          ".specimen-states", ".skip-link", ".sr-only",
+        ]) {
+          const elements = [...document.querySelectorAll(selector)];
+          const styles = elements.map(element => element.getAttribute("style"));
+          elements.forEach(element => element.style.setProperty("display", "none", "important"));
+          owners.push({ selector, documentOverflow: root.scrollWidth - root.clientWidth });
+          elements.forEach((element, index) => {
+            if (styles[index] === null) element.removeAttribute("style");
+            else element.setAttribute("style", styles[index]);
+          });
+        }
+        const links = [...document.querySelectorAll(".specimen-rail__nav a")].map(link => ({
+          text: link.textContent,
+          width: link.clientWidth,
+          scrollWidth: link.scrollWidth,
+          gap: getComputedStyle(link).gap,
+          children: [...link.children].map(child => ({
+            text: child.textContent, width: child.getBoundingClientRect().width,
+            scrollWidth: child.scrollWidth, minWidth: getComputedStyle(child).minWidth,
+          })),
+        }));
+        return { owners, links };
+      })()`);
+      console.error(
+        `${scenario.name} overflow diagnostic: ${JSON.stringify(measurement.overflowDiagnostic)}`,
+      );
+    }
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
     }
@@ -498,9 +559,17 @@ try {
         `expected 16 active card panels, got ${measurement.activePanelCount}`,
       );
     }
-    if (measurement.tabTargetCount !== 48) {
+    if (measurement.tabTargetCount !== 32) {
       failures.push(
-        `expected 48 card tab targets, got ${measurement.tabTargetCount}`,
+        `expected 32 code tab targets, got ${measurement.tabTargetCount}`,
+      );
+    }
+    if (
+      measurement.viewTabCount !== 32 ||
+      measurement.stateFooterCount !== 16
+    ) {
+      failures.push(
+        "Preview/Source tabs or supported-state footers are missing",
       );
     }
     if (measurement.documentOverflow > 1) {
@@ -561,10 +630,14 @@ try {
       );
     }
     if (measurement.maxCardOverflow > 1) {
-      failures.push(`card overflow ${measurement.maxCardOverflow}px`);
+      failures.push(
+        `card overflow: ${JSON.stringify(measurement.clippedCards)}`,
+      );
     }
     if (measurement.maxStageOverflow > 1) {
-      failures.push(`stage overflow ${measurement.maxStageOverflow}px`);
+      failures.push(
+        `stage overflow: ${JSON.stringify(measurement.clippedStages)}`,
+      );
     }
     if (measurement.maxTabRootOverflow > 1) {
       failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);

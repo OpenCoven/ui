@@ -34,7 +34,7 @@ function CompletionPalette({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={trigger} />
-      <DropdownMenuContent side="top" className="w-80">
+      <DropdownMenuContent side="top" className="w-80 max-w-[calc(100vw-1rem)]">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         {commands.map((command) => (
           <DropdownMenuItem

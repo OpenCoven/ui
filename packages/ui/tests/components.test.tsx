@@ -140,5 +140,12 @@ describe("OpenCoven UI", () => {
     expect(css).toContain("--radius-3: 12px");
     expect(css).toContain("--radius-4: 16px");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("--oc-action: #8e3dff");
+    expect(css).toContain("--oc-action: #7a22ee");
+    expect(css).toContain("--oc-bg: #050409");
+    expect(css).toContain("--oc-bg: #fcfafe");
+    expect(css).toContain("--font-display: var(--oc-font-display)");
+    expect(css).toContain("--oc-space-6: 1.5rem");
+    expect(css).toContain("--primary: var(--oc-action)");
   });
 });

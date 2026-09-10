@@ -6,3 +6,6 @@ apps/specimens/dist/
 packages/ui/dist/
 artifacts/mobile-quality/
 artifacts/visual-review/
+.superpowers/
+artifacts/visual-baseline/
+artifacts/visual-luxe/

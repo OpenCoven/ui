@@ -42,33 +42,35 @@ function SendControl({
     <div
       data-slot="send-control"
       className={cn(
-        "inline-flex overflow-hidden rounded-md bg-presence text-presence-foreground",
+        "inline-flex overflow-hidden rounded-md bg-primary text-primary-foreground",
         className,
       )}
     >
       <Button
         type="button"
-        variant="presence"
+        variant="primary"
         density={density}
         disabled={disabled}
         onClick={onSend}
-        className="rounded-e-none"
+        className={cn(onOpenOptions && "rounded-e-none")}
       >
         Send
         <ArrowUp />
       </Button>
-      <Button
-        type="button"
-        variant="presence"
-        density={density}
-        size="icon"
-        disabled={disabled}
-        aria-label="Send options"
-        onClick={onOpenOptions}
-        className="rounded-s-none border-s border-s-presence-foreground/25"
-      >
-        <ChevronDown />
-      </Button>
+      {onOpenOptions ? (
+        <Button
+          type="button"
+          variant="primary"
+          density={density}
+          size="icon"
+          disabled={disabled}
+          aria-label="Send options"
+          onClick={onOpenOptions}
+          className="rounded-s-none border-s border-s-primary-foreground/25"
+        >
+          <ChevronDown />
+        </Button>
+      ) : null}
     </div>
   );
 }

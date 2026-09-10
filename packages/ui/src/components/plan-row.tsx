@@ -30,7 +30,12 @@ function PlanRow({
         className,
       )}
     >
-      <StatusIndicator status={status} label="" aria-label={status} />
+      <StatusIndicator
+        status={status}
+        label=""
+        role="img"
+        aria-label={status}
+      />
       <span
         className={cn(
           "truncate text-sm",

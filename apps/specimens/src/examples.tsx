@@ -213,7 +213,7 @@ export function SendControlExample({
 }) {
   const [running, setRunning] = useState(false);
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-4">
       <SendControl
         density={density}
         running={running}

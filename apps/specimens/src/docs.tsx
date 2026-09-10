@@ -281,7 +281,11 @@ function ComponentDoc({
             </div>
           </TabsContent>
           <TabsContent value="code">
-            <CodeBlock code={code} label="example.tsx · package imports" />
+            <CodeBlock
+              code={code}
+              language="typescript"
+              label="example.tsx · package imports"
+            />
           </TabsContent>
         </Tabs>
       </section>
@@ -306,6 +310,7 @@ function ComponentDoc({
         </p>
         <CodeBlock
           label="Registry import"
+          language="typescript"
           code={`import { ${entry.symbol} } from "${entry.consumerPath}";`}
         />
         <p>
@@ -332,7 +337,11 @@ function ComponentDoc({
             : "This primitive forwards its underlying element or Base UI props. See the source for its composition and supported variants."}
         </p>
         {entry.api ? (
-          <CodeBlock code={entry.api} label="Component props" />
+          <CodeBlock
+            code={entry.api}
+            language="typescript"
+            label="Component props"
+          />
         ) : (
           <a
             className="source-link"
@@ -403,6 +412,7 @@ function Guide({ path }: { path: string }) {
           <CodeBlock code={installCommand("coven-theme")} />
           <CodeBlock
             label="App entry · adjust the relative path"
+            language="typescript"
             code={'import "./styles/opencoven.css";'}
           />
           <h2>Add your first component</h2>
@@ -430,6 +440,7 @@ function Guide({ path }: { path: string }) {
           </p>
           <CodeBlock
             label="Package imports"
+            language="typescript"
             code={
               'import "@opencoven/ui/globals.css";\nimport { Composer } from "@opencoven/ui/blocks/composer";'
             }
@@ -474,8 +485,9 @@ function Guide({ path }: { path: string }) {
           </div>
           <CodeBlock
             label="Your global stylesheet"
+            language="css"
             code={
-              ":root {\n  --presence: #6b5bbf;\n  --presence-foreground: #ffffff;\n}\n\n.dark {\n  --presence: #9386d0;\n  --presence-foreground: #0b0b0d;\n}"
+              ":root {\n  --oc-action: #7a22ee;\n  --oc-presence: #5e2a8a;\n}\n\n.dark {\n  --oc-action: #8e3dff;\n  --oc-presence: #b991ff;\n}"
             }
           />
           <h2>Light and dark</h2>
@@ -486,6 +498,7 @@ function Guide({ path }: { path: string }) {
           </p>
           <CodeBlock
             label="Set the color scheme"
+            language="typescript"
             code={'document.documentElement.classList.toggle("dark", isDark);'}
           />
           <h2>Density is explicit</h2>
@@ -496,6 +509,7 @@ function Guide({ path }: { path: string }) {
           </p>
           <CodeBlock
             label="Compact input"
+            language="typescript"
             code={'<Input density="compact" aria-label="Project name" />'}
           />
           <h2>State is not decoration</h2>
