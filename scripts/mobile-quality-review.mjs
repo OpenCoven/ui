@@ -493,6 +493,43 @@ try {
     })()`);
 
     const failures = [];
+    if (
+      measurement.documentOverflow > 1 ||
+      measurement.maxRailLinkContentOverflow > 1
+    ) {
+      measurement.overflowDiagnostic = await evaluate(`(() => {
+        const root = document.documentElement;
+        const owners = [];
+        for (const selector of [
+          ".specimen-topbar", ".specimen-rail", ".specimen-hero", ".catalog",
+          ".specimen-preview", ".specimen-view-tabs", ".specimen-code-tabs",
+          ".specimen-states", ".skip-link", ".sr-only",
+        ]) {
+          const elements = [...document.querySelectorAll(selector)];
+          const styles = elements.map(element => element.getAttribute("style"));
+          elements.forEach(element => element.style.setProperty("display", "none", "important"));
+          owners.push({ selector, documentOverflow: root.scrollWidth - root.clientWidth });
+          elements.forEach((element, index) => {
+            if (styles[index] === null) element.removeAttribute("style");
+            else element.setAttribute("style", styles[index]);
+          });
+        }
+        const links = [...document.querySelectorAll(".specimen-rail__nav a")].map(link => ({
+          text: link.textContent,
+          width: link.clientWidth,
+          scrollWidth: link.scrollWidth,
+          gap: getComputedStyle(link).gap,
+          children: [...link.children].map(child => ({
+            text: child.textContent, width: child.getBoundingClientRect().width,
+            scrollWidth: child.scrollWidth, minWidth: getComputedStyle(child).minWidth,
+          })),
+        }));
+        return { owners, links };
+      })()`);
+      console.error(
+        `${scenario.name} overflow diagnostic: ${JSON.stringify(measurement.overflowDiagnostic)}`,
+      );
+    }
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
     }
