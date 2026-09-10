@@ -45,8 +45,8 @@ const manifest = JSON.parse(packageJson);
 const portable = JSON.parse(portableJson);
 const vectors = JSON.parse(vectorsJson);
 const specimenStyles = `${specimenCss}\n${specimenFixes}`;
-const specimenAt68 = specimenCss.slice(
-  specimenCss.indexOf("@media (max-width: 68rem)"),
+const specimenAt880 = specimenCss.slice(
+  specimenCss.indexOf("@media (max-width: 880px)"),
   specimenCss.indexOf("@media (max-width: 48rem)"),
 );
 const assertions = [
@@ -173,9 +173,11 @@ const assertions = [
       specimenApp.includes('language="bash"'),
   ],
   [
-    "density control is explicit",
-    specimenApp.includes('aria-label="Display density"') &&
-      !specimenApp.includes("nth-child(2)"),
+    "the app uses compact sizing without density controls or labels",
+    specimenApp.includes('const density = "compact";') &&
+      !specimenApp.includes("DensityControl") &&
+      !specimenApp.includes("<dt>Densities</dt>") &&
+      !specimenStyles.includes(".density-control"),
   ],
   [
     "mobile layout covers 390px",
@@ -189,12 +191,20 @@ const assertions = [
     /html\s*\{[^}]*min-width:\s*320px/.test(specimenStyles),
   ],
   [
-    "responsive rail becomes compact navigation",
-    specimenAt68.startsWith("@media (max-width: 68rem)") &&
-      /\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
-        specimenAt68,
+    "catalog matches the original desktop shell and reading gutters",
+    /\.specimen-shell\s*\{[^}]*max-width:\s*1680px;[^}]*grid-template-columns:\s*248px minmax\(0,\s*1fr\) 216px;/.test(
+      specimenCss,
+    ) &&
+      specimenCss.includes("clamp(24px, 5vw, 72px)") &&
+      specimenCss.includes("grid-template-columns: 232px minmax(0, 1fr);"),
+  ],
+  [
+    "responsive rail becomes a compact component picker at the original breakpoint",
+    specimenAt880.startsWith("@media (max-width: 880px)") &&
+      /\.specimen-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/.test(
+        specimenAt880,
       ) &&
-      /\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(specimenAt68),
+      /\.specimen-mobile-nav\s*\{[^}]*display:\s*block;/.test(specimenAt880),
   ],
   [
     "responsive grids remove intrinsic sizing floors",
@@ -204,10 +214,10 @@ const assertions = [
       ),
   ],
   [
-    "mobile catalog navigation exposes every section",
-    /\.specimen-rail__nav\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*5\.5rem\),\s*1fr\)\s*\);/.test(
-      specimenFixes,
-    ) && /\.specimen-rail__nav a\s*\{[^}]*min-width:\s*0;/.test(specimenFixes),
+    "mobile catalog navigation exposes the same grouped component inventory",
+    specimenApp.includes("<optgroup label={group} key={group}>") &&
+      specimenApp.includes("<option value={specimen.id} key={specimen.id}>") &&
+      specimenApp.includes('aria-label="Component navigation"'),
   ],
   [
     "mobile card tabs preserve enlarged labels",
@@ -238,7 +248,7 @@ const assertions = [
       /\.specimen-main__inner[^{}]*\{[^}]*box-sizing:\s*border-box;/.test(
         specimenFixes,
       ) &&
-      /\.specimen-stats\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/.test(
+      /\.specimen-stats\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(
         specimenStyles,
       ),
   ],
@@ -284,13 +294,10 @@ const specimenSelectorPairs = [
     'className="specimen-topbar__actions"',
     ".specimen-topbar__actions",
   ],
-  ["density control", 'className="density-control"', ".density-control"],
   ["scheme control", 'className="scheme-control"', ".scheme-control"],
-  [
-    "rail context",
-    'className="specimen-rail__context"',
-    ".specimen-rail__context",
-  ],
+  ["rail groups", 'className="specimen-rail__group"', ".specimen-rail__group"],
+  ["mobile picker", 'className="specimen-mobile-nav"', ".specimen-mobile-nav"],
+  ["context rail", 'className="specimen-toc"', ".specimen-toc"],
   ["rail kicker", 'className="specimen-kicker numeric"', ".specimen-kicker"],
   [
     "rail package",
