@@ -58,6 +58,17 @@ pnpm dev
 The specimen app opens at `http://127.0.0.1:5173/`. Its assembled lab is at
 `http://127.0.0.1:5173/lab`.
 
+The catalog retains the original `index.html` proportions: a 248px component
+sidebar, flexible main column, and 216px context rail within a 1680px shell.
+Main gutters follow the original `clamp(24px, 5vw, 72px)`. Below 1281px the
+context rail disappears and the sidebar becomes 232px; at 880px and below, a
+native grouped picker replaces the sidebar. All 16 component and block links
+share the rendered catalog's inventory and search results. Hash links support
+direct navigation, while the selected entry follows page scrolling.
+
+Library and Lab use one fixed compact layout, without density controls or
+density labels. Public component density props remain available to consumers.
+
 The library presents one specimen per row, with bounded live surfaces,
 responsive block layouts, and a compact installation strip. It keeps live previews above syntax-highlighted install commands,
 imports, and full component source, with copy controls and explicit

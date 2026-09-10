@@ -11,62 +11,62 @@ const outputDir = path.resolve(
 const port = Number(process.env.MOBILE_CHROME_PORT ?? 9233);
 const cases = [
   {
-    name: "mobile-320-dark-cozy",
+    name: "mobile-320-dark",
     width: 320,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
   },
   {
-    name: "mobile-375-light-compact",
+    name: "mobile-375-light",
     width: 375,
     scheme: "light",
-    density: "compact",
+    legacyDensity: "compact",
   },
   {
-    name: "mobile-390-dark-cozy",
+    name: "mobile-390-dark",
     width: 390,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
   },
   {
-    name: "mobile-430-light-cozy",
+    name: "mobile-430-light",
     width: 430,
     scheme: "light",
-    density: "default",
+    legacyDensity: "default",
   },
   {
     name: "mobile-390-dark-rtl",
     width: 390,
     scheme: "dark",
-    density: "compact",
+    legacyDensity: "compact",
     rtl: true,
   },
   {
     name: "mobile-390-dark-text-200",
     width: 390,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     textScale: 2,
   },
   {
     name: "mobile-320-dark-text-200",
     width: 320,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     textScale: 2,
   },
   {
     name: "mobile-430-dark-text-200",
     width: 430,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     textScale: 2,
   },
   {
     name: "mobile-320-dark-wide-display",
     width: 320,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     textScale: 2,
     wideDisplayFont: true,
   },
@@ -284,7 +284,7 @@ try {
     await navigate(new URL("/", baseUrl).href);
     await evaluate(`(() => {
       localStorage.setItem("coven-ui:scheme", ${JSON.stringify(scenario.scheme)});
-      localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.density)});
+      localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.legacyDensity)});
     })()`);
     await navigate(new URL("/", baseUrl).href);
 
@@ -310,11 +310,11 @@ try {
       const topbar = document.querySelector(".specimen-topbar");
       const rail = document.querySelector(".specimen-rail");
       const railLinks = [
-        ...document.querySelectorAll(".specimen-rail__nav a"),
+        ...document.querySelectorAll("#component-picker"),
       ];
       const topbarControls = [
         ...document.querySelectorAll(
-          ".specimen-brand, .surface-switcher, .specimen-search, .specimen-search input, .specimen-search kbd, .density-control, .scheme-control",
+          ".specimen-brand, .surface-switcher, .specimen-search, .specimen-search input, .specimen-search kbd, .scheme-control",
         ),
       ];
       const firstCard = document.querySelector(".specimen-card");
@@ -398,11 +398,13 @@ try {
       };
       scrollTo(0, initialScrollY);
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      const railLink = document.querySelector(".specimen-rail__nav a");
-      const railTarget = railLink
-        ? document.querySelector(railLink.getAttribute("href"))
-        : null;
-      railLink?.click();
+      const picker = document.querySelector("#component-picker");
+      const targetId = picker?.querySelector("optgroup option")?.value;
+      const railTarget = targetId ? document.getElementById(targetId) : null;
+      if (picker && targetId) {
+        picker.value = targetId;
+        picker.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       await new Promise((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       );
@@ -413,11 +415,22 @@ try {
           ? targetBounds.top - Math.max(0, topbarBounds?.bottom ?? 0)
           : null;
       })();
+      const componentNavigation = {
+        visible: Boolean(picker?.getBoundingClientRect().height),
+        targets: [...(picker?.querySelectorAll("option") ?? [])].map(option => option.value),
+        selected: picker?.value,
+        targetId,
+        hash: location.hash,
+        minHeight: rect(picker)?.height ?? 0,
+      };
       scrollTo(0, initialScrollY);
       await new Promise((resolve) => requestAnimationFrame(resolve));
 
       return {
         viewport: root.clientWidth,
+        fixedSizing: root.dataset.density === "compact" &&
+          !document.querySelector('.density-control, [aria-label="Display density"]') &&
+          ![...document.querySelectorAll(".specimen-stats dt")].some(label => /densit|compact|cozy/i.test(label.textContent)),
         documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
         chromeBottom: Math.max(
           rect(topbar)?.bottom ?? 0,
@@ -425,7 +438,7 @@ try {
         ),
         firstCardTop: rect(firstCard)?.top ?? null,
         railNavOverflow: clipped(
-          document.querySelector(".specimen-rail__nav"),
+          document.querySelector(".specimen-mobile-nav"),
         ),
         maxRailLinkContentOverflow: Math.max(
           0,
@@ -499,11 +512,28 @@ try {
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
         skipNavigation,
         railTargetClearance,
+        componentNavigation,
         overflowingElements,
       };
     })()`);
 
     const failures = [];
+    if (!measurement.fixedSizing) {
+      failures.push("expected fixed compact sizing without controls or labels");
+    }
+    if (
+      !measurement.componentNavigation.visible ||
+      measurement.componentNavigation.targets.length !== 17 ||
+      measurement.componentNavigation.selected !==
+        measurement.componentNavigation.targetId ||
+      measurement.componentNavigation.hash !==
+        "#" + measurement.componentNavigation.targetId ||
+      measurement.componentNavigation.minHeight < 44
+    ) {
+      failures.push(
+        `mobile component picker failed: ${JSON.stringify(measurement.componentNavigation)}`,
+      );
+    }
     if (
       measurement.documentOverflow > 1 ||
       measurement.maxRailLinkContentOverflow > 1

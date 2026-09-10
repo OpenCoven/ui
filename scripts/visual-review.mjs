@@ -205,7 +205,20 @@ async function waitForValue(client, expression, description) {
     input: document.activeElement?.value,
     search: document.querySelector(".specimen-search input")?.value,
     cards: document.querySelectorAll(".specimen-card").length,
+    active: document.activeElement?.outerHTML.slice(0, 800),
+    composerDraft: document.querySelector("#composer textarea")?.value,
+    menuItems: [...document.querySelectorAll('[role="menuitem"]')].map(item => ({
+      text: item.textContent, focused: item === document.activeElement,
+      highlighted: item.hasAttribute("data-highlighted"),
+    })),
   })`,
+  );
+  const screenshot = await client.send("Page.captureScreenshot", {
+    format: "png",
+  });
+  await writeFile(
+    path.join(outputDir, "interaction-failure.png"),
+    Buffer.from(screenshot.data, "base64"),
   );
   throw new Error(`Timed out: ${description}; ${JSON.stringify(state)}`);
 }
@@ -272,6 +285,49 @@ async function pressKey(client, key, code, keyCode, modifiers = 0) {
 }
 
 async function auditInteractions(client, scenario) {
+  await navigate(
+    client,
+    new URL("/?navigation-audit#session-header", baseUrl).href,
+  );
+  await waitForRender(client, "#session-header");
+  await evaluateValue(
+    client,
+    "new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+    true,
+  );
+  await waitForValue(
+    client,
+    `document.querySelector('.specimen-rail__nav a[href="#session-header"]')?.getAttribute("aria-current") === "location" &&
+      document.getElementById("session-header").getBoundingClientRect().top >= 0 &&
+      document.getElementById("session-header").getBoundingClientRect().top < innerHeight / 2`,
+    "cold component deep link",
+  );
+  await navigate(client, baseUrl);
+  await waitForRender(client, "#component-picker");
+  if (scenario.mobile) {
+    await evaluateValue(
+      client,
+      `document.querySelector("#component-picker").focus()`,
+    );
+    await pressKey(client, "ArrowDown", "ArrowDown", 40);
+  } else {
+    await clickElement(client, '.specimen-rail__nav a[href="#mode-switch"]');
+  }
+  await waitForValue(
+    client,
+    `location.hash === "#mode-switch" &&
+      document.querySelector('.specimen-rail__nav a[href="#mode-switch"]').getAttribute("aria-current") === "location"`,
+    "component navigation",
+  );
+  await evaluateValue(
+    client,
+    `document.getElementById("plan-row").scrollIntoView({ block: "start" })`,
+  );
+  await waitForValue(
+    client,
+    `document.querySelector('.specimen-rail__nav a[href="#plan-row"]').getAttribute("aria-current") === "location"`,
+    "scroll-synchronized component navigation",
+  );
   await pressKey(client, "k", "KeyK", 75, 2);
   await waitForValue(
     client,
@@ -280,11 +336,19 @@ async function auditInteractions(client, scenario) {
   );
   await client.send("Input.insertText", { text: "no-such-specimen" });
   await waitForRender(client, ".catalog-empty");
+  await waitForValue(
+    client,
+    'location.hash === ""',
+    "filtered-out component fragment cleared",
+  );
   await pressKey(client, "a", "KeyA", 65, selectAllModifier);
   await client.send("Input.insertText", { text: "Context meter" });
   await waitForValue(
     client,
-    `document.querySelectorAll(".specimen-card").length === 1 && Boolean(document.querySelector("#context-meter"))`,
+    `document.querySelectorAll(".specimen-card").length === 1 &&
+      Boolean(document.querySelector("#context-meter")) &&
+      document.querySelectorAll(".specimen-rail__nav a").length === 2 &&
+      document.querySelectorAll("#component-picker option").length === 2`,
     "filtered specimen",
   );
   await pressKey(client, "a", "KeyA", 65, selectAllModifier);
@@ -296,15 +360,17 @@ async function auditInteractions(client, scenario) {
   );
 
   await clickElement(client, ".scheme-control");
-  await clickElement(client, ".density-control button", "Compact");
+  await evaluateValue(
+    client,
+    'localStorage.setItem("coven-ui:density", "default")',
+  );
   await navigate(client, baseUrl);
   await waitForValue(
     client,
     `!document.documentElement.classList.contains("dark") && document.documentElement.dataset.density === "compact"`,
-    "persisted display preferences",
+    "persisted theme and fixed compact sizing",
   );
   await clickElement(client, ".scheme-control");
-  await clickElement(client, ".density-control button", "Cozy");
 
   await clickElement(client, "#composer textarea");
   await pressKey(client, "a", "KeyA", 65, selectAllModifier);
@@ -358,7 +424,17 @@ async function auditInteractions(client, scenario) {
   );
   await clickElement(client, "#composer button", "Commands");
   await waitForRender(client, '[role="menu"]');
+  await waitForValue(
+    client,
+    `Boolean(document.activeElement?.closest('[role="menu"]'))`,
+    "command menu keyboard focus",
+  );
   await pressKey(client, "End", "End", 35);
+  await waitForValue(
+    client,
+    `document.activeElement?.getAttribute("role") === "menuitem" && document.activeElement.textContent.includes("/plan")`,
+    "last command keyboard focus",
+  );
   await pressKey(client, "Enter", "Enter", 13);
   await waitForValue(
     client,
@@ -564,6 +640,16 @@ async function auditInventory(client, scenario) {
 }
 
 const scenarios = [
+  ...[1920, 1281, 1280, 1024, 881, 880].map((width) => ({
+    name: `library-layout-${width}`,
+    pathname: "/",
+    width,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: width <= 880,
+    expected: "library",
+  })),
   {
     name: "library-dark-desktop",
     auditInventory: true,
@@ -572,7 +658,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
   },
@@ -584,7 +670,7 @@ const scenarios = [
     width: 390,
     height: 844,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: true,
     expected: "library",
   },
@@ -594,7 +680,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     revealCodeTab: "CLI",
@@ -614,7 +700,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "light",
-    density: "compact",
+    legacyDensity: "compact",
     mobile: false,
     expected: "library",
     revealCodeTab: "React API",
@@ -629,7 +715,7 @@ const scenarios = [
     width: 320,
     height: 900,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: true,
     expected: "library",
     textScale: 2,
@@ -646,7 +732,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "light",
-    density: "compact",
+    legacyDensity: "compact",
     mobile: false,
     expected: "library",
   },
@@ -656,7 +742,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     forcedColors: true,
@@ -667,7 +753,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     previewTargetId: "composer",
@@ -679,7 +765,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "light",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     previewTargetId: "run-rail",
@@ -692,7 +778,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     revealSource: true,
@@ -708,7 +794,7 @@ const scenarios = [
     width: 390,
     height: 844,
     scheme: "light",
-    density: "default",
+    legacyDensity: "default",
     mobile: true,
     expected: "library",
     revealSource: true,
@@ -724,7 +810,7 @@ const scenarios = [
     width: 1280,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
     textScale: 2,
@@ -736,7 +822,7 @@ const scenarios = [
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "lab",
     selectedScene: "run-rail",
@@ -748,7 +834,7 @@ const scenarios = [
     width: 390,
     height: 844,
     scheme: "dark",
-    density: "compact",
+    legacyDensity: "compact",
     mobile: true,
     expected: "lab",
   },
@@ -757,35 +843,35 @@ const scenarios = [
       width: 320,
       height: 700,
       scheme: "dark",
-      density: "default",
+      legacyDensity: "default",
       mobile: true,
     },
     {
       width: 390,
       height: 844,
       scheme: "light",
-      density: "default",
+      legacyDensity: "default",
       mobile: true,
     },
     {
       width: 1280,
       height: 720,
       scheme: "light",
-      density: "default",
+      legacyDensity: "default",
       mobile: false,
     },
     {
       width: 844,
       height: 390,
       scheme: "dark",
-      density: "compact",
+      legacyDensity: "compact",
       mobile: true,
     },
     {
       width: 1280,
       height: 900,
       scheme: "dark",
-      density: "default",
+      legacyDensity: "default",
       mobile: false,
       textScale: 2,
     },
@@ -900,7 +986,7 @@ try {
       `localStorage.setItem("coven-ui:scheme", ${JSON.stringify(
         scenario.scheme,
       )}); localStorage.setItem("coven-ui:density", ${JSON.stringify(
-        scenario.density,
+        scenario.legacyDensity,
       )});`,
     );
     await navigate(client, new URL(scenario.pathname, baseUrl).href);
@@ -995,7 +1081,7 @@ try {
         );
         const topbarControls = [
           ...document.querySelectorAll(
-            ".specimen-brand, .surface-switcher, .specimen-search, .density-control, .scheme-control",
+            ".specimen-brand, .surface-switcher, .specimen-search, .scheme-control",
           ),
         ];
         const codeCard = document.getElementById(${JSON.stringify(
@@ -1123,6 +1209,26 @@ try {
           logoMask: getComputedStyle(document.querySelector(".specimen-brand__mark > span")).maskImage,
           topbarVisible: isVisible(topbar),
           railVisible: isVisible(rail),
+          catalogLayout: (() => {
+            const inner = document.querySelector(".specimen-main__inner");
+            const style = getComputedStyle(inner);
+            const links = [...document.querySelectorAll(".specimen-rail__nav a")];
+            const options = [...document.querySelectorAll("#component-picker option")];
+            return {
+              shellWidth: bounds(document.querySelector(".specimen-shell"))?.width,
+              topbarWidth: bounds(document.querySelector(".specimen-topbar__inner"))?.width,
+              railWidth: railBounds?.width,
+              mainWidth: bounds(main)?.width,
+              contentWidth: bounds(inner)?.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+              tocWidth: bounds(document.querySelector(".specimen-toc"))?.width,
+              desktopNavVisible: isVisible(document.querySelector(".specimen-rail__nav")),
+              pickerVisible: isVisible(document.querySelector("#component-picker")),
+              links: links.map(link => link.getAttribute("href").slice(1)),
+              options: options.map(option => option.value),
+              expectedIds: ["library-overview", ...cards.map(card => card.id)],
+              validTargets: [...links, ...document.querySelectorAll(".specimen-toc a")].every(link => document.getElementById(link.getAttribute("href").slice(1))),
+            };
+          })(),
           mainVisible: isVisible(main),
           topbarHeight: topbarBounds?.height ?? null,
           mobileChromeBottom: Math.max(
@@ -1153,6 +1259,8 @@ try {
           tabCount: tabs.length,
           scheme: root.classList.contains("dark") ? "dark" : "light",
           density: root.dataset.density,
+          densityControls: document.querySelectorAll('.density-control, [aria-label="Display density"]').length,
+          densityLabels: [...document.querySelectorAll(".specimen-stats dt")].some(label => /densit|compact|cozy/i.test(label.textContent)),
           codeSnippetCount: visibleCodeSnippets.length,
           codeCommandTexts: visibleCodeCommands.map((command) =>
             command.textContent?.trim(),
@@ -1202,13 +1310,48 @@ try {
               topbar.getBoundingClientRect().bottom
             : null;
         scrollTo(0, initialScrollY);
-        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
         return clearance;
       })()`,
       true,
     );
 
     const failures = [];
+    if (scenario.expected === "library") {
+      const nav = layout.catalogLayout;
+      const desktop = layout.viewportWidth > 880;
+      const context = layout.viewportWidth > 1280;
+      const shellWidth = Math.min(layout.viewportWidth, 1680);
+      const railWidth = context ? 248 : desktop ? 232 : shellWidth;
+      const mainWidth = desktop
+        ? shellWidth - railWidth - (context ? 216 : 0)
+        : shellWidth;
+      const contentWidth =
+        mainWidth - 2 * Math.min(72, Math.max(24, scenario.width * 0.05));
+      if (
+        Math.abs(nav.shellWidth - shellWidth) > 1 ||
+        Math.abs(nav.topbarWidth - shellWidth) > 1 ||
+        Math.abs(nav.railWidth - railWidth) > 1 ||
+        Math.abs(nav.mainWidth - mainWidth) > 1 ||
+        (desktop && Math.abs(nav.contentWidth - contentWidth) > 1) ||
+        nav.tocWidth !== (context ? 216 : 0)
+      ) {
+        failures.push(`original layout mismatch: ${JSON.stringify(nav)}`);
+      }
+      if (
+        nav.desktopNavVisible !== desktop ||
+        nav.pickerVisible === desktop ||
+        !nav.validTargets ||
+        JSON.stringify(nav.links) !== JSON.stringify(nav.expectedIds) ||
+        JSON.stringify(nav.options) !== JSON.stringify(nav.expectedIds)
+      ) {
+        failures.push(
+          `incomplete or inconsistent component navigation: ${JSON.stringify(nav)}`,
+        );
+      }
+    }
     if (scenario.forcedColors && !layout.forcedSelectionVisible) {
       failures.push("selected preview tab loses its forced-colors indicator");
     }
@@ -1285,7 +1428,7 @@ try {
     }
     if (
       scenario.expected !== "lab" &&
-      !scenario.mobile &&
+      layout.viewportWidth > 880 &&
       (layout.stickyRailClearance === null || layout.stickyRailClearance < -1)
     ) {
       failures.push(
@@ -1315,7 +1458,7 @@ try {
         ? scenario.mobile
           ? 540
           : 480
-        : scenario.mobile
+        : scenario.width <= 1088
           ? 640
           : 520;
     if (
@@ -1338,9 +1481,13 @@ try {
         `expected ${scenario.scheme} scheme, received ${layout.scheme}`,
       );
     }
-    if (layout.density !== scenario.density) {
+    if (
+      layout.density !== "compact" ||
+      layout.densityControls ||
+      layout.densityLabels
+    ) {
       failures.push(
-        `expected ${scenario.density} density, received ${layout.density}`,
+        `expected fixed compact sizing without controls or labels, received ${layout.density}`,
       );
     }
     if (
@@ -1542,7 +1689,7 @@ try {
       "|---|---:|---|---|---:|---|",
       ...results.map(
         (result) =>
-          `| ${result.name} | ${result.width}×${result.height} | ${result.scheme} | ${result.density} | ${result.layout.horizontalOverflow}px | ${
+          `| ${result.name} | ${result.width}×${result.height} | ${result.scheme} | ${result.layout.density} | ${result.layout.horizontalOverflow}px | ${
             result.failures.length === 0 ? "PASS" : result.failures.join("; ")
           } |`,
       ),

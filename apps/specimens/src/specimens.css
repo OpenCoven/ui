@@ -42,7 +42,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   min-height: 3.75rem;
-  max-width: 96rem;
+  max-width: 1680px;
   align-items: center;
   gap: 0.75rem;
   margin-inline: auto;
@@ -93,8 +93,7 @@ body {
   text-transform: uppercase;
 }
 
-.surface-switcher,
-.density-control {
+.surface-switcher {
   display: inline-flex;
   align-items: center;
   gap: 0.125rem;
@@ -104,8 +103,7 @@ body {
   background: var(--card);
 }
 
-.surface-switcher a,
-.density-control button {
+.surface-switcher a {
   border: 0;
   border-radius: calc(var(--radius-2) - 2px);
   background: transparent;
@@ -118,14 +116,12 @@ body {
   white-space: nowrap;
 }
 
-.surface-switcher a:hover,
-.density-control button:hover {
+.surface-switcher a:hover {
   background: var(--muted);
   color: var(--foreground);
 }
 
-.surface-switcher a[aria-current="page"],
-.density-control button[aria-pressed="true"] {
+.surface-switcher a[aria-current="page"] {
   background: var(--foreground);
   color: var(--background);
   box-shadow: var(--elevation-1);
@@ -159,9 +155,9 @@ body {
 
 .specimen-shell {
   display: grid;
-  max-width: 96rem;
+  max-width: 1680px;
   min-height: calc(100vh - var(--specimen-topbar-height));
-  grid-template-columns: 13.5rem minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr) 216px;
   margin-inline: auto;
 }
 
@@ -173,26 +169,8 @@ body {
   overflow-y: auto;
   border-inline-end: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 72%, var(--background));
-  padding: 1.5rem 0.875rem;
+  padding: 28px 16px 40px 20px;
   scrollbar-width: thin;
-}
-
-.specimen-rail__context {
-  padding-inline: 0.625rem;
-}
-
-.specimen-rail__context h2 {
-  margin: 0.4rem 0 0;
-  font-size: 1rem;
-  font-weight: 750;
-  letter-spacing: -0.015em;
-}
-
-.specimen-rail__context p:last-child {
-  margin: 0.625rem 0 0;
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  line-height: 1.55;
 }
 
 .specimen-kicker {
@@ -206,21 +184,52 @@ body {
 
 .specimen-rail__nav {
   display: grid;
-  gap: 0.25rem;
-  margin-block-start: 1.25rem;
+  gap: 24px;
+}
+
+.specimen-rail__group {
+  --nav-color: var(--presence);
+  min-width: 0;
+}
+
+.specimen-rail__group[data-group="Run rail"] {
+  --nav-color: var(--information);
+}
+
+.specimen-rail__group[data-group="Blocks"] {
+  --nav-color: var(--success);
+}
+
+.specimen-rail__group h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 12px 8px;
+  color: var(--nav-color);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.specimen-rail__group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .specimen-rail__nav a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border-radius: var(--radius-2);
+  display: block;
+  border-inline-start: 2px solid transparent;
+  border-radius: 0 var(--radius-1) var(--radius-1) 0;
   color: var(--muted-foreground);
-  padding: 0.5rem 0.625rem;
-  font-size: 0.8125rem;
-  font-weight: 650;
+  padding: 6px 12px;
+  font-size: 0.84375rem;
+  font-weight: 450;
+  line-height: 1.4;
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
 .specimen-rail__nav a:hover {
@@ -228,9 +237,69 @@ body {
   color: var(--foreground);
 }
 
+.specimen-rail__nav a[aria-current] {
+  border-inline-start-color: var(--nav-color);
+  background: color-mix(in srgb, var(--nav-color) 9%, var(--card));
+  color: var(--foreground);
+  font-weight: 650;
+}
+
 .specimen-rail__nav small {
   color: color-mix(in srgb, var(--muted-foreground) 76%, transparent);
   font-size: 0.625rem;
+}
+
+.specimen-mobile-nav {
+  display: none;
+}
+
+.specimen-mobile-nav select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+}
+
+.specimen-toc {
+  position: sticky;
+  inset-block-start: var(--specimen-topbar-height);
+  align-self: start;
+  max-height: calc(100vh - var(--specimen-topbar-height));
+  overflow-y: auto;
+  padding: 32px 20px;
+  scrollbar-width: thin;
+}
+
+.specimen-toc nav {
+  display: grid;
+  gap: 4px;
+}
+
+.specimen-toc .specimen-kicker {
+  margin-block-end: 8px;
+}
+
+.specimen-toc a {
+  border-inline-start: 1px solid var(--border);
+  color: var(--muted-foreground);
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.specimen-toc a:hover,
+.specimen-toc a[aria-current] {
+  border-inline-start-color: var(--presence);
+  color: var(--presence);
 }
 
 .specimen-rail__package {
@@ -261,14 +330,18 @@ body {
 }
 
 .specimen-main__inner {
-  width: min(100%, 76rem);
+  width: 100%;
   margin-inline: auto;
-  padding: var(--oc-space-8) var(--oc-space-8) var(--oc-space-16);
+  padding: var(--oc-space-12) clamp(24px, 5vw, 72px) 120px;
+}
+
+[data-density="compact"] .specimen-main__inner {
+  padding-block-start: var(--oc-space-8);
 }
 
 .specimen-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1.5rem;
   margin-block-end: clamp(2rem, 4vw, 3rem);
@@ -277,7 +350,8 @@ body {
 }
 
 .specimen-hero__copy {
-  max-width: 52rem;
+  min-width: 0;
+  flex: 1 1 24rem;
 }
 
 .specimen-hero h1 {
@@ -285,7 +359,7 @@ body {
   overflow-wrap: anywhere;
   margin: 0.5rem 0 0;
   font-family: var(--font-display);
-  font-size: var(--oc-type-4);
+  font-size: var(--oc-type-3);
   font-weight: 700;
   letter-spacing: var(--oc-tracking-heading);
   line-height: var(--oc-leading-heading);
@@ -302,10 +376,6 @@ body {
   color: var(--information);
 }
 
-.specimen-stats div:nth-child(3) dd {
-  color: var(--success);
-}
-
 .specimen-hero__copy > p:last-child {
   max-width: var(--oc-reading-measure);
   margin: var(--oc-space-4) 0 0;
@@ -316,7 +386,8 @@ body {
 
 .specimen-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 0 1 16rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
   margin: 0;
 }
@@ -1032,46 +1103,47 @@ p > .hljs {
     display: grid;
     width: 100%;
     grid-column: 1 / -1;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .specimen-search {
     width: 100%;
   }
+}
 
+@media (max-width: 1280px) {
+  .specimen-shell {
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+
+  .specimen-toc {
+    display: none;
+  }
+}
+
+@media (max-width: 880px) {
   .specimen-shell {
     min-height: 0;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .specimen-rail {
     position: static;
     display: block;
     height: auto;
-    overflow-x: auto;
+    overflow: visible;
     border-inline-end: 0;
     border-block-end: 1px solid var(--border);
-    padding: 0.5rem clamp(1rem, 4vw, 2rem);
+    padding: 4px clamp(1rem, 4vw, 2rem);
   }
 
-  .specimen-rail__context,
+  .specimen-rail__nav,
   .specimen-rail__package {
     display: none;
   }
 
-  .specimen-rail__nav {
-    display: flex;
-    width: max-content;
-    min-width: 100%;
-    gap: 0.375rem;
-    margin: 0;
-  }
-
-  .specimen-rail__nav a {
-    min-width: 9rem;
-    flex: 1 0 auto;
-    border: 1px solid transparent;
-    background: color-mix(in srgb, var(--card) 72%, var(--background));
+  .specimen-mobile-nav {
+    display: block;
   }
 
   .specimen-main__inner {
@@ -1081,11 +1153,11 @@ p > .hljs {
 
 @media (max-width: 48rem) {
   .specimen-hero {
-    grid-template-columns: 1fr;
     align-items: start;
   }
 
   .specimen-stats {
+    flex-basis: 100%;
     width: 100%;
   }
 
@@ -1118,7 +1190,7 @@ p > .hljs {
   }
 
   .specimen-topbar__actions {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .specimen-search {
@@ -1186,8 +1258,7 @@ p > .hljs {
     height: 2rem;
   }
 
-  .surface-switcher a,
-  .density-control button {
+  .surface-switcher a {
     padding-inline: 0.45rem;
     font-size: 0.6875rem;
   }
@@ -1241,8 +1312,7 @@ p > .hljs {
 }
 
 @media (forced-colors: active) {
-  .surface-switcher a[aria-current="page"],
-  .density-control button[aria-pressed="true"] {
+  .surface-switcher a[aria-current="page"] {
     border: 1px solid Highlight;
   }
 }

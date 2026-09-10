@@ -514,9 +514,6 @@
     padding-inline: 0.5rem;
     gap: 0.25rem;
   }
-  .specimen-app--lab .density-control button {
-    padding-inline: 0.3rem;
-  }
   .specimen-app--lab .specimen-brand {
     gap: 0;
   }
