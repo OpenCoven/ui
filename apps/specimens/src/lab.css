@@ -135,6 +135,7 @@
 }
 
 .lab-carousel__viewport {
+  container: lab-viewport / size;
   display: grid;
   flex: 1;
   min-width: 0;
@@ -149,6 +150,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  touch-action: pan-y pinch-zoom;
 }
 
 .lab-scene-panel[hidden] {
@@ -163,16 +165,7 @@
   min-height: 100%;
   align-content: safe center;
   padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 4vw, 4rem);
-  background-color: color-mix(
-    in srgb,
-    var(--scene-color) 4%,
-    var(--background)
-  );
-  background-image: radial-gradient(
-    color-mix(in srgb, var(--scene-color) 14%, transparent) 0.75px,
-    transparent 0.75px
-  );
-  background-size: 20px 20px;
+  background: var(--oc-surface-2);
 }
 
 .lab-scene-surface {
@@ -383,6 +376,50 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@container lab-viewport (max-height: 440px) {
+  .assembled-lab .assembled-lab__stage {
+    padding-block: 0.75rem;
+  }
+
+  .lab-scene-surface [data-slot="composer"] {
+    gap: 0.625rem;
+    padding: 1rem;
+  }
+
+  .lab-scene-surface [data-slot="composer"] textarea {
+    min-height: 4rem;
+  }
+
+  .lab-message-stack [data-slot="transcript-turn"] {
+    padding-block: 0.5rem;
+  }
+
+  .lab-message-stack .specimen-code-snippet {
+    margin-block-start: 0.5rem;
+  }
+
+  .lab-scene-surface [data-slot="run-rail"] {
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 48.01rem) and (max-height: 800px) {
+  .specimen-app--lab .specimen-hero {
+    display: flex;
+    align-items: baseline;
+    padding-block-end: 0.625rem;
+  }
+
+  .specimen-app--lab .specimen-hero h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .specimen-app--lab .specimen-hero .specimen-kicker {
+    display: none;
   }
 }
 

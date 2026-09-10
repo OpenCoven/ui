@@ -9,20 +9,24 @@ quietly drift back into copied HTML.
 
 ## Foundation
 
-| Decision        | Value                                       |
-| --------------- | ------------------------------------------- |
-| Component base  | Base UI for new interactive primitives      |
-| shadcn style    | `base-nova`                                 |
-| Scaffold seed   | Zinc                                        |
-| Brand semantics | Coven-owned CSS variables                   |
-| Presence        | Lavender `#9386d0` in dark mode             |
-| Density         | `default` and explicit `compact` variants   |
-| Language        | Strict TypeScript                           |
-| Styling         | Tailwind CSS 4 and CSS custom properties    |
-| Icons           | Lucide                                      |
-| Distribution    | `@opencoven/ui` package and shadcn registry |
+| Decision        | Value                                         |
+| --------------- | --------------------------------------------- |
+| Component base  | Base UI for new interactive primitives        |
+| shadcn style    | `base-nova`                                   |
+| Scaffold seed   | Zinc                                          |
+| Brand semantics | OpenCoven web profile `1.0.0`                 |
+| Action          | Coven Violet `#8e3dff` dark / `#7a22ee` light |
+| Presence        | `#b991ff` dark / `#5e2a8a` light              |
+| Density         | `default` and explicit `compact` variants     |
+| Language        | Strict TypeScript                             |
+| Styling         | Tailwind CSS 4 and CSS custom properties      |
+| Icons           | Lucide                                        |
+| Distribution    | `@opencoven/ui` package and shadcn registry   |
 
-Zinc supplies neutral scaffolding only. Components consume semantic tokens such
+Zinc supplies scaffold structure only. Colors, display/reading/mono font roles,
+and the 4/8/12/16/24/32/48/64/96px spacing scale map to the pinned canonical
+brand profile. Fonts use its local/system fallback stacks; no font files or
+third-party font requests are bundled. Components consume semantic tokens such
 as `background`, `card`, `presence`, `success`, and the canonical
 `tool-read`/`tool-write`/`tool-exec`/`tool-net` mappings.
 
@@ -54,8 +58,15 @@ pnpm dev
 The specimen app opens at `http://127.0.0.1:5173/`. Its assembled lab is at
 `http://127.0.0.1:5173/lab`.
 
-The library keeps live previews above syntax-highlighted Bash and TypeScript
-source, with copy controls and explicit clipboard-failure feedback. The Lab
+The library presents one specimen per row, with bounded live surfaces,
+responsive block layouts, and a compact installation strip. It keeps live previews above syntax-highlighted install commands,
+imports, and full component source, with copy controls and explicit
+clipboard-failure feedback. The shared code renderer supports Bash,
+TypeScript/TSX, and CSS. Each specimen has Preview/Source tabs in a fixed-size
+preview area, so opening source does not change the card or page height.
+Preview or Escape returns to the same component state; source scrolls inside
+that area. Supported states live in a separate, always-visible footer rather
+than a tab. The Lab
 fits the viewport and offers six scenes through tabs, previous/next controls,
 and touch swipes. Only the active scene scrolls when space is limited or text
 is enlarged; the page and navigation stay fixed. Demo actions are local and
@@ -146,6 +157,7 @@ Composer accepts an optional `tools` slot for supporting controls and supports
 Ctrl/Cmd+Enter to send a non-empty draft while idle. Run Rail accepts optional
 `plan` and `resources` arrays using the public Plan Row and Resource Row props;
 omit them to retain the metrics/activity/limits composition.
+Send Control only displays its options action when `onOpenOptions` is supplied.
 
 No Radix implementation existed to retain. No React Aria dependency was added;
 the current component set does not require its collection or
@@ -164,6 +176,13 @@ registry installation, package and specimen production builds, and package
 export checks.
 
 CI runs the same command on every pull request and push to `main`.
+
+The Visual review workflow also runs `scripts/visual-review.mjs` and
+`scripts/mobile-quality-review.mjs` against the production app. It publishes
+individual specimens and Lab scenes, contact sheets, and browser measurements.
+Coverage includes every specimen's source overlay, real keyboard/mouse and
+clipboard flows, touch navigation, theme persistence, forced colors, RTL,
+narrow screens, and 200% text.
 
 ## Legacy migration
 

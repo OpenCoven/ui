@@ -443,6 +443,19 @@ try {
         tabListCount: cardLists.length,
         activePanelCount: activePanels.length,
         tabTargetCount: tabHeights.length,
+        viewTabCount: document.querySelectorAll(".specimen-view-tabs [role=tab]").length,
+        stateFooterCount: document.querySelectorAll(".specimen-states").length,
+        clippedCards: cards.filter(card => clipped(card) > 1).map(card => ({ id: card.id, overflow: clipped(card) })),
+        clippedStages: stages.filter(stage => clipped(stage) > 1).map(stage => ({
+          id: stage.closest(".specimen-card").id,
+          overflow: clipped(stage),
+          children: [...stage.querySelectorAll("*")].filter(child => clipped(child) > 1).map(child => ({
+            slot: child.dataset.slot,
+            tag: child.tagName,
+            text: child.textContent.slice(0, 80),
+            overflow: clipped(child),
+          })),
+        })),
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
@@ -498,9 +511,17 @@ try {
         `expected 16 active card panels, got ${measurement.activePanelCount}`,
       );
     }
-    if (measurement.tabTargetCount !== 48) {
+    if (measurement.tabTargetCount !== 32) {
       failures.push(
-        `expected 48 card tab targets, got ${measurement.tabTargetCount}`,
+        `expected 32 code tab targets, got ${measurement.tabTargetCount}`,
+      );
+    }
+    if (
+      measurement.viewTabCount !== 32 ||
+      measurement.stateFooterCount !== 16
+    ) {
+      failures.push(
+        "Preview/Source tabs or supported-state footers are missing",
       );
     }
     if (measurement.documentOverflow > 1) {
@@ -561,10 +582,14 @@ try {
       );
     }
     if (measurement.maxCardOverflow > 1) {
-      failures.push(`card overflow ${measurement.maxCardOverflow}px`);
+      failures.push(
+        `card overflow: ${JSON.stringify(measurement.clippedCards)}`,
+      );
     }
     if (measurement.maxStageOverflow > 1) {
-      failures.push(`stage overflow ${measurement.maxStageOverflow}px`);
+      failures.push(
+        `stage overflow: ${JSON.stringify(measurement.clippedStages)}`,
+      );
     }
     if (measurement.maxTabRootOverflow > 1) {
       failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);

@@ -5,7 +5,7 @@
       "name": "coven-theme",
       "type": "registry:theme",
       "title": "Coven semantic theme",
-      "description": "Nova density, Zinc-seeded structure, lavender presence, and canonical tool-class tokens.",
+      "description": "OpenCoven web profile v1.0.0 palette, typography, spacing, explicit density, and canonical tool-class tokens.",
       "files": [
         {
           "path": "../../packages/ui/src/styles/globals.css",

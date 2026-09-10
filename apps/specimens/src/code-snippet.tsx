@@ -2,15 +2,25 @@ import { Button } from "@opencoven/ui";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import typescript from "highlight.js/lib/languages/typescript";
+import css from "highlight.js/lib/languages/css";
 import xml from "highlight.js/lib/languages/xml";
 import { Check, Copy, Terminal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("bash", (api) => {
+  const grammar = bash(api);
+  grammar.contains?.push(
+    { scope: "built_in", begin: /\b(?:pnpm|npm|npx)\b/ },
+    { scope: "keyword", begin: /\b(?:dlx|add|init|install)\b/ },
+    { scope: "title", begin: /\bshadcn@latest\b/ },
+  );
+  return grammar;
+});
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("css", css);
 
-type CodeLanguage = "bash" | "typescript";
+type CodeLanguage = "bash" | "typescript" | "css";
 
 function HighlightedCode({
   code,
@@ -73,13 +83,14 @@ function CodeSnippet({
           variant="ghost"
           aria-label={`Copy ${label}`}
           disabled={copyState === "copying"}
+          focusableWhenDisabled
           onClick={copy}
         >
           {copyState === "copied" ? <Check /> : <Copy />}
           {copyState === "copied" ? "Copied" : "Copy"}
         </Button>
       </header>
-      <pre className="specimen-command numeric" aria-label={label}>
+      <pre className="specimen-command numeric" aria-label={label} tabIndex={0}>
         <HighlightedCode code={code} language={language} />
       </pre>
       <span
@@ -96,4 +107,4 @@ function CodeSnippet({
   );
 }
 
-export { CodeSnippet, HighlightedCode };
+export { CodeSnippet, HighlightedCode, type CodeLanguage };

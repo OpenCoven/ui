@@ -5,15 +5,12 @@ import {
   BudgetPill,
   Button,
   Card,
-  CompletionPalette,
   ContextMeter,
-  FailureSurface,
   MetricDisplay,
   ModeSwitch,
   PlanRow,
   ResourceRow,
   SearchField,
-  SendControl,
   SessionHeader,
   Tabs,
   TabsContent,
@@ -24,20 +21,18 @@ import {
   TranscriptTurn,
   type ComposerMode,
 } from "@opencoven/ui";
-import {
-  Box,
-  Braces,
-  Circle,
-  Layers3,
-  Moon,
-  Sparkles,
-  Sun,
-} from "lucide-react";
+import { Box, Braces, Layers3, Moon, Sparkles, Sun } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { ComposerDemo, RunRailDemo } from "./block-demos";
 import { CodeSnippet } from "./code-snippet";
+import { ComponentPreview } from "./component-preview";
 import { Lab } from "./lab";
+import {
+  CompletionPaletteExample,
+  FailureSurfaceExample,
+  SendControlExample,
+} from "./examples";
 
 type Density = "default" | "compact";
 type Scheme = "light" | "dark";
@@ -62,6 +57,10 @@ function preference(key: string, fallback: string) {
 }
 
 const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
+const componentSources = import.meta.glob<string>(
+  "../../../packages/ui/src/{components,blocks}/*.tsx",
+  { query: "?raw", import: "default", eager: true },
+);
 
 const groupDetails: Record<
   SpecimenGroup,
@@ -94,6 +93,10 @@ function SpecimenCard({ specimen }: { specimen: Specimen }) {
   const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;
   const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;
   const importCode = `import { ${exportName} } from "${packagePath}";`;
+  const source =
+    componentSources[
+      `../../../packages/ui/src/${sourceKind}/${specimen.id}.tsx`
+    ];
 
   return (
     <article
@@ -115,15 +118,13 @@ function SpecimenCard({ specimen }: { specimen: Specimen }) {
         </h3>
         <p className="specimen-card__description">{specimen.description}</p>
       </header>
-      <div className="specimen-preview">
-        <div className="specimen-preview__label numeric">
-          <span>
-            <Circle aria-hidden="true" /> Live preview
-          </span>
-          <span>Try it out</span>
-        </div>
-        <div className="specimen-stage">{specimen.preview}</div>
-      </div>
+      <ComponentPreview
+        source={source}
+        title={specimen.title}
+        filename={`${specimen.id}.tsx`}
+      >
+        {specimen.preview}
+      </ComponentPreview>
       <Tabs defaultValue="cli">
         <TabsList
           variant="line"
@@ -132,7 +133,6 @@ function SpecimenCard({ specimen }: { specimen: Specimen }) {
         >
           <TabsTrigger value="cli">CLI</TabsTrigger>
           <TabsTrigger value="react-api">React API</TabsTrigger>
-          <TabsTrigger value="states">States</TabsTrigger>
         </TabsList>
         <TabsContent value="cli" className="specimen-documentation">
           <CodeSnippet
@@ -148,15 +148,17 @@ function SpecimenCard({ specimen }: { specimen: Specimen }) {
             label={`Import ${specimen.title}`}
           />
         </TabsContent>
-        <TabsContent value="states" className="specimen-documentation">
-          <p className="specimen-install-meta">
-            <span className="numeric">
-              <Braces aria-hidden="true" /> Supported states
-            </span>
-            {specimen.states}
-          </p>
-        </TabsContent>
       </Tabs>
+      <footer className="specimen-states">
+        <span>
+          <Braces aria-hidden="true" /> Supported states
+        </span>
+        <ul aria-label={`${specimen.title} supported states`}>
+          {specimen.states.split(", ").map((state) => (
+            <li key={state}>{state}</li>
+          ))}
+        </ul>
+      </footer>
     </article>
   );
 }
@@ -186,12 +188,7 @@ function Library({ density, query }: { density: Density; query: string }) {
         description:
           "The surface's one filled action, with a stable stop state.",
         states: "ready, running, disabled",
-        preview: (
-          <div className="flex flex-wrap gap-3">
-            <SendControl density={density} />
-            <SendControl density={density} running />
-          </div>
-        ),
+        preview: <SendControlExample density={density} />,
       },
       {
         id: "completion-palette",
@@ -201,30 +198,7 @@ function Library({ density, query }: { density: Density; query: string }) {
         description:
           "Keyboard-ready slash commands in a collision-aware overlay.",
         states: "closed, open, focused, disabled",
-        preview: (
-          <CompletionPalette
-            trigger={<Button variant="outline">Open slash commands</Button>}
-            onSelect={() => undefined}
-            commands={[
-              {
-                id: "plan",
-                label: "/plan",
-                description: "Draft a plan before acting",
-                shortcut: "↵",
-              },
-              {
-                id: "handoff",
-                label: "/handoff",
-                description: "Write a continuation handoff",
-              },
-              {
-                id: "research",
-                label: "/research",
-                description: "Start a bounded research mission",
-              },
-            ]}
-          />
-        ),
+        preview: <CompletionPaletteExample />,
       },
       {
         id: "attachment-chip",
@@ -350,14 +324,7 @@ function Library({ density, query }: { density: Density; query: string }) {
         description:
           "A durable failure receipt with quiet output and explicit next moves.",
         states: "failed, retried",
-        preview: (
-          <FailureSurface
-            command="pnpm vitest run tokenizer"
-            exitCode={1}
-            output="AssertionError: expected 3 cells, got 4"
-            actions={[{ label: "Retry", onSelect: () => undefined }]}
-          />
-        ),
+        preview: <FailureSurfaceExample />,
       },
       {
         id: "context-meter",

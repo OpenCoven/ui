@@ -30,6 +30,14 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 }
 
 @media (max-width: 48rem) {
+  html {
+    scroll-padding-top: 1rem;
+  }
+
+  .specimen-topbar {
+    position: static;
+  }
+
   .specimen-shell,
   .specimen-main__inner,
   .specimen-rail,
@@ -82,7 +90,7 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     min-width: 0;
     max-width: 100%;
     min-height: 2.75rem;
-    grid-template-columns: repeat(3, minmax(5.25rem, 1fr));
+    grid-template-columns: repeat(2, minmax(5.25rem, 1fr));
     gap: 0;
     overflow-x: auto;
     border-block-end: 1px solid var(--border);
@@ -105,14 +113,31 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
 
   .specimen-card__header {
     min-height: 0;
-    padding: 1rem;
+    padding: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .specimen-preview {
+    margin-inline: 16px;
   }
 
   .specimen-stage {
     min-width: 0;
     min-height: 10rem;
     justify-items: stretch;
-    padding: 1rem;
+    padding: 16px;
+  }
+
+  .specimen-stage [data-slot="composer"] {
+    padding: min(var(--density-panel), 24px);
+  }
+
+  .specimen-stage
+    :is([data-slot="button"], [data-slot="dropdown-menu-trigger"]) {
+    height: auto;
+    min-height: var(--density-control);
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .specimen-stage > * {
@@ -173,5 +198,15 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   .specimen-card:hover,
   .specimen-card:focus-within {
     translate: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .specimen-brand__mark {
+    color: CanvasText;
+  }
+
+  .specimen-brand__mark > span {
+    forced-color-adjust: none;
   }
 }

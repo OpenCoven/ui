@@ -91,6 +91,7 @@ function Composer({
             event.key === "Enter" &&
             (event.metaKey || event.ctrlKey) &&
             !event.nativeEvent.isComposing &&
+            !event.repeat &&
             !running &&
             value.trim()
           ) {
@@ -146,7 +147,10 @@ function Composer({
         />
       </footer>
       <p id={hintId} className="m-0 text-xs text-muted-foreground">
-        {running ? "Running. Stop the run to take back control." : modeHint}
+        {running ? "Running. Stop the run to take back control." : modeHint}{" "}
+        <span className="sr-only">
+          Press Control or Command and Enter to send.
+        </span>
       </p>
     </section>
   );

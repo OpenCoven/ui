@@ -4,6 +4,7 @@ import { axe } from "vitest-axe";
 
 import { Composer, type ComposerProps } from "@opencoven/ui/blocks/composer";
 import { RunRail } from "@opencoven/ui/blocks/run-rail";
+import { SendControl } from "@opencoven/ui/components/send-control";
 
 const composerProps: ComposerProps = {
   value: "Review the diff",
@@ -13,6 +14,17 @@ const composerProps: ComposerProps = {
 };
 
 describe("enriched blocks", () => {
+  it("only offers send options when a handler is supplied", async () => {
+    const user = userEvent.setup();
+    const onOpenOptions = vi.fn();
+    const { rerender } = render(<SendControl />);
+    expect(
+      screen.queryByRole("button", { name: "Send options" }),
+    ).not.toBeInTheDocument();
+    rerender(<SendControl onOpenOptions={onOpenOptions} />);
+    await user.click(screen.getByRole("button", { name: "Send options" }));
+    expect(onOpenOptions).toHaveBeenCalledOnce();
+  });
   it("gives each composer an independent label and mode description", () => {
     render(
       <>
@@ -23,10 +35,10 @@ describe("enriched blocks", () => {
     const inputs = screen.getAllByRole("textbox", { name: "Message" });
     expect(inputs[0]!.id).not.toBe(inputs[1]!.id);
     expect(inputs[0]).toHaveAccessibleDescription(
-      "Make changes with the context you provide.",
+      "Make changes with the context you provide. Press Control or Command and Enter to send.",
     );
     expect(inputs[1]).toHaveAccessibleDescription(
-      "Map the approach before making changes.",
+      "Map the approach before making changes. Press Control or Command and Enter to send.",
     );
   });
 
@@ -94,6 +106,6 @@ describe("enriched blocks", () => {
     expect(screen.getByText("Running")).toBeVisible();
     expect(screen.getByText("Changed files")).toBeVisible();
     expect(screen.getByText("composer.tsx")).toBeVisible();
-    expect((await axe(container)).violations).toHaveLength(0);
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

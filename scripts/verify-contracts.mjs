@@ -11,6 +11,8 @@ const [
   specimenCss,
   specimenFixes,
   specimenApp,
+  codeSnippet,
+  componentPreview,
   button,
   tooltip,
   menu,
@@ -26,6 +28,8 @@ const [
   read("apps/specimens/src/specimens.css"),
   read("apps/specimens/src/specimens-fixes.css"),
   read("apps/specimens/src/app.tsx"),
+  read("apps/specimens/src/code-snippet.tsx"),
+  read("apps/specimens/src/component-preview.tsx"),
   read("packages/ui/src/components/ui/button.tsx"),
   read("packages/ui/src/components/ui/tooltip.tsx"),
   read("packages/ui/src/components/ui/dropdown-menu.tsx"),
@@ -71,8 +75,10 @@ const assertions = [
   ],
   [
     "presence is independent from primary",
-    tokens.includes("--presence: #9386d0") &&
-      tokens.includes("--primary: #e4e4e7"),
+    tokens.includes("--presence: var(--oc-presence)") &&
+      tokens.includes("--primary: var(--oc-action)") &&
+      tokens.includes("--oc-presence: #b991ff") &&
+      tokens.includes("--oc-action: #8e3dff"),
   ],
   [
     "one exact radius scale is defined",
@@ -124,8 +130,25 @@ const assertions = [
         '<TabsTrigger value="react-api">React API</TabsTrigger>',
       ) &&
       !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
-      specimenApp.includes("<span>TypeScript</span>") &&
-      specimenApp.includes("<small>React package API</small>"),
+      specimenApp.includes('language="typescript"') &&
+      specimenApp.includes("label={`Import ${specimen.title}`}"),
+  ],
+  [
+    "source shares the live preview viewport without resetting it",
+    componentPreview.includes('className="specimen-preview__canvas"') &&
+      componentPreview.includes("keepMounted") &&
+      componentPreview.includes("hidden={false}") &&
+      componentPreview.includes('visibility: sourceOpen ? "hidden"') &&
+      componentPreview.includes("inert={sourceOpen}") &&
+      /\.specimen-source-overlay\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/.test(
+        specimenCss,
+      ),
+  ],
+  [
+    "supported states remain outside preview and source tabs",
+    specimenApp.includes('className="specimen-states"') &&
+      !specimenApp.includes('<TabsTrigger value="states">') &&
+      componentPreview.includes('<TabsTrigger value="source">'),
   ],
   [
     "install snippets derive valid registry and package paths",
@@ -143,18 +166,11 @@ const assertions = [
   ],
   [
     "install snippets use visible syntax roles",
-    [
-      "syntax-command",
-      "syntax-keyword",
-      "syntax-package",
-      "syntax-string",
-      "syntax-symbol",
-      "syntax-punctuation",
-    ].every(
-      (className) =>
-        specimenApp.includes(`className="${className}"`) &&
-        specimenCss.includes(`.${className}`),
-    ),
+    ["hljs-built_in", "hljs-keyword", "hljs-title", "hljs-string"].every(
+      (className) => specimenCss.includes(`.${className}`),
+    ) &&
+      codeSnippet.includes("hljs.highlight(") &&
+      specimenApp.includes('language="bash"'),
   ],
   [
     "density control is explicit",
@@ -163,14 +179,14 @@ const assertions = [
   ],
   [
     "mobile layout covers 390px",
-    specimenFixes.includes("@media (max-width: 24.375rem)") &&
-      specimenFixes.includes(
-        "grid-template-columns: repeat(5, minmax(0, 1fr))",
+    specimenStyles.includes("@media (max-width: 24.375rem)") &&
+      /\.specimen-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/.test(
+        specimenCss,
       ),
   ],
   [
     "minimum viewport floor does not scale with text",
-    /html\s*\{[^}]*min-width:\s*320px/.test(specimenFixes),
+    /html\s*\{[^}]*min-width:\s*320px/.test(specimenStyles),
   ],
   [
     "responsive rail becomes compact navigation",
@@ -182,11 +198,9 @@ const assertions = [
   ],
   [
     "responsive grids remove intrinsic sizing floors",
-    specimenFixes.includes(
-      ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
-    ) &&
-      specimenFixes.includes(
-        ".specimen-grid {\n    grid-template-columns: minmax(0, 1fr);",
+    /\.specimen-shell[^{}]*\{[^}]*min-width:\s*0;/.test(specimenFixes) &&
+      /\.specimen-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/.test(
+        specimenCss,
       ),
   ],
   [
@@ -197,16 +211,16 @@ const assertions = [
   ],
   [
     "mobile card tabs preserve enlarged labels",
-    /\.specimen-card > \[data-slot="tabs"\] > \[data-slot="tabs-list"\]\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(5\.25rem,\s*1fr\)\);[^}]*overflow-x:\s*auto;/.test(
+    /\.specimen-card > \[data-slot="tabs"\] > \[data-slot="tabs-list"\]\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(5\.25rem,\s*1fr\)\);[^}]*overflow-x:\s*auto;/.test(
       specimenFixes,
     ),
   ],
   [
     "mobile tab selection and focus stay inside scrollport",
-    /\[data-slot="tabs-trigger"\]\[data-active\]::after\s*\{[^}]*inset-block-end:\s*0 !important;/.test(
+    /\.specimen-code-tabs \[role="tab"\]\[data-active\]::after\s*\{[^}]*inset-block-end:\s*0;/.test(
       specimenFixes,
     ) &&
-      /\[data-slot="tabs-trigger"\]:focus-visible\s*\{[^}]*outline-offset:\s*-3px;/.test(
+      /\.specimen-code-tabs \[role="tab"\]:focus-visible\s*\{[^}]*outline-offset:\s*-3px;/.test(
         specimenFixes,
       ),
   ],
@@ -221,26 +235,16 @@ const assertions = [
       /\.specimen-search\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*7rem;[^}]*flex:\s*1 1 10rem;/.test(
         specimenFixes,
       ) &&
-      specimenFixes.includes(
-        ".specimen-main__inner {\n    box-sizing: border-box;",
+      /\.specimen-main__inner[^{}]*\{[^}]*box-sizing:\s*border-box;/.test(
+        specimenFixes,
       ) &&
-      specimenFixes.includes(
-        ".specimen-stats {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
+      /\.specimen-stats\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/.test(
+        specimenStyles,
       ),
   ],
   /*
-   * The original guard here was a blanket ban on `gradient(` in the specimen
-   * stylesheet. It was a blunt proxy, added while recovering a broken shell,
-   * for the real fear: chrome turning gaudy, unreadable, or distracting from
-   * the components on display.
-   *
-   * The approved layout-parity direction supersedes that ban. The design doc
-   * calls for "subtle grid or radial treatment that does not compete with the
-   * component", and the approved plan writes literal linear-gradient rules
-   * into this very file for the preview canvas. A blanket ban would now fail
-   * the repository's own accepted design.
-   *
-   * These three contracts replace it with the intent it was standing in for.
+   * Optional decoration must stay outside public surfaces and yield to
+   * accessibility preferences. Flat canonical surfaces need no image reset.
    */
   [
     "decorative layers stay out of public component surfaces",
@@ -248,12 +252,13 @@ const assertions = [
   ],
   [
     "decorative layers yield to contrast and forced-colors preferences",
-    /@media \(prefers-contrast: more\)\s*\{[^@]*background-image:\s*none;/.test(
-      specimenCss,
-    ) &&
-      /@media \(forced-colors: active\)\s*\{[^@]*background-image:\s*none;/.test(
+    !/(?:gradient\(|background-image:)/.test(specimenCss) ||
+      (/@media \(prefers-contrast: more\)\s*\{[^@]*background-image:\s*none;/.test(
         specimenCss,
-      ),
+      ) &&
+        /@media \(forced-colors: active\)\s*\{[^@]*background-image:\s*none;/.test(
+          specimenCss,
+        )),
   ],
   [
     "specimen chrome never animates perpetually",
