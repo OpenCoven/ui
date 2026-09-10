@@ -73,8 +73,8 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
   .specimen-rail__nav a {
     min-width: 0;
     justify-content: center;
-    gap: 0.375rem;
-    padding-inline: 0.375rem;
+    gap: min(0.375rem, 8px);
+    padding-inline: 4px;
   }
 
   .specimen-card > [data-slot="tabs"] {
