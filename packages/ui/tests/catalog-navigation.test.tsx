@@ -114,11 +114,35 @@ describe("catalog navigation", () => {
     expect(screen.getAllByRole("option")).toHaveLength(1);
   });
 
+  it("clears a stale catalog fragment when filtering removes its target", () => {
+    window.history.replaceState({ retained: true }, "", "/?navigation=keep");
+    render(<App />);
+    act(() => {
+      window.history.replaceState(window.history.state, "", "#mode-switch");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    fireEvent.change(screen.getByPlaceholderText("Search components…"), {
+      target: { value: "Context meter" },
+    });
+    expect(window.location.hash).toBe("");
+    expect(window.location.search).toBe("?navigation=keep");
+    expect(window.history.state).toEqual({ retained: true });
+    fireEvent.change(screen.getByPlaceholderText("Search components…"), {
+      target: { value: "" },
+    });
+    expect(window.location.hash).toBe("");
+    expect(
+      screen.getByRole("combobox", { name: "Jump to component" }),
+    ).toHaveValue("library-overview");
+  });
+
   it("navigates from the mobile picker and follows hash history without remounting previews", async () => {
-    const { container } = render(<App />);
-    const mode = within(
-      container.querySelector("#mode-switch")! as HTMLElement,
-    );
+    render(<App />);
+    const mode = within(screen.getByRole("article", { name: "Mode switch" }));
+    const composer = screen.getByRole("article", { name: "Composer block" });
+    const draft = within(composer).getByRole("textbox", { name: "Message" });
+    fireEvent.change(draft, { target: { value: "Keep this preview draft" } });
+    fireEvent.click(within(composer).getByRole("tab", { name: "Source" }));
     fireEvent.click(mode.getByRole("button", { name: "chat" }));
     fireEvent.change(
       screen.getByRole("combobox", { name: "Jump to component" }),
@@ -146,6 +170,17 @@ describe("catalog navigation", () => {
       "aria-pressed",
       "true",
     );
+    expect(screen.getByRole("article", { name: "Composer block" })).toBe(
+      composer,
+    );
+    expect(
+      within(composer).getByRole("tab", { name: "Source" }),
+    ).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(within(composer).getByRole("tab", { name: "Preview" }));
+    expect(within(composer).getByRole("textbox", { name: "Message" })).toBe(
+      draft,
+    );
+    expect(draft).toHaveValue("Keep this preview draft");
   });
 
   it("keeps the selected link in step with manual page scrolling", async () => {

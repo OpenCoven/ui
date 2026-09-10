@@ -495,10 +495,16 @@ function useCatalogLocation(specimens: Specimen[], enabled: boolean) {
     let frame = 0;
     const onHashChange = () => {
       const id = window.location.hash.slice(1);
+      const target = document.getElementById(id);
+      if (id && !target) {
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${window.location.pathname}${window.location.search}`,
+        );
+      }
       setActiveId(
-        document
-          .getElementById(id)
-          ?.matches("#library-overview, .catalog-group, .specimen-card")
+        target?.matches("#library-overview, .catalog-group, .specimen-card")
           ? id
           : "library-overview",
       );

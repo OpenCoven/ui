@@ -336,6 +336,11 @@ async function auditInteractions(client, scenario) {
   );
   await client.send("Input.insertText", { text: "no-such-specimen" });
   await waitForRender(client, ".catalog-empty");
+  await waitForValue(
+    client,
+    'location.hash === ""',
+    "filtered-out component fragment cleared",
+  );
   await pressKey(client, "a", "KeyA", 65, selectAllModifier);
   await client.send("Input.insertText", { text: "Context meter" });
   await waitForValue(
