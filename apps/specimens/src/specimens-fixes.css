@@ -77,6 +77,10 @@ body:not(:has(#group-blocks)) .specimen-rail a[href="#group-blocks"] {
     padding-inline: 4px;
   }
 
+  .specimen-rail__nav small {
+    display: none;
+  }
+
   .specimen-card > [data-slot="tabs"] {
     width: 100%;
     min-width: 0;

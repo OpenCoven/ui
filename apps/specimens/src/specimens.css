@@ -282,6 +282,7 @@ body {
 
 .specimen-hero h1 {
   max-width: 19ch;
+  overflow-wrap: anywhere;
   margin: 0.5rem 0 0;
   font-family: var(--font-display);
   font-size: var(--oc-type-4);

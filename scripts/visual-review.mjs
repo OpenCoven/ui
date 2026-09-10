@@ -211,33 +211,46 @@ async function waitForValue(client, expression, description) {
 }
 
 async function clickElement(client, selector, text) {
-  const point = await evaluateValue(
-    client,
-    `(async () => {
+  const deadline = Date.now() + 10_000;
+  let point;
+  while (Date.now() < deadline) {
+    point = await evaluateValue(
+      client,
+      `(async () => {
       const element = [...document.querySelectorAll(${JSON.stringify(selector)})]
         .find(element => ${text ? `element.textContent.trim() === ${JSON.stringify(text)}` : "true"});
-      if (!element || element.disabled) throw new Error("Unavailable control: " + ${JSON.stringify(selector)});
+      if (!element || element.disabled) return { ready: false, reason: "unavailable or disabled" };
       element.scrollIntoView({ block: "center", inline: "nearest" });
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const bounds = element.getBoundingClientRect();
       const x = bounds.left + bounds.width / 2;
       const y = bounds.top + bounds.height / 2;
-      if (!element.contains(document.elementFromPoint(x, y))) throw new Error("Obscured control: " + ${JSON.stringify(selector)});
-      return { x, y };
+      const hit = document.elementFromPoint(x, y);
+      if (!element.contains(hit)) return { ready: false, reason: "obscured", hit: hit?.className, x, y };
+      return { ready: true, x, y };
     })()`,
-    true,
-  );
+      true,
+    );
+    if (point.ready) break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  if (!point?.ready)
+    throw new Error(
+      `Control not clickable: ${selector} ${text ?? ""}; ${JSON.stringify(point)}`,
+    );
   await client.send("Input.dispatchMouseEvent", {
     type: "mousePressed",
     button: "left",
     clickCount: 1,
-    ...point,
+    x: point.x,
+    y: point.y,
   });
   await client.send("Input.dispatchMouseEvent", {
     type: "mouseReleased",
     button: "left",
     clickCount: 1,
-    ...point,
+    x: point.x,
+    y: point.y,
   });
 }
 

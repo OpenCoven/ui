@@ -62,6 +62,14 @@ const cases = [
     density: "default",
     textScale: 2,
   },
+  {
+    name: "mobile-320-dark-wide-display",
+    width: 320,
+    scheme: "dark",
+    density: "default",
+    textScale: 2,
+    wideDisplayFont: true,
+  },
 ];
 
 if (!chromePath) throw new Error("CHROME_PATH is required");
@@ -287,6 +295,9 @@ try {
       document.documentElement.style.fontSize = ${JSON.stringify(
         scenario.textScale ? `${scenario.textScale * 100}%` : "",
       )};
+      if (${Boolean(scenario.wideDisplayFont)}) {
+        document.documentElement.style.setProperty("--oc-font-display", "ui-monospace, monospace");
+      }
     })()`);
 
     const measurement = await evaluate(`(async () => {
