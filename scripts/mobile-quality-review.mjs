@@ -297,6 +297,7 @@ try {
       )};
       if (${Boolean(scenario.wideDisplayFont)}) {
         document.documentElement.style.setProperty("--oc-font-display", "ui-monospace, monospace");
+        document.documentElement.style.setProperty("--font-editorial", "ui-monospace, monospace");
       }
     })()`);
 
@@ -437,6 +438,17 @@ try {
           rect(rail)?.bottom ?? 0,
         ),
         firstCardTop: rect(firstCard)?.top ?? null,
+        headingWordLines: (() => {
+          const heading = document.querySelector("h1");
+          let start = 0;
+          return heading.textContent.split(" ").map(word => {
+            const range = document.createRange();
+            range.setStart(heading.firstChild, start);
+            range.setEnd(heading.firstChild, start + word.length);
+            start += word.length + 1;
+            return range.getClientRects().length;
+          });
+        })(),
         railNavOverflow: clipped(
           document.querySelector(".specimen-mobile-nav"),
         ),
@@ -573,6 +585,9 @@ try {
     }
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
+    }
+    if (measurement.headingWordLines.some((lines) => lines !== 1)) {
+      failures.push("page heading breaks inside a word");
     }
     if (measurement.tabRootCount !== 16) {
       failures.push(

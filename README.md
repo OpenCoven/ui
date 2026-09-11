@@ -23,10 +23,10 @@ quietly drift back into copied HTML.
 | Icons           | Lucide                                        |
 | Distribution    | `@opencoven/ui` package and shadcn registry   |
 
-Zinc supplies scaffold structure only. Colors, display/reading/mono font roles,
+Zinc supplies scaffold structure only. The package's colors and display/reading/mono font roles,
 and the 4/8/12/16/24/32/48/64/96px spacing scale map to the pinned canonical
-brand profile. Fonts use its local/system fallback stacks; no font files or
-third-party font requests are bundled. Components consume semantic tokens such
+brand profile. Package fonts use its local/system fallback stacks without
+bundled font files or third-party font requests. Components consume semantic tokens such
 as `background`, `card`, `presence`, `success`, and the canonical
 `tool-read`/`tool-write`/`tool-exec`/`tool-net` mappings.
 
@@ -69,15 +69,55 @@ direct navigation, while the selected entry follows page scrolling.
 Library and Lab use one fixed compact layout, without density controls or
 density labels. Public component density props remain available to consumers.
 
-The library presents one specimen per row, with bounded live surfaces,
-responsive block layouts, and a compact installation strip. It keeps live previews above syntax-highlighted install commands,
+The app uses the [docs UI](https://docs.opencoven.ai/docs/guide/getting-started)
+neutral backgrounds (`#121212` dark, `#f5f5f5` light), with Cave's **Coven**
+default lavender accents, Inter for documentation headings and interface text,
+and JetBrains Mono for code and numeric labels. EB Garamond remains available
+through the Cave editorial token but is not preloaded for documentation pages.
+The Cave reference is
+[`foundations.css` at `47afd756`](https://github.com/OpenCoven/coven-cave/blob/47afd75644ad9e28136f480b4185409541adb68f/src/styles/globals/foundations.css).
+Color conveys interaction or semantic state, not catalog categories.
+Dark is the initial scheme; saved light preferences are respected.
+`coven-theme.css` scopes these aliases to the app, including portaled menus.
+The official mark, shared spacing scale, and public package/registry tokens stay
+unchanged.
+
+The three Latin variable fonts are self-hosted, with no runtime font requests
+to third parties. Their SIL Open Font License 1.1 files are included alongside
+each font in `public/fonts/`.
+
+Component headings link directly to their specimens. Search announces the
+result count and provides a clear action beside the query; Escape clears the
+query while the search field is focused.
+The slim desktop header centers search between balanced side columns, with
+navigation on the left and an icon-only theme action on the right. Below
+1088px, search occupies its own centered row with touch-sized controls.
+
+The presentation follows [shadcn's component documentation](https://ui.shadcn.com/docs/components/button):
+sans-serif headings, quiet grouped navigation, a unified neutral shell, and
+text-only Preview/Source tabs above a bordered canvas. The OpenCoven mark,
+original column widths, complete catalog, and stateful demos remain intact.
+
+The library uses a compact documentation header and one specimen per row, with
+a single bounded preview canvas rather than nested outer cards. Small controls
+retain their intrinsic width on mobile; composed surfaces use the available
+space. Install/Import tabs and their code panels use the full content width
+beneath the preview. It keeps live previews above syntax-highlighted install commands,
 imports, and full component source, with copy controls and explicit
 clipboard-failure feedback. The shared code renderer supports Bash,
 TypeScript/TSX, and CSS. Each specimen has Preview/Source tabs in a fixed-size
 preview area, so opening source does not change the card or page height.
 Preview or Escape returns to the same component state; source scrolls inside
 that area. Supported states live in a separate, always-visible footer rather
-than a tab. The Lab
+than a tab.
+
+Related specimens expose **Open in Lab** links to their matching scene.
+Scene URLs such as `/lab#run-rail` are shareable; scene changes replace the
+current fragment without adding history entries. Browser hash history preserves
+mounted drafts, and unknown scene fragments normalize to Composer.
+**View in library** returns to the relevant specimen.
+
+The Lab
 fits the viewport and offers six scenes through tabs, previous/next controls,
 and touch swipes. Only the active scene scrolls when space is limited or text
 is enlarged; the page and navigation stay fixed. Demo actions are local and

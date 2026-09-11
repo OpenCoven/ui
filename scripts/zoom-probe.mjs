@@ -1,10 +1,9 @@
 /*
- * Detail probe for the specimen shell's ritual-tech finish.
+ * Detail probe for the specimen shell's documentation frame and typography.
  *
  * visual-review.mjs captures whole pages at 1x, which is the right scale for
- * layout regressions but too coarse to confirm a 1px circuitry trace actually
- * paints. This grabs one card at 3x and asserts the decorative layers resolve
- * to real colours rather than to an unresolved custom property.
+ * layout regressions. This grabs one card at 3x and records the canvas border,
+ * heading typography, and background for closer visual inspection.
  *
  * The evaluate callbacks below run in the page, not in Node.
  */
@@ -39,25 +38,27 @@ await card.scrollIntoViewIfNeeded();
 await page.waitForTimeout(300);
 await card.screenshot({ path: `${outDir}/zoom-card.png` });
 
-// Prove the circuitry trace is painted, not merely declared.
-const trace = await card.evaluate((node) => {
-  const style = getComputedStyle(node, "::before");
-  return {
-    content: style.content,
-    height: style.height,
-    backgroundImage: style.backgroundImage.slice(0, 160),
-    display: style.display,
-  };
-});
+const frame = await card
+  .locator(".specimen-preview__canvas")
+  .evaluate((node) => {
+    const style = getComputedStyle(node);
+    return {
+      borderWidth: style.borderTopWidth,
+      borderColor: style.borderTopColor,
+      borderRadius: style.borderRadius,
+      background: style.backgroundColor,
+    };
+  });
 
-const eyebrow = await page
-  .locator(".catalog-group__eyebrow")
+const heading = await page
+  .locator(".catalog-group h2")
   .first()
   .evaluate((node) => {
-    const style = getComputedStyle(node, "::before");
+    const style = getComputedStyle(node);
     return {
-      width: style.width,
-      backgroundImage: style.backgroundImage.slice(0, 120),
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
     };
   });
 
@@ -79,7 +80,7 @@ const animations = await page.evaluate(() =>
 
 console.log(
   JSON.stringify(
-    { trace, eyebrow, bodyLayers, runningAnimations: animations },
+    { frame, heading, bodyLayers, runningAnimations: animations },
     null,
     2,
   ),

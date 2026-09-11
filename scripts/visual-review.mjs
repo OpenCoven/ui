@@ -284,7 +284,7 @@ async function pressKey(client, key, code, keyCode, modifiers = 0) {
   }
 }
 
-async function auditInteractions(client, scenario) {
+async function auditNavigation(client, scenario) {
   await navigate(
     client,
     new URL("/?navigation-audit#session-header", baseUrl).href,
@@ -319,6 +319,13 @@ async function auditInteractions(client, scenario) {
       document.querySelector('.specimen-rail__nav a[href="#mode-switch"]').getAttribute("aria-current") === "location"`,
     "component navigation",
   );
+  await clickElement(client, "#send-control .specimen-permalink");
+  await waitForValue(
+    client,
+    `location.hash === "#send-control" &&
+      document.querySelector('.specimen-rail__nav a[href="#send-control"]').getAttribute("aria-current") === "location"`,
+    "component heading permalink",
+  );
   await evaluateValue(
     client,
     `document.getElementById("plan-row").scrollIntoView({ block: "start" })`,
@@ -328,6 +335,9 @@ async function auditInteractions(client, scenario) {
     `document.querySelector('.specimen-rail__nav a[href="#plan-row"]').getAttribute("aria-current") === "location"`,
     "scroll-synchronized component navigation",
   );
+}
+
+async function auditSearchRecovery(client, scenario) {
   await pressKey(client, "k", "KeyK", 75, 2);
   await waitForValue(
     client,
@@ -341,6 +351,68 @@ async function auditInteractions(client, scenario) {
     'location.hash === ""',
     "filtered-out component fragment cleared",
   );
+  await waitForValue(
+    client,
+    `document.querySelector('[role="status"][aria-label="Search results"]').textContent === "0 results"`,
+    "empty search feedback",
+  );
+  const searchLayout = await evaluateValue(
+    client,
+    `(() => {
+      const root = document.documentElement;
+      const emptyStyle = getComputedStyle(document.querySelector(".catalog-empty"));
+      const elements = [...document.querySelectorAll(".catalog-results, .catalog-clear-search, .catalog-empty, .catalog-empty h2, .catalog-empty p")];
+      return {
+        fontSize: getComputedStyle(root).fontSize,
+        emptyPadding: parseFloat(emptyStyle.paddingLeft),
+        emptyMinHeight: parseFloat(emptyStyle.minHeight),
+        documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+        clipped: elements.filter(element => element.scrollWidth > element.clientWidth + 1)
+          .map(element => ({ element: element.className || element.tagName, overflow: element.scrollWidth - element.clientWidth })),
+      };
+    })()`,
+  );
+  if (scenario.textScale) {
+    await evaluateValue(
+      client,
+      `(async () => {
+        document.querySelector(".catalog-results").scrollIntoView({ block: "start" });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      })()`,
+      true,
+    );
+  }
+  const emptySearch = await client.send("Page.captureScreenshot", {
+    format: "png",
+    fromSurface: true,
+    captureBeyondViewport: false,
+  });
+  await writeFile(
+    path.join(outputDir, `${scenario.name}-search-empty.png`),
+    Buffer.from(emptySearch.data, "base64"),
+  );
+  if (
+    searchLayout.documentOverflow > 1 ||
+    searchLayout.clipped.length ||
+    searchLayout.emptyPadding > 32 ||
+    searchLayout.emptyMinHeight > 320
+  ) {
+    throw new Error(
+      `${scenario.name}: search layout ${JSON.stringify(searchLayout)}`,
+    );
+  }
+  await clickElement(client, ".catalog-clear-search");
+  await waitForValue(
+    client,
+    `(() => {
+      const input = document.querySelector(".specimen-search input");
+      const bounds = input.getBoundingClientRect();
+      return document.activeElement === input && input.value === "" &&
+        document.querySelectorAll(".specimen-card").length === 16 &&
+        bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })()`,
+    "clear search restores visible input focus",
+  );
   await pressKey(client, "a", "KeyA", 65, selectAllModifier);
   await client.send("Input.insertText", { text: "Context meter" });
   await waitForValue(
@@ -351,14 +423,19 @@ async function auditInteractions(client, scenario) {
       document.querySelectorAll("#component-picker option").length === 2`,
     "filtered specimen",
   );
-  await pressKey(client, "a", "KeyA", 65, selectAllModifier);
-  await pressKey(client, "Backspace", "Backspace", 8);
+  await pressKey(client, "Escape", "Escape", 27);
   await waitForValue(
     client,
-    `document.querySelectorAll(".specimen-card").length === 16`,
+    `document.querySelectorAll(".specimen-card").length === 16 &&
+      document.activeElement === document.querySelector(".specimen-search input")`,
     "restored catalog",
   );
+  return searchLayout;
+}
 
+async function auditInteractions(client, scenario) {
+  await auditNavigation(client, scenario);
+  await auditSearchRecovery(client, scenario);
   await clickElement(client, ".scheme-control");
   await evaluateValue(
     client,
@@ -455,6 +532,30 @@ async function auditInteractions(client, scenario) {
     "stop control",
   );
 
+  const sceneLoaded = client.waitForEvent("Page.loadEventFired");
+  await clickElement(client, "#run-rail .specimen-lab-link");
+  await sceneLoaded;
+  await waitForValue(
+    client,
+    `location.pathname === "/lab" && location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "run-rail"`,
+    "direct Library-to-Lab scene link",
+  );
+  await evaluateValue(client, 'document.querySelector(".skip-link").focus()');
+  await pressKey(client, "Enter", "Enter", 13);
+  await waitForValue(
+    client,
+    `document.activeElement?.id === "specimen-main" && location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "run-rail"`,
+    "Lab skip link preserves the active scene",
+  );
+  const libraryLoaded = client.waitForEvent("Page.loadEventFired");
+  await clickElement(client, ".lab-footer a");
+  await libraryLoaded;
+  await waitForValue(
+    client,
+    `location.pathname === "/" && location.hash === "#run-rail" && Boolean(document.querySelector("#run-rail .specimen-lab-link"))`,
+    "return to the matching library specimen",
+  );
+
   const loaded = client.waitForEvent("Page.loadEventFired");
   await clickElement(client, '.surface-switcher a[href="/lab"]');
   await loaded;
@@ -465,14 +566,26 @@ async function auditInteractions(client, scenario) {
   await clickElement(client, 'button[aria-label="Next scene"]');
   await waitForValue(
     client,
-    `document.querySelector(".assembled-lab__tabs [aria-selected=true]").dataset.sceneId === "run-rail"`,
+    `location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]").dataset.sceneId === "run-rail"`,
     "next scene",
   );
   await clickElement(client, 'button[aria-label="Previous scene"]');
   await waitForValue(
     client,
-    `document.querySelector(".lab-scene-panel:not([hidden]) textarea")?.value === "Keep this carousel draft"`,
+    `location.hash === "#composer" && document.querySelector(".lab-scene-panel:not([hidden]) textarea")?.value === "Keep this carousel draft"`,
     "carousel draft preservation",
+  );
+  await evaluateValue(client, 'location.hash = "#messages"');
+  await waitForValue(
+    client,
+    `document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "messages"`,
+    "external scene hash",
+  );
+  await evaluateValue(client, "history.back()");
+  await waitForValue(
+    client,
+    `location.hash === "#composer" && document.querySelector(".lab-scene-panel:not([hidden]) textarea")?.value === "Keep this carousel draft"`,
+    "browser Back restores the scene without losing its draft",
   );
   await clickElement(client, ".assembled-lab__tabs [data-scene-id=composer]");
   await pressKey(client, "ArrowRight", "ArrowRight", 39);
@@ -578,11 +691,15 @@ async function auditInventory(client, scenario) {
       const overlay = card.querySelector(".specimen-source-overlay");
       const canvas = card.querySelector(".specimen-preview__canvas");
       const source = overlay.querySelector("code").textContent;
+      const codeViewport = overlay.querySelector("pre");
+      const codeStyle = getComputedStyle(codeViewport);
       const result = {
         source,
+        visibleCodeLines: (codeViewport.clientHeight - parseFloat(codeStyle.paddingTop) - parseFloat(codeStyle.paddingBottom)) / parseFloat(codeStyle.lineHeight),
+        permalink: card.querySelector(".specimen-permalink")?.getAttribute("href") === "#" + card.id,
         stable: Math.abs(before.page - document.documentElement.scrollHeight) < 1 &&
           Math.abs(before.card - card.getBoundingClientRect().height) < 1 && Math.abs(before.scroll - scrollY) < 1,
-        covers: Math.abs(overlay.getBoundingClientRect().height - canvas.getBoundingClientRect().height) < 1 &&
+        covers: Math.abs(overlay.getBoundingClientRect().height - canvas.clientHeight) < 1 &&
           card.querySelector(".specimen-live-panel").inert,
         overflow: Math.max(card.scrollWidth - card.clientWidth, stage.scrollWidth - stage.clientWidth),
       };
@@ -601,6 +718,9 @@ async function auditInventory(client, scenario) {
     if (
       !result.stable ||
       !result.covers ||
+      !result.permalink ||
+      !Number.isFinite(result.visibleCodeLines) ||
+      result.visibleCodeLines < 2 ||
       result.overflow > 1 ||
       result.source !== expected
     ) {
@@ -631,6 +751,7 @@ async function auditInventory(client, scenario) {
       screenshot,
       stable: result.stable,
       overflow: result.overflow,
+      visibleCodeLines: result.visibleCodeLines,
     });
   }
   return {
@@ -683,7 +804,7 @@ const scenarios = [
     legacyDensity: "default",
     mobile: false,
     expected: "library",
-    revealCodeTab: "CLI",
+    revealCodeTab: "Install",
     codeTargetId: "mode-switch",
     expectedCode:
       'pnpm dlx shadcn@latest add "https://ui.opencoven.ai/r/mode-switch.json"',
@@ -703,7 +824,7 @@ const scenarios = [
     legacyDensity: "compact",
     mobile: false,
     expected: "library",
-    revealCodeTab: "React API",
+    revealCodeTab: "Import",
     codeTargetId: "session-header",
     expectedCode:
       'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
@@ -719,7 +840,7 @@ const scenarios = [
     mobile: true,
     expected: "library",
     textScale: 2,
-    revealCodeTab: "React API",
+    revealCodeTab: "Import",
     codeTargetId: "session-header",
     expectedCode:
       'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
@@ -1188,7 +1309,11 @@ try {
               [a.left + 8, a.bottom - 8], [a.right - 8, a.bottom - 8],
               [a.left + a.width / 2, a.top + a.height / 2],
             ];
-            return ["top","left","width","height"].every(key => Math.abs(a[key] - b[key]) < 1) &&
+            const interior = {
+              top: b.top + canvas.clientTop, left: b.left + canvas.clientLeft,
+              width: canvas.clientWidth, height: canvas.clientHeight,
+            };
+            return ["top","left","width","height"].every(key => Math.abs(a[key] - interior[key]) < 1) &&
               live.inert && live.getAttribute("aria-hidden") === "true" &&
               samplePoints.every(([x, y]) => overlay.contains(document.elementFromPoint(x, y)));
           })(),
@@ -1208,6 +1333,22 @@ try {
           previewVisible: isVisible(codeCard?.querySelector(".specimen-preview")),
           logoMask: getComputedStyle(document.querySelector(".specimen-brand__mark > span")).maskImage,
           topbarVisible: isVisible(topbar),
+          headerPresentation: (() => {
+            const search = document.querySelector(".specimen-search");
+            const header = document.querySelector(".specimen-topbar__inner");
+            const searchBox = bounds(search);
+            const headerBox = bounds(header);
+            const theme = document.querySelector(".scheme-control");
+            return {
+              searchCenterOffset: searchBox
+                ? Math.abs(searchBox.left + searchBox.width / 2 - (headerBox.left + headerBox.width / 2))
+                : null,
+              height: bounds(topbar).height,
+              searchHeight: searchBox?.height ?? null,
+              themeText: theme.textContent.trim(),
+              titleSize: parseFloat(getComputedStyle(document.querySelector("h1")).fontSize),
+            };
+          })(),
           railVisible: isVisible(rail),
           catalogLayout: (() => {
             const inner = document.querySelector(".specimen-main__inner");
@@ -1238,6 +1379,27 @@ try {
           heroHeight: heroBounds?.height ?? null,
           contentTop: contentBounds?.top ?? null,
           cardCount: cards.length,
+          smallPreviewHeight: bounds(document.querySelector("#mode-switch .specimen-stage"))?.height,
+          previewPresentation: (() => {
+            const card = document.querySelector("#mode-switch");
+            if (!card) return null;
+            const preview = card.querySelector(".specimen-preview");
+            const canvas = card.querySelector(".specimen-preview__canvas");
+            const tabs = card.querySelector(".specimen-view-tabs");
+            return {
+              top: bounds(preview).top,
+              bottom: bounds(preview).bottom,
+              articleBorder: parseFloat(getComputedStyle(card).borderTopWidth),
+              previewBorder: parseFloat(getComputedStyle(preview).borderTopWidth),
+              canvasBorder: parseFloat(getComputedStyle(canvas).borderTopWidth),
+              tabsAboveCanvas: bounds(tabs).bottom <= bounds(canvas).top,
+              textOnlyTabs: tabs.querySelectorAll("svg").length === 0,
+              neutralCanvas: getComputedStyle(canvas).backgroundColor === getComputedStyle(document.body).backgroundColor,
+              stageWidth: bounds(card.querySelector(".specimen-stage")).width,
+              controlWidth: bounds(card.querySelector('[data-slot="mode-switch"]')).width,
+              codeSize: parseFloat(getComputedStyle(card.querySelector(".specimen-command")).fontSize),
+            };
+          })(),
           stateFooterCount: document.querySelectorAll(".specimen-states").length,
           libraryColumns: [...document.querySelectorAll(".specimen-grid")].map(grid => getComputedStyle(grid).gridTemplateColumns.split(" ").length),
           runRailColumns: (() => {
@@ -1246,8 +1408,84 @@ try {
           })(),
           statesTabCount: [...document.querySelectorAll(".specimen-card [role=tab]")].filter(tab => tab.textContent.trim() === "States").length,
           brandAction: getComputedStyle(root).getPropertyValue("--oc-action").trim(),
+          backgroundColors: ["body", ".specimen-topbar", ".specimen-rail", ".specimen-card", ".specimen-preview__canvas", ".assembled-lab__stage"]
+            .flatMap(selector => {
+              let element = document.querySelector(selector);
+              if (!element) return [];
+              let color = getComputedStyle(element).backgroundColor;
+              while (color === "rgba(0, 0, 0, 0)" && element.parentElement) {
+                element = element.parentElement;
+                color = getComputedStyle(element).backgroundColor;
+              }
+              return [{ selector, color }];
+            }),
+          presentation: root.dataset.presentation,
+          presentationBackground: getComputedStyle(root).getPropertyValue("--oc-bg").trim(),
+          neutralHeading: getComputedStyle(document.querySelector("h1")).color === getComputedStyle(document.body).color,
+          documentationChrome: {
+            unifiedSurfaces: [topbar, rail].filter(Boolean).every(element =>
+              getComputedStyle(element).backgroundColor === getComputedStyle(document.body).backgroundColor),
+            sansSectionHeadings: [...document.querySelectorAll(".catalog-group h2")].every(element =>
+              getComputedStyle(element).fontFamily.includes("Inter")),
+            sidebarBorder: rail ? parseFloat(getComputedStyle(rail).borderInlineEndWidth) : 0,
+            decorativeLabels: document.querySelectorAll(".catalog-group__eyebrow, .catalog-group__count, .specimen-rail__nav small, .specimen-brand small").length,
+          },
+          presentationContrast: (() => {
+            const style = getComputedStyle(root);
+            const value = name => style.getPropertyValue(name).trim();
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 1;
+            const context = canvas.getContext("2d");
+            const luminance = rgb => {
+              const linear = [...rgb].slice(0, 3).map(channel => {
+                const value = channel / 255;
+                return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+              });
+              return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+            };
+            const pairs = [
+              ["text", "--foreground", "--background", 4.5],
+              ["muted text", "--muted-foreground", "--background", 4.5],
+              ["preview captions", "--muted-foreground", "--oc-surface-2", 4.5],
+              ["primary action", "--primary-foreground", "--primary", 4.5],
+              ["selected controls", "--presence", "--oc-surface-2", 4.5],
+              ["focus ring", "--ring", "--background", 3],
+              ["input boundary", "--input", "--card", 3],
+              ["success", "--success", "--card", 4.5],
+              ["success surface", "--success", "--oc-success-bg", 4.5],
+              ["warning", "--warning", "--card", 4.5],
+              ["warning surface", "--warning", "--oc-pending-bg", 4.5],
+              ["error", "--destructive", "--card", 4.5],
+              ["information", "--information", "--card", 4.5],
+            ];
+            const resolvedPairs = pairs.map(([name, foreground, background, minimum]) =>
+              [name, value(foreground), value(background), minimum]
+            );
+            const count = document.querySelector(".specimen-rail__nav small");
+            if (count) {
+              resolvedPairs.push(["navigation count", getComputedStyle(count).color, getComputedStyle(document.body).backgroundColor, 4.5]);
+            }
+            for (const token of visibleSyntaxTokens) {
+              const command = token.closest(".specimen-command");
+              if (command) {
+                resolvedPairs.push([token.className, getComputedStyle(token).color, getComputedStyle(command).backgroundColor, 4.5]);
+              }
+            }
+            return resolvedPairs.map(([name, foreground, background, minimum]) => {
+              context.clearRect(0, 0, 1, 1);
+              context.fillStyle = background;
+              context.fillRect(0, 0, 1, 1);
+              const back = luminance(context.getImageData(0, 0, 1, 1).data);
+              context.fillStyle = foreground;
+              context.fillRect(0, 0, 1, 1);
+              const front = luminance(context.getImageData(0, 0, 1, 1).data);
+              return { name, minimum, ratio: (Math.max(front, back) + 0.05) / (Math.min(front, back) + 0.05) };
+            });
+          })(),
           brandSpacing: getComputedStyle(root).getPropertyValue("--oc-space-6").trim(),
           displayFont: getComputedStyle(document.querySelector("h1")).fontFamily,
+          interfaceFont: getComputedStyle(document.body).fontFamily,
+          loadedFonts: [...document.fonts].filter(face => face.status === "loaded").map(face => face.family),
           forcedSelectionVisible: (() => {
             const tab = document.querySelector(".specimen-view-tabs [aria-selected=true]");
             if (!tab) return false;
@@ -1319,6 +1557,78 @@ try {
     );
 
     const failures = [];
+    const header = layout.headerPresentation;
+    if (
+      (header.searchCenterOffset !== null && header.searchCenterOffset > 1) ||
+      header.themeText !== "" ||
+      (!scenario.textScale &&
+        scenario.width > 1088 &&
+        (header.height > 53 ||
+          header.titleSize > 28 ||
+          (header.searchHeight !== null && header.searchHeight > 36)))
+    ) {
+      failures.push(
+        `centered slim header regressed: ${JSON.stringify(header)}`,
+      );
+    }
+    if (layout.previewPresentation) {
+      const preview = layout.previewPresentation;
+      if (
+        preview.articleBorder !== 0 ||
+        preview.previewBorder !== 0 ||
+        preview.canvasBorder !== 1 ||
+        !preview.tabsAboveCanvas ||
+        !preview.textOnlyTabs ||
+        !preview.neutralCanvas ||
+        preview.codeSize < 12
+      ) {
+        failures.push(
+          `preview hierarchy or source readability regressed: ${JSON.stringify(preview)}`,
+        );
+      }
+      if (
+        !layout.documentationChrome.unifiedSurfaces ||
+        !layout.documentationChrome.sansSectionHeadings ||
+        layout.documentationChrome.sidebarBorder !== 0 ||
+        layout.documentationChrome.decorativeLabels !== 0
+      ) {
+        failures.push(
+          `documentation chrome regressed: ${JSON.stringify(layout.documentationChrome)}`,
+        );
+      }
+      if (!scenario.textScale) {
+        if (preview.controlWidth > preview.stageWidth - 64) {
+          failures.push("small controls are stretched across their preview");
+        }
+        if (layout.scrollY < 1 && scenario.height >= 800) {
+          const maximumTop =
+            layout.viewportWidth > 880
+              ? layout.topbarHeight + 340
+              : layout.mobileChromeBottom + 380;
+          if (preview.top > maximumTop || preview.bottom > scenario.height) {
+            failures.push(
+              `first preview is too far below the fold: ${preview.top}-${preview.bottom}`,
+            );
+          }
+        }
+      }
+    }
+    for (const pair of layout.presentationContrast) {
+      if (!Number.isFinite(pair.ratio) || pair.ratio < pair.minimum) {
+        failures.push(
+          `${pair.name} contrast ${pair.ratio.toFixed(2)} is below ${pair.minimum}`,
+        );
+      }
+    }
+    if (
+      scenario.expected === "library" &&
+      !scenario.textScale &&
+      layout.smallPreviewHeight > 161
+    ) {
+      failures.push(
+        `small preview has excessive empty space: ${layout.smallPreviewHeight}px`,
+      );
+    }
     if (scenario.expected === "library") {
       const nav = layout.catalogLayout;
       const desktop = layout.viewportWidth > 880;
@@ -1361,15 +1671,42 @@ try {
     ) {
       failures.push("run rail does not use the available preview width");
     }
+    if (!scenario.forcedColors) {
+      for (const surface of layout.backgroundColors) {
+        const channels = surface.color
+          .match(/^rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)$/)
+          ?.slice(1)
+          .map(Number);
+        if (!channels || Math.max(...channels) - Math.min(...channels) > 1) {
+          failures.push(
+            `non-neutral background at ${surface.selector}: ${surface.color}`,
+          );
+        }
+      }
+    }
     if (
       layout.brandAction !==
-        (scenario.scheme === "dark" ? "#8e3dff" : "#7a22ee") ||
+        (scenario.scheme === "dark" ? "#9386d0" : "#6859ac") ||
+      layout.presentation !== "coven" ||
+      layout.presentationBackground !==
+        (scenario.scheme === "dark" ? "#121212" : "#f5f5f5") ||
+      !layout.neutralHeading ||
       layout.brandSpacing !== "1.5rem" ||
-      !layout.displayFont.startsWith("Geist")
+      !layout.displayFont.includes("Inter") ||
+      !layout.interfaceFont.includes("Inter")
     ) {
       failures.push(
-        `canonical brand mismatch: ${layout.brandAction}, ${layout.brandSpacing}, ${layout.displayFont}`,
+        `Coven presentation mismatch: ${layout.brandAction}, ${layout.presentationBackground}, ${layout.brandSpacing}, ${layout.displayFont}`,
       );
+    }
+    const requiredFonts = ["Inter"];
+    if (layout.codeSnippetCount > 0) requiredFonts.push("JetBrains Mono");
+    for (const family of requiredFonts) {
+      if (!layout.loadedFonts.some((loaded) => loaded.includes(family))) {
+        failures.push(
+          `visible content has not loaded the bundled ${family} font`,
+        );
+      }
     }
     if (
       !layout.topbarVisible ||
@@ -1644,6 +1981,9 @@ try {
 
     if (scenario.auditInventory) {
       layout.inventory = await auditInventory(client, scenario);
+    }
+    if (scenario.expected === "library" && scenario.textScale) {
+      layout.searchRecovery = await auditSearchRecovery(client, scenario);
     }
     if (scenario.auditInteractions) {
       layout.interactions = await auditInteractions(client, scenario);
