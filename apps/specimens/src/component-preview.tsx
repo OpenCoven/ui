@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@opencoven/ui";
-import { Braces, Eye } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 
 import { CodeSnippet } from "./code-snippet";
@@ -35,16 +34,15 @@ function ComponentPreview({
         className="specimen-preview__tabs"
       >
         <TabsList
+          variant="line"
           className="specimen-view-tabs"
           aria-label={`${title} view`}
           activateOnFocus
         >
           <TabsTrigger value="preview" ref={triggerRef}>
-            <Eye aria-hidden="true" /> Preview
+            Preview
           </TabsTrigger>
-          <TabsTrigger value="source">
-            <Braces aria-hidden="true" /> Source
-          </TabsTrigger>
+          <TabsTrigger value="source">Source</TabsTrigger>
         </TabsList>
         <div className="specimen-preview__canvas">
           {/* Keep the live component's dimensions and state behind its source. */}

@@ -124,10 +124,53 @@ const assertions = [
       specimenApp.includes("<h2>{group}</h2>"),
   ],
   [
-    "CLI and React API tabs stay separate",
-    specimenApp.includes('<TabsTrigger value="cli">CLI</TabsTrigger>') &&
+    "specimens frame the canvas rather than the preview toolbar",
+    /\.specimen-card\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/.test(
+      specimenCss,
+    ) &&
+      /\.specimen-preview\s*\{[^}]*border:\s*0;/.test(specimenCss) &&
+      /\.specimen-preview__canvas\s*\{[^}]*border:\s*1px solid var\(--border\);[^}]*background:\s*var\(--background\);/.test(
+        specimenCss,
+      ),
+  ],
+  [
+    "documentation headings use the interface font",
+    /\.specimen-hero h1\s*\{[^}]*font-family:\s*var\(--font-display\);/.test(
+      specimenCss,
+    ) &&
+      /\.catalog-group__header h2\s*\{[^}]*font-family:\s*var\(--font-display\);/.test(
+        specimenCss,
+      ),
+  ],
+  [
+    "documentation chrome uses neutral surfaces",
+    /\.specimen-topbar\s*\{[^}]*background:\s*var\(--background\);/.test(
+      specimenCss,
+    ) &&
+      /\.specimen-rail\s*\{[^}]*background:\s*var\(--background\);/.test(
+        specimenCss,
+      ),
+  ],
+  [
+    "topbar centers search between balanced side columns",
+    /\.specimen-topbar__inner\s*\{[^}]*display:\s*grid;[^}]*min-height:\s*3\.25rem;[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, min\(22rem, 40vw\)\) minmax\(\s*0,\s*1fr\s*\);/.test(
+      specimenCss,
+    ),
+  ],
+  [
+    "mobile examples retain intrinsic control widths",
+    /\.specimen-stage\s*\{[^}]*justify-items:\s*center;/.test(specimenFixes) &&
+      !/\.specimen-stage > \*\s*\{[^}]*\n\s*width:\s*100%;/.test(specimenFixes),
+  ],
+  [
+    "code snippets use a readable base size",
+    /\.specimen-command\s*\{[^}]*font-size:\s*0\.75rem;/.test(specimenCss),
+  ],
+  [
+    "Install and Import tabs stay separate",
+    specimenApp.includes('<TabsTrigger value="cli">Install</TabsTrigger>') &&
       specimenApp.includes(
-        '<TabsTrigger value="react-api">React API</TabsTrigger>',
+        '<TabsTrigger value="react-api">Import</TabsTrigger>',
       ) &&
       !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
       specimenApp.includes('language="typescript"') &&
@@ -236,19 +279,19 @@ const assertions = [
   ],
   [
     "text resize keeps shell chrome and hero contained",
-    specimenFixes.includes(
-      ".specimen-topbar__inner {\n    display: flex;\n    flex-wrap: wrap;",
+    /\.specimen-topbar__leading\s*\{[^}]*min-width:\s*0;[^}]*flex-wrap:\s*wrap;/.test(
+      specimenCss,
     ) &&
-      /\.specimen-topbar__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 0 100%;[^}]*flex-wrap:\s*wrap;/.test(
-        specimenFixes,
+      specimenCss.includes(
+        'grid-template-areas: "leading actions" "search search";',
       ) &&
-      /\.specimen-search\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*7rem;[^}]*flex:\s*1 1 10rem;/.test(
-        specimenFixes,
+      /\.specimen-search\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;/.test(
+        specimenCss,
       ) &&
       /\.specimen-main__inner[^{}]*\{[^}]*box-sizing:\s*border-box;/.test(
         specimenFixes,
       ) &&
-      /\.specimen-stats\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(
+      /\.specimen-hero h1\s*\{[^}]*overflow-wrap:\s*anywhere;/.test(
         specimenStyles,
       ),
   ],
@@ -306,12 +349,7 @@ const specimenSelectorPairs = [
   ],
   ["hero", 'className="specimen-hero"', ".specimen-hero"],
   ["hero copy", 'className="specimen-hero__copy"', ".specimen-hero__copy"],
-  ["hero stats", 'className="specimen-stats"', ".specimen-stats"],
-  [
-    "catalog eyebrow",
-    'className="catalog-group__eyebrow numeric"',
-    ".catalog-group__eyebrow",
-  ],
+  ["heading links", 'className="specimen-permalink"', ".specimen-permalink"],
   [
     "catalog summary",
     'className="catalog-group__summary"',
@@ -334,6 +372,8 @@ const obsoleteSpecimenSelectors = [
   ".specimen-rail__intro",
   ".specimen-eyebrow",
   ".catalog-group__grid",
+  ".catalog-group__eyebrow",
+  ".catalog-group__count",
 ];
 
 for (const selector of obsoleteSpecimenSelectors) {

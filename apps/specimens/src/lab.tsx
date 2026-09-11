@@ -9,74 +9,33 @@ import {
   TabsTrigger,
   TranscriptTurn,
 } from "@opencoven/ui";
-import {
-  Activity,
-  ArrowLeft,
-  ArrowRight,
-  FileCode2,
-  Layers3,
-  MessageSquare,
-  PenLine,
-  Wand2,
-} from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, FileCode2, Wand2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { ComposerDemo, RunRailDemo } from "./block-demos";
 import { CodeSnippet, HighlightedCode } from "./code-snippet";
+import { labScenes as scenes } from "./lab-scenes";
 
-const scenes = [
-  {
-    id: "composer",
-    title: "Composer",
-    subtitle: "From intent to action",
-    icon: PenLine,
-    source: "composer",
-    tone: "presence",
-  },
-  {
-    id: "run-rail",
-    title: "Run rail",
-    subtitle: "Every step, accounted for",
-    icon: Activity,
-    source: "run-rail",
-    tone: "information",
-  },
-  {
-    id: "messages",
-    title: "Messages",
-    subtitle: "A familiar voice, with evidence",
-    icon: MessageSquare,
-    source: "transcript-turn",
-    tone: "presence",
-  },
-  {
-    id: "context",
-    title: "Context",
-    subtitle: "The right files, within reach",
-    icon: FileCode2,
-    source: "resource-row",
-    tone: "success",
-  },
-  {
-    id: "actions",
-    title: "Actions",
-    subtitle: "Small controls, clear intent",
-    icon: Wand2,
-    source: "completion-palette",
-    tone: "warning",
-  },
-  {
-    id: "cards",
-    title: "Cards",
-    subtitle: "Outcomes you can open",
-    icon: Layers3,
-    source: "session-header",
-    tone: "information",
-  },
-] as const;
+function sceneIndexFromLocation() {
+  return Math.max(
+    0,
+    scenes.findIndex((scene) => `#${scene.id}` === window.location.hash),
+  );
+}
+
+function replaceSceneHash(index: number) {
+  const hash = `#${scenes[index]!.id}`;
+  if (window.location.hash !== hash) {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.search}${hash}`,
+    );
+  }
+}
 
 function Lab({ density }: { density: "default" | "compact" }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(sceneIndexFromLocation);
   const [actionStatus, setActionStatus] = useState(
     "Choose an action to try its local preview.",
   );
@@ -87,6 +46,18 @@ function Lab({ density }: { density: "default" | "compact" }) {
   const SceneIcon = scene.icon;
   const navigate = (offset: number) =>
     setActiveIndex((index) => (index + offset + scenes.length) % scenes.length);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const index = sceneIndexFromLocation();
+      setActiveIndex(index);
+      replaceSceneHash(index);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => replaceSceneHash(activeIndex), [activeIndex]);
 
   const views = {
     composer: <ComposerDemo density={density} />,
@@ -251,7 +222,6 @@ function Lab({ density }: { density: "default" | "compact" }) {
       id="assembled-lab"
       aria-label="Component scenes"
       aria-roledescription="carousel"
-      data-tone={scene.tone}
     >
       <header className="lab-scene-header">
         <div className="lab-scene-heading">
@@ -266,7 +236,8 @@ function Lab({ density }: { density: "default" | "compact" }) {
         <div className="lab-carousel-controls">
           <span className="numeric" role="status" aria-atomic="true">
             <span className="sr-only">{scene.title}, scene </span>
-            {String(activeIndex + 1).padStart(2, "0")} / 06
+            {String(activeIndex + 1).padStart(2, "0")} /{" "}
+            {String(scenes.length).padStart(2, "0")}
           </span>
           <Button
             variant="outline"
@@ -355,7 +326,7 @@ function Lab({ density }: { density: "default" | "compact" }) {
       <footer className="lab-footer">
         <span>Interactive examples · Swipe or use the tabs</span>
         <a href={`/#${scene.source}`}>
-          Component & code <ArrowRight aria-hidden="true" />
+          View in library <ArrowRight aria-hidden="true" />
         </a>
       </footer>
     </section>

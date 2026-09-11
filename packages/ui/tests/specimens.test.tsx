@@ -11,6 +11,74 @@ import { Lab } from "../../../apps/specimens/src/lab";
 import { ComponentPreview } from "../../../apps/specimens/src/component-preview";
 
 describe("specimen source and scenes", () => {
+  beforeEach(() => window.history.replaceState(null, "", "/lab"));
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  it("opens a linked Lab scene and exposes its library return path", () => {
+    window.history.replaceState(
+      { from: "library" },
+      "",
+      "/lab?view=demo#run-rail",
+    );
+    render(<Lab density="compact" />);
+    expect(screen.getByRole("tab", { name: "Run rail" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getByRole("link", { name: "View in library" }),
+    ).toHaveAttribute("href", "/#run-rail");
+    expect(window.location.search).toBe("?view=demo");
+    expect(window.history.state).toEqual({ from: "library" });
+  });
+
+  it("keeps scene URLs current without adding history entries", async () => {
+    const user = userEvent.setup();
+    render(<Lab density="compact" />);
+    const length = window.history.length;
+    expect(window.location.hash).toBe("#composer");
+    await user.click(screen.getByRole("button", { name: "Next scene" }));
+    expect(window.location.hash).toBe("#run-rail");
+    await user.click(screen.getByRole("tab", { name: "Context" }));
+    expect(window.location.hash).toBe("#context");
+    expect(window.history.length).toBe(length);
+  });
+
+  it("follows scene hash history without replacing a Composer draft", () => {
+    render(<Lab density="compact" />);
+    const draft = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(draft, { target: { value: "Keep this local draft" } });
+    act(() => {
+      window.history.replaceState(null, "", "/lab#run-rail");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(screen.getByRole("tab", { name: "Run rail" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    act(() => {
+      window.history.replaceState(null, "", "/lab#composer");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(screen.getByRole("textbox", { name: "Message" })).toBe(draft);
+    expect(draft).toHaveValue("Keep this local draft");
+  });
+
+  it("canonicalizes unknown scene links to Composer", () => {
+    window.history.replaceState(null, "", "/lab#unknown");
+    render(<Lab density="compact" />);
+    expect(window.location.hash).toBe("#composer");
+    act(() => {
+      window.history.replaceState(null, "", "/lab#still-unknown");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(window.location.hash).toBe("#composer");
+    expect(screen.getByRole("tab", { name: "Composer" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
   it("covers rather than unmounts the preview and returns focus on Escape", async () => {
     const user = userEvent.setup();
     render(
@@ -41,6 +109,24 @@ describe("specimen source and scenes", () => {
     expect(screen.getByRole("textbox")).toHaveValue("Keep me here");
     expect(screen.getByRole("tab", { name: "Preview" })).toHaveFocus();
     expect(toggle).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("uses text-only line tabs ahead of the preview canvas", () => {
+    const { container } = render(
+      <ComponentPreview
+        source="const ready = true;"
+        filename="demo.tsx"
+        title="Demo"
+      >
+        <button>Try demo</button>
+      </ComponentPreview>,
+    );
+    const tabs = screen.getByRole("tablist", { name: "Demo view" });
+    expect(tabs).toHaveAttribute("data-variant", "line");
+    expect(tabs.querySelector("svg")).toBeNull();
+    expect(tabs.nextElementSibling).toBe(
+      container.querySelector(".specimen-preview__canvas"),
+    );
   });
 
   it("highlights TypeScript, JSX and shell source without interpreting HTML", () => {

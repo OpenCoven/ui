@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import "@opencoven/ui/globals.css";
+import "./coven-theme.css";
 import "./specimens.css";
 import "./specimens-fixes.css";
 import "./lab.css";
