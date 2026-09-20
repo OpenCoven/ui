@@ -9,3 +9,4 @@ artifacts/visual-review/
 .superpowers/
 artifacts/visual-baseline/
 artifacts/visual-luxe/
+.DS_Store
