@@ -11,6 +11,12 @@ const [
   specimenCss,
   specimenFixes,
   specimenApp,
+  specimenCards,
+  specimenDefinitions,
+  specimenHome,
+  siteCss,
+  specimenMain,
+  registryJson,
   button,
   tooltip,
   menu,
@@ -26,6 +32,12 @@ const [
   read("apps/specimens/src/specimens.css"),
   read("apps/specimens/src/specimens-fixes.css"),
   read("apps/specimens/src/app.tsx"),
+  read("apps/specimens/src/specimens.tsx"),
+  read("apps/specimens/src/use-specimens.tsx"),
+  read("apps/specimens/src/home.tsx"),
+  read("apps/specimens/src/site.css"),
+  read("apps/specimens/src/main.tsx"),
+  read("registry.json"),
   read("packages/ui/src/components/ui/button.tsx"),
   read("packages/ui/src/components/ui/tooltip.tsx"),
   read("packages/ui/src/components/ui/dropdown-menu.tsx"),
@@ -40,11 +52,36 @@ const config = JSON.parse(componentsJson);
 const manifest = JSON.parse(packageJson);
 const portable = JSON.parse(portableJson);
 const vectors = JSON.parse(vectorsJson);
-const specimenStyles = `${specimenCss}\n${specimenFixes}`;
-const specimenAt68 = specimenCss.slice(
-  specimenCss.indexOf("@media (max-width: 68rem)"),
-  specimenCss.indexOf("@media (max-width: 48rem)"),
-);
+const specimenStyles = `${specimenCss}\n${specimenFixes}\n${siteCss}`;
+const siteSources = `${specimenApp}\n${specimenCards}\n${specimenHome}`;
+const registry = JSON.parse(registryJson);
+const componentIds = [
+  "mode-switch",
+  "send-control",
+  "completion-palette",
+  "attachment-chip",
+  "metric-display",
+  "plan-row",
+  "activity-item",
+  "resource-row",
+  "tool-mix",
+  "failure-surface",
+  "context-meter",
+  "budget-pill",
+  "composer",
+  "run-rail",
+  "transcript-turn",
+  "session-header",
+];
+const featuredIds = [
+  "composer",
+  "mode-switch",
+  "budget-pill",
+  "activity-item",
+  "run-rail",
+  "context-meter",
+  "transcript-turn",
+];
 const assertions = [
   ["style is base-nova", config.style === "base-nova"],
   ["base color is zinc", config.tailwind.baseColor === "zinc"],
@@ -103,43 +140,90 @@ const assertions = [
     ),
   ],
   [
-    "specimen shell has stable landmarks",
-    specimenApp.includes('className="specimen-topbar"') &&
-      specimenApp.includes('className="specimen-rail"') &&
+    "site shell has stable landmarks and a focusable skip target",
+    specimenApp.includes('className="site-header"') &&
+      specimenApp.includes('className="docs-sidebar"') &&
+      specimenApp.includes('id="site-navigation"') &&
       specimenApp.includes('id="specimen-main"') &&
-      specimenApp.includes('className="skip-link"'),
+      specimenApp.includes('className="skip-link"') &&
+      specimenApp.includes('href="#specimen-main"') &&
+      specimenApp.includes("tabIndex={-1}") &&
+      specimenHome.includes("tabIndex={-1}"),
+  ],
+  [
+    "home is a distinct curated entry point",
+    specimenApp.includes('const isHome = path === "/"') &&
+      specimenApp.includes("<Home specimens={specimens} />") &&
+      specimenHome.includes('className="home-hero"') &&
+      featuredIds.every((id) => specimenHome.includes(`"${id}"`)) &&
+      specimenHome.includes("specimen.preview") &&
+      specimenHome.includes("href={`/docs/${id}`}") &&
+      specimenHome.includes('href="/docs/introduction"') &&
+      specimenHome.includes('href="/docs/components"') &&
+      specimenApp.includes("<SiteFooter />"),
+  ],
+  [
+    "docs, individual specimens and assembled lab have real routes",
+    specimenApp.includes('path.startsWith("/docs/")') &&
+      specimenApp.includes('id: "introduction"') &&
+      specimenApp.includes('id: "installation"') &&
+      specimenApp.includes('pageId === "components"') &&
+      specimenApp.includes("<SpecimenCard specimen={specimen} detail />") &&
+      specimenApp.includes('<nav className="docs-toc"') &&
+      specimenApp.includes('const isLab = path === "/lab"') &&
+      specimenApp.includes("<Lab density={density} />"),
+  ],
+  [
+    "search and mobile navigation expose keyboard and expanded state",
+    specimenApp.includes("event.metaKey || event.ctrlKey") &&
+      specimenApp.includes('event.key.toLowerCase() === "k"') &&
+      specimenApp.includes('event.key === "Escape"') &&
+      specimenApp.includes("menuButtonRef.current.focus()") &&
+      specimenApp.includes('aria-controls="site-navigation"') &&
+      specimenApp.includes("aria-expanded={menuOpen}") &&
+      specimenApp.includes("data-menu-open={menuOpen}") &&
+      specimenApp.includes("href={`/docs/${item.id}`}"),
   ],
   [
     "catalog restores task hierarchy",
     ["group-composer", "group-run-rail", "group-blocks"].every((id) =>
-      specimenApp.includes(id),
+      specimenDefinitions.includes(id),
     ) &&
-      specimenApp.includes('className="catalog-group__summary"') &&
-      specimenApp.includes("<h2>{group}</h2>"),
+      specimenCards.includes('className="catalog-group__summary"') &&
+      specimenCards.includes("<h2>{group}</h2>"),
   ],
   [
     "install tab separates CLI from package API",
-    specimenApp.includes(
+    specimenCards.includes(
       '<TabsTrigger value="install">Install</TabsTrigger>',
     ) &&
-      !specimenApp.includes('<TabsTrigger value="api">API</TabsTrigger>') &&
-      specimenApp.includes("<span>CLI</span>") &&
-      specimenApp.includes("<span>TypeScript</span>") &&
-      specimenApp.includes("<small>package API</small>"),
+      specimenCards.includes(
+        '<TabsTrigger value="react-api">React API</TabsTrigger>',
+      ) &&
+      /<TabsContent value="install"[\s\S]*?<span>CLI<\/span>[\s\S]*?<\/TabsContent>/.test(
+        specimenCards,
+      ) &&
+      !/<TabsContent value="install"(?:(?!<\/TabsContent>)[\s\S])*package API/.test(
+        specimenCards,
+      ) &&
+      /<TabsContent value="react-api"[\s\S]*?<span>TypeScript<\/span>[\s\S]*?<small>package API<\/small>/.test(
+        specimenCards,
+      ),
   ],
   [
     "install snippets derive valid registry and package paths",
-    specimenApp.includes(
+    specimenCards.includes(
       'specimen.group === "Blocks" ? "blocks" : "components"',
     ) &&
-      specimenApp.includes(
+      specimenCards.includes(
         "const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;",
       ) &&
-      specimenApp.includes(
+      specimenCards.includes(
         "const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;",
       ) &&
-      specimenApp.includes('.split("-")') &&
-      specimenApp.includes(".toUpperCase()"),
+      specimenCards.includes('.split("-")') &&
+      specimenCards.includes(".toUpperCase()") &&
+      specimenCards.includes("<CopyCodeButton"),
   ],
   [
     "install snippets use visible syntax roles",
@@ -152,14 +236,24 @@ const assertions = [
       "syntax-punctuation",
     ].every(
       (className) =>
-        specimenApp.includes(`className="${className}"`) &&
+        specimenCards.includes(`className="${className}"`) &&
         specimenCss.includes(`.${className}`),
     ),
   ],
   [
-    "density control is explicit",
-    specimenApp.includes('aria-label="Display density"') &&
-      !specimenApp.includes("nth-child(2)"),
+    "density control is explicit and outside the home/header",
+    specimenCards.includes('aria-label="Display density"') &&
+      !specimenHome.includes("<DensityControl") &&
+      !specimenApp
+        .slice(
+          specimenApp.indexOf('<header className="site-header"'),
+          specimenApp.indexOf(
+            "</header>",
+            specimenApp.indexOf('<header className="site-header"'),
+          ),
+        )
+        .includes("<DensityControl") &&
+      specimenApp.includes('className="docs-preview-toolbar"'),
   ],
   [
     "mobile layout covers 390px",
@@ -173,27 +267,28 @@ const assertions = [
     /html\s*\{[^}]*min-width:\s*320px/.test(specimenFixes),
   ],
   [
-    "responsive rail becomes compact navigation",
-    specimenAt68.startsWith("@media (max-width: 68rem)") &&
-      /\.specimen-shell\s*\{[^}]*grid-template-columns:\s*1fr;/.test(
-        specimenAt68,
-      ) &&
-      /\.specimen-rail__nav\s*\{[^}]*display:\s*flex;/.test(specimenAt68),
+    "responsive sidebar is explicitly disclosed rather than clipped",
+    siteCss.includes("@media (max-width: 48rem)") &&
+      /\.site-menu-toggle\s*\{[^}]*display:\s*inline-flex;/.test(siteCss) &&
+      /\.docs-sidebar\s*\{[^}]*display:\s*none;/.test(siteCss) &&
+      /\.site-layout\[data-menu-open="true"\] \.docs-sidebar\s*\{[^}]*display:\s*block;/.test(
+        siteCss,
+      ),
   ],
   [
     "responsive grids remove intrinsic sizing floors",
-    specimenFixes.includes(
-      ".specimen-shell {\n    grid-template-columns: minmax(0, 1fr);",
-    ) &&
+    siteCss.includes("grid-template-columns: 15rem minmax(0, 1fr)") &&
+      siteCss.includes(".home-showcase") &&
       specimenFixes.includes(
         ".specimen-grid {\n    grid-template-columns: minmax(0, 1fr);",
       ),
   ],
   [
-    "mobile catalog navigation exposes every section",
-    /\.specimen-rail__nav\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*5\.5rem\),\s*1fr\)\s*\);/.test(
-      specimenFixes,
-    ) && /\.specimen-rail__nav a\s*\{[^}]*min-width:\s*0;/.test(specimenFixes),
+    "mobile documentation navigation retains all groups and routes",
+    specimenApp.includes("groupOrder.map((group)") &&
+      specimenApp.includes("guides.map((item)") &&
+      specimenApp.includes('aria-label="Documentation navigation"') &&
+      /\.docs-nav-group a\s*\{[^}]*min-width:\s*0;/.test(siteCss),
   ],
   [
     "mobile card tabs preserve enlarged labels",
@@ -211,22 +306,25 @@ const assertions = [
       ),
   ],
   [
-    "text resize keeps shell chrome and hero contained",
-    specimenFixes.includes(
-      ".specimen-topbar__inner {\n    display: flex;\n    flex-wrap: wrap;",
-    ) &&
-      /\.specimen-topbar__actions\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 0 100%;[^}]*flex-wrap:\s*wrap;/.test(
-        specimenFixes,
+    "text resize allows header and hero actions to wrap",
+    /\.site-header__inner\s*\{[^}]*flex-wrap:\s*wrap;/.test(siteCss) &&
+      /\.site-actions\s*\{[^}]*flex-wrap:\s*wrap;/.test(siteCss) &&
+      /\.site-search\s*\{[^}]*flex:\s*1 1 12rem;[^}]*width:\s*auto;/.test(
+        siteCss,
       ) &&
-      /\.specimen-search\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*7rem;[^}]*flex:\s*1 1 10rem;/.test(
-        specimenFixes,
-      ) &&
-      specimenFixes.includes(
-        ".specimen-main__inner {\n    box-sizing: border-box;",
-      ) &&
-      specimenFixes.includes(
-        ".specimen-stats {\n    grid-template-columns: repeat(3, minmax(0, 1fr));",
-      ),
+      /\.home-actions\s*\{[^}]*flex-wrap:\s*wrap;/.test(siteCss),
+  ],
+  [
+    "site styles load after component regression guards",
+    specimenMain.indexOf('import "./site.css"') >
+      specimenMain.indexOf('import "./specimens-fixes.css"') &&
+      specimenMain.includes('import "@opencoven/ui/globals.css"'),
+  ],
+  [
+    "previews use public package modules",
+    specimenDefinitions.includes('from "@opencoven/ui"') &&
+      specimenCards.includes('from "@opencoven/ui"') &&
+      !siteSources.includes("packages/ui/src"),
   ],
   [
     "specimen chrome avoids decorative gradients",
@@ -239,27 +337,13 @@ const assertions = [
 ];
 
 const specimenSelectorPairs = [
-  [
-    "topbar actions",
-    'className="specimen-topbar__actions"',
-    ".specimen-topbar__actions",
-  ],
+  ["header actions", 'className="site-actions"', ".site-actions"],
   ["density control", 'className="density-control"', ".density-control"],
-  ["scheme control", 'className="scheme-control"', ".scheme-control"],
-  [
-    "rail context",
-    'className="specimen-rail__context"',
-    ".specimen-rail__context",
-  ],
-  ["rail kicker", 'className="specimen-kicker numeric"', ".specimen-kicker"],
-  [
-    "rail package",
-    'className="specimen-rail__package"',
-    ".specimen-rail__package",
-  ],
-  ["hero", 'className="specimen-hero"', ".specimen-hero"],
-  ["hero copy", 'className="specimen-hero__copy"', ".specimen-hero__copy"],
-  ["hero stats", 'className="specimen-stats"', ".specimen-stats"],
+  ["brand", 'className="site-brand"', ".site-brand"],
+  ["sidebar", 'className="docs-sidebar"', ".docs-sidebar"],
+  ["home hero", 'className="home-hero"', ".home-hero"],
+  ["home showcase", 'className="home-showcase"', ".home-showcase"],
+  ["footer", 'className="site-footer"', ".site-footer"],
   [
     "catalog eyebrow",
     'className="catalog-group__eyebrow numeric"',
@@ -276,7 +360,41 @@ const specimenSelectorPairs = [
 for (const [name, markup, selector] of specimenSelectorPairs) {
   assertions.push([
     `${name} markup and CSS stay paired`,
-    specimenApp.includes(markup) && specimenStyles.includes(selector),
+    siteSources.includes(markup) && specimenStyles.includes(selector),
+  ]);
+}
+
+for (const id of componentIds) {
+  const kind = [
+    "composer",
+    "run-rail",
+    "transcript-turn",
+    "session-header",
+  ].includes(id)
+    ? "blocks"
+    : "components";
+  const sourcePath = `packages/ui/src/${kind}/${id}.tsx`;
+  const exportName = id
+    .split("-")
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join("");
+  const source = await read(sourcePath);
+  const published = JSON.parse(await read(`public/r/${id}.json`));
+  assertions.push([
+    `${id} has an installable registry artifact and public React export`,
+    specimenDefinitions.includes(`id: "${id}"`) &&
+      registry.items.some(
+        (item) =>
+          item.name === id &&
+          item.files.some((file) => file.path === sourcePath),
+      ) &&
+      published.name === id &&
+      published.files.some(
+        (file) =>
+          file.path === sourcePath && file.content?.includes(exportName),
+      ) &&
+      Boolean(manifest.exports[`./${kind}/*`]) &&
+      source.includes(exportName),
   ]);
 }
 

@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "paths": {
+      "@opencoven/ui": ["./src/index.ts"],
       "@opencoven/ui/*": ["./src/*"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"]

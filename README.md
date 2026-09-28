@@ -51,8 +51,20 @@ pnpm install
 pnpm dev
 ```
 
-The specimen app opens at `http://127.0.0.1:5173/`. Its assembled lab is at
-`http://127.0.0.1:5173/lab`.
+The site opens at `http://127.0.0.1:5173/` with a component showcase.
+Documentation starts at `/docs/introduction`, setup instructions at
+`/docs/installation`, and the full catalog at `/docs/components`. Each featured
+component has a direct `/docs/<registry-id>` page with Preview, Install, and
+React API tabs. The assembled five-state lab remains at `/lab`.
+
+The shared header searches guides, component names, descriptions, and states
+(`Cmd/Ctrl+K`). Documentation has grouped navigation and a mobile menu; theme
+and preview density preferences persist between pages. The homepage demos
+use the same public component modules as the catalog, not private lookalikes.
+
+The homepage and documentation layout follow the structural reference of
+[Spell UI](https://github.com/xxtomm/spell-ui), with OpenCoven's content,
+semantic tokens, and familiar-native components.
 
 ## Consume the package
 
