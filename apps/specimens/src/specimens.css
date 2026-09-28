@@ -158,7 +158,8 @@ body {
   -webkit-appearance: none;
 }
 
-.scheme-control {
+.scheme-control,
+.repository-control {
   flex: none;
   width: 2.25rem;
   height: 2.25rem;
@@ -167,7 +168,8 @@ body {
   white-space: nowrap;
 }
 
-.scheme-control svg {
+.scheme-control svg,
+.repository-control svg {
   width: 0.875rem;
   height: 0.875rem;
 }
@@ -1091,7 +1093,8 @@ p > .hljs {
     height: 2.75rem;
   }
 
-  .scheme-control {
+  .scheme-control,
+  .repository-control {
     width: 2.75rem;
     height: 2.75rem;
     min-height: 2.75rem;
@@ -1106,12 +1109,14 @@ p > .hljs {
 
 @media (pointer: coarse) and (min-width: 68.01rem) {
   .specimen-search input,
-  .scheme-control {
+  .scheme-control,
+  .repository-control {
     height: 2.75rem;
     min-height: 2.75rem;
   }
 
-  .scheme-control {
+  .scheme-control,
+  .repository-control {
     width: 2.75rem;
   }
 
