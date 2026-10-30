@@ -9,9 +9,12 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
+  CommandReceipt,
   CompletionPalette,
   Composer,
+  ConnectionStatus,
   ContextMeter,
+  DeveloperSurface,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -244,6 +247,43 @@ export function CompletionPaletteExample() {
         onSelect={(command) => setSelected(command.label)}
       />
       <span role="status">{selected}</span>
+    </div>
+  );
+}
+
+export function ConnectionStatusExample() {
+  return (
+    <div className="grid w-full gap-3">
+      <ConnectionStatus
+        name="Coven daemon"
+        kind="Daemon"
+        state="connected"
+        authority="local-authority"
+        version="coven.daemon.v1"
+      />
+      <ConnectionStatus
+        name="OpenCoven SDK"
+        kind="SDK"
+        state="degraded"
+        authority="read-only"
+        detail="Read-only coordination remains available."
+      />
+    </div>
+  );
+}
+
+export function CommandReceiptExample() {
+  return (
+    <div className="w-full">
+      <CommandReceipt
+        channel="cli"
+        displayCommand="coven doctor"
+        status="succeeded"
+        receiptId="demo:doctor:01"
+        summary="Local runtime and harness readiness verified."
+        duration="0.8s"
+        exitCode={0}
+      />
     </div>
   );
 }
@@ -487,6 +527,35 @@ export function RunRailExample({
       context={{ used: 82000, total: 200000 }}
       budget={{ used: 0.41, limit: 5 }}
     />
+  );
+}
+
+export function DeveloperSurfaceExample() {
+  return (
+    <div className="w-full">
+      <DeveloperSurface
+        project="OpenCoven/ui"
+        branch="feat/developer-surface"
+        connections={[
+          {
+            id: "daemon",
+            name: "Coven daemon",
+            kind: "Daemon",
+            state: "connected",
+            authority: "local-authority",
+          },
+        ]}
+        activity={[
+          {
+            id: "doctor",
+            channel: "cli",
+            displayCommand: "coven doctor",
+            status: "succeeded",
+            summary: "Runtime and harness readiness verified.",
+          },
+        ]}
+      />
+    </div>
   );
 }
 
