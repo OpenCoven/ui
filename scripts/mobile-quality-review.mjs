@@ -11,81 +11,124 @@ const outputDir = path.resolve(
 const port = Number(process.env.MOBILE_CHROME_PORT ?? 9233);
 const cases = [
   {
-    name: "mobile-320-dark-cozy",
+    name: "mobile-320-dark",
     width: 320,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
   },
   {
-    name: "mobile-375-light-compact",
+    name: "mobile-375-light",
     width: 375,
     scheme: "light",
-    density: "compact",
+    legacyDensity: "compact",
   },
   {
-    name: "mobile-390-dark-cozy",
+    name: "mobile-390-dark",
     width: 390,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
   },
   {
-    name: "mobile-430-light-cozy",
+    name: "mobile-430-light",
     width: 430,
     scheme: "light",
-    density: "default",
+    legacyDensity: "default",
   },
   {
     name: "mobile-390-dark-rtl",
     width: 390,
     scheme: "dark",
-    density: "compact",
+    legacyDensity: "compact",
     rtl: true,
   },
   {
     name: "mobile-390-dark-text-200",
     width: 390,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     textScale: 2,
+  },
+  {
+    name: "mobile-320-dark-text-200",
+    width: 320,
+    scheme: "dark",
+    legacyDensity: "default",
+    textScale: 2,
+  },
+  {
+    name: "mobile-430-dark-text-200",
+    width: 430,
+    scheme: "dark",
+    legacyDensity: "default",
+    textScale: 2,
+  },
+  {
+    name: "mobile-320-dark-wide-display",
+    width: 320,
+    scheme: "dark",
+    legacyDensity: "default",
+    textScale: 2,
+    wideDisplayFont: true,
   },
 ];
 
 if (!chromePath) throw new Error("CHROME_PATH is required");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const waitForPageTarget = async (url, timeoutMs = 30_000) => {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const targets = await response.json();
+        const page = targets.find((entry) => entry.type === "page");
+        if (page?.webSocketDebuggerUrl) return page;
+        lastError = new Error("Chrome has not exposed a page target");
+      } else {
+        lastError = new Error(`${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(150);
+  }
+
+  throw new Error(`Chrome page target unavailable: ${lastError}`);
+};
 const profile = await mkdtemp(path.join(tmpdir(), "opencoven-mobile-quality-"));
 await mkdir(outputDir, { recursive: true });
 
-const chrome = spawn(chromePath, [
-  "--headless=new",
-  "--no-sandbox",
-  "--disable-dev-shm-usage",
-  "--disable-gpu",
-  "--hide-scrollbars",
-  `--remote-debugging-port=${port}`,
-  `--user-data-dir=${profile}`,
-  "about:blank",
-]);
+const chromeOutput = [];
+const chrome = spawn(
+  chromePath,
+  [
+    "--headless=new",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-component-update",
+    `--remote-debugging-port=${port}`,
+    `--user-data-dir=${profile}`,
+    "about:blank",
+  ],
+  {
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
+
+chrome.stdout.on("data", (chunk) => chromeOutput.push(String(chunk)));
+chrome.stderr.on("data", (chunk) => chromeOutput.push(String(chunk)));
 
 let socket;
 try {
-  let target;
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
-        (response) => response.json(),
-      );
-      target = targets.find((entry) => entry.type === "page");
-      if (target?.webSocketDebuggerUrl) break;
-    } catch {
-      // Chrome may not have exposed the debugging endpoint yet.
-    }
-    await sleep(100);
-  }
-
-  if (!target?.webSocketDebuggerUrl) {
-    throw new Error("Chrome debugging target unavailable");
-  }
+  const target = await waitForPageTarget(`http://127.0.0.1:${port}/json/list`);
 
   socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -95,21 +138,85 @@ try {
 
   let id = 0;
   const pending = new Map();
+  const listeners = new Map();
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
-    if (!message.id) return;
-    const waiter = pending.get(message.id);
-    if (!waiter) return;
-    pending.delete(message.id);
-    if (message.error) waiter.reject(new Error(message.error.message));
-    else waiter.resolve(message.result ?? {});
+    if (message.id) {
+      const waiter = pending.get(message.id);
+      if (!waiter) return;
+      pending.delete(message.id);
+      clearTimeout(waiter.timeout);
+      if (message.error) waiter.reject(new Error(message.error.message));
+      else waiter.resolve(message.result ?? {});
+      return;
+    }
+
+    for (const handler of listeners.get(message.method) ?? []) {
+      handler(message.params ?? {});
+    }
   });
+
+  const rejectPending = (error) => {
+    for (const waiter of pending.values()) {
+      clearTimeout(waiter.timeout);
+      waiter.reject(error);
+    }
+    pending.clear();
+  };
+
+  socket.addEventListener(
+    "close",
+    () => rejectPending(new Error("Chrome DevTools connection closed")),
+    { once: true },
+  );
+  socket.addEventListener(
+    "error",
+    () => rejectPending(new Error("Chrome DevTools connection failed")),
+    { once: true },
+  );
+
+  const on = (method, handler) => {
+    const handlers = listeners.get(method) ?? [];
+    handlers.push(handler);
+    listeners.set(method, handlers);
+
+    return () => {
+      listeners.set(
+        method,
+        (listeners.get(method) ?? []).filter(
+          (candidate) => candidate !== handler,
+        ),
+      );
+    };
+  };
 
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        reject(new Error("Chrome DevTools connection is not open"));
+        return;
+      }
+
       const requestId = ++id;
-      pending.set(requestId, { resolve, reject });
+      const timeout = setTimeout(() => {
+        pending.delete(requestId);
+        reject(new Error(`${method} timed out`));
+      }, 15_000);
+      pending.set(requestId, { resolve, reject, timeout });
       socket.send(JSON.stringify({ id: requestId, method, params }));
+    });
+
+  const waitForEvent = (method, timeoutMs = 15_000) =>
+    new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        removeListener();
+        reject(new Error(`Timed out waiting for ${method}`));
+      }, timeoutMs);
+      const removeListener = on(method, (params) => {
+        clearTimeout(timeout);
+        removeListener();
+        resolve(params);
+      });
     });
 
   const evaluate = async (expression) => {
@@ -129,9 +236,31 @@ try {
     return result.result?.value;
   };
 
+  const waitForRender = async (selector, timeoutMs = 15_000) => {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      if (
+        await evaluate(
+          `Boolean(document.querySelector(${JSON.stringify(selector)}))`,
+        )
+      ) {
+        return;
+      }
+      await sleep(100);
+    }
+
+    throw new Error(`Timed out waiting for ${selector}`);
+  };
+
   const navigate = async (url) => {
-    await send("Page.navigate", { url });
-    await sleep(500);
+    const loaded = waitForEvent("Page.loadEventFired");
+    const response = await send("Page.navigate", { url });
+    if (response.errorText) {
+      throw new Error(`Navigation failed: ${response.errorText}`);
+    }
+    await loaded;
+    await waitForRender("#specimen-main");
   };
 
   await send("Page.enable");
@@ -155,7 +284,7 @@ try {
     await navigate(new URL("/", baseUrl).href);
     await evaluate(`(() => {
       localStorage.setItem("coven-ui:scheme", ${JSON.stringify(scenario.scheme)});
-      localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.density)});
+      localStorage.setItem("coven-ui:density", ${JSON.stringify(scenario.legacyDensity)});
     })()`);
     await navigate(new URL("/", baseUrl).href);
 
@@ -166,6 +295,10 @@ try {
       document.documentElement.style.fontSize = ${JSON.stringify(
         scenario.textScale ? `${scenario.textScale * 100}%` : "",
       )};
+      if (${Boolean(scenario.wideDisplayFont)}) {
+        document.documentElement.style.setProperty("--oc-font-display", "ui-monospace, monospace");
+        document.documentElement.style.setProperty("--font-editorial", "ui-monospace, monospace");
+      }
     })()`);
 
     const measurement = await evaluate(`(async () => {
@@ -175,6 +308,17 @@ try {
       );
 
       const root = document.documentElement;
+      const topbar = document.querySelector(".specimen-topbar");
+      const rail = document.querySelector(".specimen-rail");
+      const railLinks = [
+        ...document.querySelectorAll("#component-picker"),
+      ];
+      const topbarControls = [
+        ...document.querySelectorAll(
+          ".specimen-brand, .surface-switcher, .specimen-search, .specimen-search input, .specimen-search kbd, .scheme-control",
+        ),
+      ];
+      const firstCard = document.querySelector(".specimen-card");
       const cards = [...document.querySelectorAll(".specimen-card")];
       const stages = [...document.querySelectorAll(".specimen-stage")];
       const cardTabRoots = cards
@@ -201,36 +345,161 @@ try {
           (tab) => rect(tab)?.height ?? 0,
         ),
       );
+      const tabTargets = cardLists.flatMap((list) => [
+        ...list.querySelectorAll('[role="tab"]'),
+      ]);
+      const label = (element) =>
+        element
+          ? [
+              element.tagName.toLowerCase(),
+              element.id ? "#" + element.id : "",
+              ...[...element.classList]
+                .slice(0, 3)
+                .map((name) => "." + name),
+            ].join("")
+          : null;
       const overflowingElements = [...document.querySelectorAll("body *")]
         .map((element) => {
           const bounds = rect(element);
           const overflow = bounds
             ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
             : 0;
-          const label = [
-            element.tagName.toLowerCase(),
-            element.id ? "#" + element.id : "",
-            ...[...element.classList]
-              .slice(0, 3)
-              .map((name) => "." + name),
-          ].join("");
-          return { label, overflow };
+          return {
+            label: label(element),
+            parent: label(element.parentElement),
+            left: bounds?.left ?? null,
+            right: bounds?.right ?? null,
+            width: bounds?.width ?? null,
+            overflow,
+            parentOverflowX: element.parentElement
+              ? getComputedStyle(element.parentElement).overflowX
+              : null,
+          };
         })
         .filter(({ overflow }) => overflow > 1)
         .sort((left, right) => right.overflow - left.overflow)
-        .slice(0, 5);
+        .slice(0, 20);
+      const initialScrollY = scrollY;
+      document.querySelector(".skip-link")?.click();
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+      const skipMainBounds = rect(document.querySelector("#specimen-main"));
+      const skipTopbarBounds = rect(topbar);
+      const skipNavigation = {
+        clearance: skipMainBounds
+          ? skipMainBounds.top - Math.max(0, skipTopbarBounds?.bottom ?? 0)
+          : null,
+        scrollY,
+        mainTop: skipMainBounds?.top ?? null,
+        topbarBottom: skipTopbarBounds?.bottom ?? null,
+        topbarHeight: skipTopbarBounds?.height ?? null,
+        topbarPosition: topbar ? getComputedStyle(topbar).position : null,
+        scrollPaddingTop: getComputedStyle(root).scrollPaddingTop,
+      };
+      scrollTo(0, initialScrollY);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const picker = document.querySelector("#component-picker");
+      const targetId = picker?.querySelector("optgroup option")?.value;
+      const railTarget = targetId ? document.getElementById(targetId) : null;
+      if (picker && targetId) {
+        picker.value = targetId;
+        picker.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+      const railTargetClearance = (() => {
+        const targetBounds = rect(railTarget);
+        const topbarBounds = rect(topbar);
+        return targetBounds
+          ? targetBounds.top - Math.max(0, topbarBounds?.bottom ?? 0)
+          : null;
+      })();
+      const componentNavigation = {
+        visible: Boolean(picker?.getBoundingClientRect().height),
+        targets: [...(picker?.querySelectorAll("option") ?? [])].map(option => option.value),
+        selected: picker?.value,
+        targetId,
+        hash: location.hash,
+        minHeight: rect(picker)?.height ?? 0,
+      };
+      scrollTo(0, initialScrollY);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
 
       return {
         viewport: root.clientWidth,
+        fixedSizing: root.dataset.density === "compact" &&
+          !document.querySelector('.density-control, [aria-label="Display density"]') &&
+          ![...document.querySelectorAll(".specimen-stats dt")].some(label => /densit|compact|cozy/i.test(label.textContent)),
         documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+        chromeBottom: Math.max(
+          rect(topbar)?.bottom ?? 0,
+          rect(rail)?.bottom ?? 0,
+        ),
+        firstCardTop: rect(firstCard)?.top ?? null,
+        headingWordLines: (() => {
+          const heading = document.querySelector("h1");
+          let start = 0;
+          return heading.textContent.split(" ").map(word => {
+            const range = document.createRange();
+            range.setStart(heading.firstChild, start);
+            range.setEnd(heading.firstChild, start + word.length);
+            start += word.length + 1;
+            return range.getClientRects().length;
+          });
+        })(),
+        railNavOverflow: clipped(
+          document.querySelector(".specimen-mobile-nav"),
+        ),
+        maxRailLinkContentOverflow: Math.max(
+          0,
+          ...railLinks.map(clipped),
+        ),
+        maxRailLinkViewportOverflow: Math.max(
+          0,
+          ...railLinks.map((link) => {
+            const bounds = rect(link);
+            return bounds
+              ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
+              : 0;
+          }),
+        ),
+        maxTopbarControlViewportOverflow: Math.max(
+          0,
+          ...topbarControls.map((control) => {
+            const bounds = rect(control);
+            return bounds
+              ? Math.max(0, -bounds.left, bounds.right - root.clientWidth)
+              : 0;
+          }),
+        ),
         cardCount: cards.length,
         tabRootCount: cardTabRoots.length,
         tabListCount: cardLists.length,
         activePanelCount: activePanels.length,
         tabTargetCount: tabHeights.length,
+        viewTabCount: document.querySelectorAll(".specimen-view-tabs [role=tab]").length,
+        stateFooterCount: document.querySelectorAll(".specimen-states").length,
+        clippedCards: cards.filter(card => clipped(card) > 1).map(card => ({ id: card.id, overflow: clipped(card) })),
+        clippedStages: stages.filter(stage => clipped(stage) > 1).map(stage => ({
+          id: stage.closest(".specimen-card").id,
+          overflow: clipped(stage),
+          children: [...stage.querySelectorAll("*")].filter(child => clipped(child) > 1).map(child => ({
+            slot: child.dataset.slot,
+            tag: child.tagName,
+            text: child.textContent.slice(0, 80),
+            overflow: clipped(child),
+          })),
+        })),
         maxCardOverflow: Math.max(0, ...cards.map(clipped)),
         maxStageOverflow: Math.max(0, ...stages.map(clipped)),
         maxTabRootOverflow: Math.max(0, ...cardTabRoots.map(clipped)),
+        maxTabListOverflow: Math.max(0, ...cardLists.map(clipped)),
+        maxTabTargetContentOverflow: Math.max(
+          0,
+          ...tabTargets.map(clipped),
+        ),
         minTabHeight: tabHeights.length > 0 ? Math.min(...tabHeights) : null,
         stackedTabs: cardLists.every((list, index) => {
           const listRect = rect(list);
@@ -253,13 +522,72 @@ try {
           : null,
         direction: root.dir,
         reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        skipNavigation,
+        railTargetClearance,
+        componentNavigation,
         overflowingElements,
       };
     })()`);
 
     const failures = [];
+    if (!measurement.fixedSizing) {
+      failures.push("expected fixed compact sizing without controls or labels");
+    }
+    if (
+      !measurement.componentNavigation.visible ||
+      measurement.componentNavigation.targets.length !== 17 ||
+      measurement.componentNavigation.selected !==
+        measurement.componentNavigation.targetId ||
+      measurement.componentNavigation.hash !==
+        "#" + measurement.componentNavigation.targetId ||
+      measurement.componentNavigation.minHeight < 44
+    ) {
+      failures.push(
+        `mobile component picker failed: ${JSON.stringify(measurement.componentNavigation)}`,
+      );
+    }
+    if (
+      measurement.documentOverflow > 1 ||
+      measurement.maxRailLinkContentOverflow > 1
+    ) {
+      measurement.overflowDiagnostic = await evaluate(`(() => {
+        const root = document.documentElement;
+        const owners = [];
+        for (const selector of [
+          ".specimen-topbar", ".specimen-rail", ".specimen-hero", ".catalog",
+          ".specimen-preview", ".specimen-view-tabs", ".specimen-code-tabs",
+          ".specimen-states", ".skip-link", ".sr-only",
+        ]) {
+          const elements = [...document.querySelectorAll(selector)];
+          const styles = elements.map(element => element.getAttribute("style"));
+          elements.forEach(element => element.style.setProperty("display", "none", "important"));
+          owners.push({ selector, documentOverflow: root.scrollWidth - root.clientWidth });
+          elements.forEach((element, index) => {
+            if (styles[index] === null) element.removeAttribute("style");
+            else element.setAttribute("style", styles[index]);
+          });
+        }
+        const links = [...document.querySelectorAll(".specimen-rail__nav a")].map(link => ({
+          text: link.textContent,
+          width: link.clientWidth,
+          scrollWidth: link.scrollWidth,
+          gap: getComputedStyle(link).gap,
+          children: [...link.children].map(child => ({
+            text: child.textContent, width: child.getBoundingClientRect().width,
+            scrollWidth: child.scrollWidth, minWidth: getComputedStyle(child).minWidth,
+          })),
+        }));
+        return { owners, links };
+      })()`);
+      console.error(
+        `${scenario.name} overflow diagnostic: ${JSON.stringify(measurement.overflowDiagnostic)}`,
+      );
+    }
     if (measurement.cardCount !== 16) {
       failures.push(`expected 16 cards, got ${measurement.cardCount}`);
+    }
+    if (measurement.headingWordLines.some((lines) => lines !== 1)) {
+      failures.push("page heading breaks inside a word");
     }
     if (measurement.tabRootCount !== 16) {
       failures.push(
@@ -276,9 +604,17 @@ try {
         `expected 16 active card panels, got ${measurement.activePanelCount}`,
       );
     }
-    if (measurement.tabTargetCount !== 48) {
+    if (measurement.tabTargetCount !== 32) {
       failures.push(
-        `expected 48 card tab targets, got ${measurement.tabTargetCount}`,
+        `expected 32 code tab targets, got ${measurement.tabTargetCount}`,
+      );
+    }
+    if (
+      measurement.viewTabCount !== 32 ||
+      measurement.stateFooterCount !== 16
+    ) {
+      failures.push(
+        "Preview/Source tabs or supported-state footers are missing",
       );
     }
     if (measurement.documentOverflow > 1) {
@@ -288,14 +624,76 @@ try {
           .join(", ")}`,
       );
     }
+    if (measurement.maxRailLinkViewportOverflow > 1) {
+      failures.push(
+        `rail link viewport overflow ${measurement.maxRailLinkViewportOverflow}px`,
+      );
+    }
+    if (measurement.railNavOverflow > 1) {
+      failures.push(
+        `rail navigation overflow ${measurement.railNavOverflow}px`,
+      );
+    }
+    if (measurement.maxRailLinkContentOverflow > 1) {
+      failures.push(
+        `rail link content overflow ${measurement.maxRailLinkContentOverflow}px`,
+      );
+    }
+    if (measurement.maxTopbarControlViewportOverflow > 1) {
+      failures.push(
+        `topbar control viewport overflow ${measurement.maxTopbarControlViewportOverflow}px`,
+      );
+    }
+    if (
+      measurement.skipNavigation.clearance === null ||
+      measurement.skipNavigation.clearance < 0
+    ) {
+      failures.push(
+        `skip target clearance ${measurement.skipNavigation.clearance ?? "missing"}px`,
+      );
+    }
+    if (
+      measurement.railTargetClearance === null ||
+      measurement.railTargetClearance < 0 ||
+      measurement.railTargetClearance > 64
+    ) {
+      failures.push(
+        `rail target clearance ${measurement.railTargetClearance ?? "missing"}px`,
+      );
+    }
+    if (!scenario.textScale && measurement.chromeBottom > 200) {
+      failures.push(
+        `mobile shell chrome ends at ${measurement.chromeBottom}px`,
+      );
+    }
+    if (
+      !scenario.textScale &&
+      (measurement.firstCardTop === null || measurement.firstCardTop > 640)
+    ) {
+      failures.push(
+        `first card starts at ${measurement.firstCardTop ?? "missing"}px`,
+      );
+    }
     if (measurement.maxCardOverflow > 1) {
-      failures.push(`card overflow ${measurement.maxCardOverflow}px`);
+      failures.push(
+        `card overflow: ${JSON.stringify(measurement.clippedCards)}`,
+      );
     }
     if (measurement.maxStageOverflow > 1) {
-      failures.push(`stage overflow ${measurement.maxStageOverflow}px`);
+      failures.push(
+        `stage overflow: ${JSON.stringify(measurement.clippedStages)}`,
+      );
     }
     if (measurement.maxTabRootOverflow > 1) {
       failures.push(`tab-root overflow ${measurement.maxTabRootOverflow}px`);
+    }
+    if (!scenario.textScale && measurement.maxTabListOverflow > 1) {
+      failures.push(`tab-list overflow ${measurement.maxTabListOverflow}px`);
+    }
+    if (measurement.maxTabTargetContentOverflow > 1) {
+      failures.push(
+        `tab target content overflow ${measurement.maxTabTargetContentOverflow}px`,
+      );
     }
     if (measurement.minTabHeight === null || measurement.minTabHeight < 44) {
       failures.push(
@@ -372,6 +770,12 @@ try {
         .join("\n"),
     );
   }
+} catch (error) {
+  await writeFile(
+    path.join(outputDir, "chrome.log"),
+    `${chromeOutput.join("")}\n`,
+  );
+  throw error;
 } finally {
   socket?.close();
   chrome.kill();

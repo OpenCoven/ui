@@ -15,6 +15,12 @@ export default defineConfig([
     },
   },
   {
+    files: ["contracts/fixtures/**/*.js"],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,

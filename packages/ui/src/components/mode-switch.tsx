@@ -27,7 +27,7 @@ function ModeSwitch({
       role="group"
       aria-label="Composer mode"
       className={cn(
-        "inline-flex rounded-md border border-border bg-card p-[3px]",
+        "inline-flex max-w-full flex-wrap rounded-md border border-border bg-card p-[3px]",
         className,
       )}
     >

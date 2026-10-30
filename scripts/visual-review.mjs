@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -9,6 +9,7 @@ const outputDir = path.resolve(
   process.env.VISUAL_OUTPUT_DIR ?? "artifacts/visual-review",
 );
 const debuggingPort = Number(process.env.CHROME_DEBUGGING_PORT ?? 9222);
+const selectAllModifier = process.platform === "darwin" ? 4 : 2;
 
 if (!chromePath) {
   throw new Error("CHROME_PATH is required");
@@ -118,7 +119,7 @@ class CdpClient {
   }
 }
 
-async function waitForJson(url, timeoutMs = 15_000) {
+async function waitForPageTarget(url, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
 
@@ -126,9 +127,13 @@ async function waitForJson(url, timeoutMs = 15_000) {
     try {
       const response = await globalThis.fetch(url);
       if (response.ok) {
-        return await response.json();
+        const targets = await response.json();
+        const page = targets.find((target) => target.type === "page");
+        if (page?.webSocketDebuggerUrl) return page;
+        lastError = new Error("Chrome has not exposed a page target");
+      } else {
+        lastError = new Error(`${response.status} ${response.statusText}`);
       }
-      lastError = new Error(`${response.status} ${response.statusText}`);
     } catch (error) {
       lastError = error;
     }
@@ -136,9 +141,7 @@ async function waitForJson(url, timeoutMs = 15_000) {
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
-  throw new Error(
-    `Chrome debugging endpoint did not become ready: ${lastError}`,
-  );
+  throw new Error(`Chrome page target did not become ready: ${lastError}`);
 }
 
 async function waitForRender(client, selector, timeoutMs = 15_000) {
@@ -189,57 +192,816 @@ async function evaluateValue(client, expression, awaitPromise = false) {
   return result.result?.value;
 }
 
+async function waitForValue(client, expression, description) {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (await evaluateValue(client, expression)) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const state = await evaluateValue(
+    client,
+    `({
+    focus: document.activeElement?.tagName,
+    input: document.activeElement?.value,
+    search: document.querySelector(".specimen-search input")?.value,
+    cards: document.querySelectorAll(".specimen-card").length,
+    active: document.activeElement?.outerHTML.slice(0, 800),
+    composerDraft: document.querySelector("#composer textarea")?.value,
+    menuItems: [...document.querySelectorAll('[role="menuitem"]')].map(item => ({
+      text: item.textContent, focused: item === document.activeElement,
+      highlighted: item.hasAttribute("data-highlighted"),
+    })),
+  })`,
+  );
+  const screenshot = await client.send("Page.captureScreenshot", {
+    format: "png",
+  });
+  await writeFile(
+    path.join(outputDir, "interaction-failure.png"),
+    Buffer.from(screenshot.data, "base64"),
+  );
+  throw new Error(`Timed out: ${description}; ${JSON.stringify(state)}`);
+}
+
+async function clickElement(client, selector, text) {
+  const deadline = Date.now() + 10_000;
+  let point;
+  while (Date.now() < deadline) {
+    point = await evaluateValue(
+      client,
+      `(async () => {
+      const element = [...document.querySelectorAll(${JSON.stringify(selector)})]
+        .find(element => ${text ? `element.textContent.trim() === ${JSON.stringify(text)}` : "true"});
+      if (!element || element.disabled) return { ready: false, reason: "unavailable or disabled" };
+      element.scrollIntoView({ block: "center", inline: "nearest" });
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const bounds = element.getBoundingClientRect();
+      const x = bounds.left + bounds.width / 2;
+      const y = bounds.top + bounds.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (!element.contains(hit)) return { ready: false, reason: "obscured", hit: hit?.className, x, y };
+      return { ready: true, x, y };
+    })()`,
+      true,
+    );
+    if (point.ready) break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  if (!point?.ready)
+    throw new Error(
+      `Control not clickable: ${selector} ${text ?? ""}; ${JSON.stringify(point)}`,
+    );
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    button: "left",
+    clickCount: 1,
+    x: point.x,
+    y: point.y,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    button: "left",
+    clickCount: 1,
+    x: point.x,
+    y: point.y,
+  });
+}
+
+async function pressKey(client, key, code, keyCode, modifiers = 0) {
+  for (const type of ["keyDown", "keyUp"]) {
+    await client.send("Input.dispatchKeyEvent", {
+      type,
+      key,
+      code,
+      windowsVirtualKeyCode: keyCode,
+      modifiers,
+      ...(code === "KeyA" &&
+      modifiers === selectAllModifier &&
+      type === "keyDown"
+        ? { commands: ["selectAll"] }
+        : {}),
+    });
+  }
+}
+
+async function auditNavigation(client, scenario) {
+  await navigate(
+    client,
+    new URL("/?navigation-audit#session-header", baseUrl).href,
+  );
+  await waitForRender(client, "#session-header");
+  await evaluateValue(
+    client,
+    "new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+    true,
+  );
+  await waitForValue(
+    client,
+    `document.querySelector('.specimen-rail__nav a[href="#session-header"]')?.getAttribute("aria-current") === "location" &&
+      document.getElementById("session-header").getBoundingClientRect().top >= 0 &&
+      document.getElementById("session-header").getBoundingClientRect().top < innerHeight / 2`,
+    "cold component deep link",
+  );
+  await navigate(client, baseUrl);
+  await waitForRender(client, "#component-picker");
+  if (scenario.mobile) {
+    await evaluateValue(
+      client,
+      `document.querySelector("#component-picker").focus()`,
+    );
+    await pressKey(client, "ArrowDown", "ArrowDown", 40);
+  } else {
+    await clickElement(client, '.specimen-rail__nav a[href="#mode-switch"]');
+  }
+  await waitForValue(
+    client,
+    `location.hash === "#mode-switch" &&
+      document.querySelector('.specimen-rail__nav a[href="#mode-switch"]').getAttribute("aria-current") === "location"`,
+    "component navigation",
+  );
+  await clickElement(client, "#send-control .specimen-permalink");
+  await waitForValue(
+    client,
+    `location.hash === "#send-control" &&
+      document.querySelector('.specimen-rail__nav a[href="#send-control"]').getAttribute("aria-current") === "location"`,
+    "component heading permalink",
+  );
+  await evaluateValue(
+    client,
+    `document.getElementById("plan-row").scrollIntoView({ block: "start" })`,
+  );
+  await waitForValue(
+    client,
+    `document.querySelector('.specimen-rail__nav a[href="#plan-row"]').getAttribute("aria-current") === "location"`,
+    "scroll-synchronized component navigation",
+  );
+}
+
+async function auditSearchRecovery(client, scenario) {
+  await pressKey(client, "k", "KeyK", 75, 2);
+  await waitForValue(
+    client,
+    `document.activeElement === document.querySelector(".specimen-search input")`,
+    "search shortcut focus",
+  );
+  await client.send("Input.insertText", { text: "no-such-specimen" });
+  await waitForRender(client, ".catalog-empty");
+  await waitForValue(
+    client,
+    'location.hash === ""',
+    "filtered-out component fragment cleared",
+  );
+  await waitForValue(
+    client,
+    `document.querySelector('[role="status"][aria-label="Search results"]').textContent === "0 results"`,
+    "empty search feedback",
+  );
+  const searchLayout = await evaluateValue(
+    client,
+    `(() => {
+      const root = document.documentElement;
+      const emptyStyle = getComputedStyle(document.querySelector(".catalog-empty"));
+      const elements = [...document.querySelectorAll(".catalog-results, .catalog-clear-search, .catalog-empty, .catalog-empty h2, .catalog-empty p")];
+      return {
+        fontSize: getComputedStyle(root).fontSize,
+        emptyPadding: parseFloat(emptyStyle.paddingLeft),
+        emptyMinHeight: parseFloat(emptyStyle.minHeight),
+        documentOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+        clipped: elements.filter(element => element.scrollWidth > element.clientWidth + 1)
+          .map(element => ({ element: element.className || element.tagName, overflow: element.scrollWidth - element.clientWidth })),
+      };
+    })()`,
+  );
+  if (scenario.textScale) {
+    await evaluateValue(
+      client,
+      `(async () => {
+        document.querySelector(".catalog-results").scrollIntoView({ block: "start" });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      })()`,
+      true,
+    );
+  }
+  const emptySearch = await client.send("Page.captureScreenshot", {
+    format: "png",
+    fromSurface: true,
+    captureBeyondViewport: false,
+  });
+  await writeFile(
+    path.join(outputDir, `${scenario.name}-search-empty.png`),
+    Buffer.from(emptySearch.data, "base64"),
+  );
+  if (
+    searchLayout.documentOverflow > 1 ||
+    searchLayout.clipped.length ||
+    searchLayout.emptyPadding > 32 ||
+    searchLayout.emptyMinHeight > 320
+  ) {
+    throw new Error(
+      `${scenario.name}: search layout ${JSON.stringify(searchLayout)}`,
+    );
+  }
+  await clickElement(client, ".catalog-clear-search");
+  await waitForValue(
+    client,
+    `(() => {
+      const input = document.querySelector(".specimen-search input");
+      const bounds = input.getBoundingClientRect();
+      return document.activeElement === input && input.value === "" &&
+        document.querySelectorAll(".specimen-card").length === 16 &&
+        bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })()`,
+    "clear search restores visible input focus",
+  );
+  await pressKey(client, "a", "KeyA", 65, selectAllModifier);
+  await client.send("Input.insertText", { text: "Context meter" });
+  await waitForValue(
+    client,
+    `document.querySelectorAll(".specimen-card").length === 1 &&
+      Boolean(document.querySelector("#context-meter")) &&
+      document.querySelectorAll(".specimen-rail__nav a").length === 2 &&
+      document.querySelectorAll("#component-picker option").length === 2`,
+    "filtered specimen",
+  );
+  await pressKey(client, "Escape", "Escape", 27);
+  await waitForValue(
+    client,
+    `document.querySelectorAll(".specimen-card").length === 16 &&
+      document.activeElement === document.querySelector(".specimen-search input")`,
+    "restored catalog",
+  );
+  return searchLayout;
+}
+
+async function auditInteractions(client, scenario) {
+  await auditNavigation(client, scenario);
+  await auditSearchRecovery(client, scenario);
+  await clickElement(client, ".scheme-control");
+  await evaluateValue(
+    client,
+    'localStorage.setItem("coven-ui:density", "default")',
+  );
+  await navigate(client, baseUrl);
+  await waitForValue(
+    client,
+    `!document.documentElement.classList.contains("dark") && document.documentElement.dataset.density === "compact"`,
+    "persisted theme and fixed compact sizing",
+  );
+  await clickElement(client, ".scheme-control");
+
+  await clickElement(client, "#composer textarea");
+  await pressKey(client, "a", "KeyA", 65, selectAllModifier);
+  await client.send("Input.insertText", { text: "Preserve this audit draft" });
+  await clickElement(
+    client,
+    "#composer .specimen-view-tabs [role=tab]",
+    "Source",
+  );
+  await waitForRender(client, "#composer .specimen-source-overlay");
+  await client.send("Browser.grantPermissions", {
+    origin: new URL(baseUrl).origin,
+    permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"],
+  });
+  await clickElement(
+    client,
+    '#composer .specimen-source-overlay button[aria-label="Copy composer.tsx"]',
+  );
+  await waitForValue(
+    client,
+    `document.querySelector("#composer .specimen-source-overlay [role=status]")?.textContent.includes("Copied")`,
+    "source copy feedback",
+  );
+  const copied = await evaluateValue(
+    client,
+    "navigator.clipboard.readText()",
+    true,
+  );
+  const expectedSource = await readFile(
+    "packages/ui/src/blocks/composer.tsx",
+    "utf8",
+  );
+  if (copied !== expectedSource)
+    throw new Error("Clipboard did not contain exact component source");
+  await pressKey(client, "Escape", "Escape", 27);
+  await waitForValue(
+    client,
+    `document.activeElement?.textContent.trim() === "Preview" && document.querySelector("#composer textarea")?.value === "Preserve this audit draft"`,
+    "source Escape and draft preservation",
+  );
+
+  await clickElement(client, "#composer button", "Attach sample");
+  await waitForValue(
+    client,
+    `document.querySelector("#composer").textContent.includes("changes.diff")`,
+    "sample attachment",
+  );
+  await clickElement(
+    client,
+    '#composer button[aria-label="Remove changes.diff"]',
+  );
+  await clickElement(client, "#composer button", "Commands");
+  await waitForRender(client, '[role="menu"]');
+  await waitForValue(
+    client,
+    `Boolean(document.activeElement?.closest('[role="menu"]'))`,
+    "command menu keyboard focus",
+  );
+  await pressKey(client, "End", "End", 35);
+  await waitForValue(
+    client,
+    `document.activeElement?.getAttribute("role") === "menuitem" && document.activeElement.textContent.includes("/plan")`,
+    "last command keyboard focus",
+  );
+  await pressKey(client, "Enter", "Enter", 13);
+  await waitForValue(
+    client,
+    `document.querySelector("#composer textarea").value === "Plan a focused implementation"`,
+    "slash command selection",
+  );
+  await clickElement(client, "#composer textarea");
+  await pressKey(client, "Enter", "Enter", 13, 2);
+  await waitForValue(
+    client,
+    `document.querySelector("#composer .demo-status").textContent.includes("started")`,
+    "keyboard send",
+  );
+  await clickElement(client, "#composer button", "Stop run");
+  await waitForValue(
+    client,
+    `document.querySelector("#composer .demo-status").textContent.includes("stopped")`,
+    "stop control",
+  );
+
+  const sceneLoaded = client.waitForEvent("Page.loadEventFired");
+  await clickElement(client, "#run-rail .specimen-lab-link");
+  await sceneLoaded;
+  await waitForValue(
+    client,
+    `location.pathname === "/lab" && location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "run-rail"`,
+    "direct Library-to-Lab scene link",
+  );
+  await evaluateValue(client, 'document.querySelector(".skip-link").focus()');
+  await pressKey(client, "Enter", "Enter", 13);
+  await waitForValue(
+    client,
+    `document.activeElement?.id === "specimen-main" && location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "run-rail"`,
+    "Lab skip link preserves the active scene",
+  );
+  const libraryLoaded = client.waitForEvent("Page.loadEventFired");
+  await clickElement(client, ".lab-footer a");
+  await libraryLoaded;
+  await waitForValue(
+    client,
+    `location.pathname === "/" && location.hash === "#run-rail" && Boolean(document.querySelector("#run-rail .specimen-lab-link"))`,
+    "return to the matching library specimen",
+  );
+
+  const loaded = client.waitForEvent("Page.loadEventFired");
+  await clickElement(client, '.surface-switcher a[href="/lab"]');
+  await loaded;
+  await waitForRender(client, ".assembled-lab");
+  await clickElement(client, ".assembled-lab textarea");
+  await pressKey(client, "a", "KeyA", 65, selectAllModifier);
+  await client.send("Input.insertText", { text: "Keep this carousel draft" });
+  await clickElement(client, 'button[aria-label="Next scene"]');
+  await waitForValue(
+    client,
+    `location.hash === "#run-rail" && document.querySelector(".assembled-lab__tabs [aria-selected=true]").dataset.sceneId === "run-rail"`,
+    "next scene",
+  );
+  await clickElement(client, 'button[aria-label="Previous scene"]');
+  await waitForValue(
+    client,
+    `location.hash === "#composer" && document.querySelector(".lab-scene-panel:not([hidden]) textarea")?.value === "Keep this carousel draft"`,
+    "carousel draft preservation",
+  );
+  await evaluateValue(client, 'location.hash = "#messages"');
+  await waitForValue(
+    client,
+    `document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.dataset.sceneId === "messages"`,
+    "external scene hash",
+  );
+  await evaluateValue(client, "history.back()");
+  await waitForValue(
+    client,
+    `location.hash === "#composer" && document.querySelector(".lab-scene-panel:not([hidden]) textarea")?.value === "Keep this carousel draft"`,
+    "browser Back restores the scene without losing its draft",
+  );
+  await clickElement(client, ".assembled-lab__tabs [data-scene-id=composer]");
+  await pressKey(client, "ArrowRight", "ArrowRight", 39);
+  await waitForValue(
+    client,
+    `document.querySelector(".assembled-lab__tabs [aria-selected=true]").dataset.sceneId === "run-rail"`,
+    "keyboard scene navigation",
+  );
+  await clickElement(client, ".assembled-lab__tabs [data-scene-id=actions]");
+  await clickElement(
+    client,
+    ".lab-action-grid button",
+    "Attach contextA sample diff, ready to reference",
+  );
+  await waitForValue(
+    client,
+    `document.querySelector(".lab-action-result").textContent.includes("changes.diff")`,
+    "action result",
+  );
+  await clickElement(client, ".assembled-lab__tabs [data-scene-id=cards]");
+  await clickElement(client, ".lab-artifact summary");
+  await waitForValue(
+    client,
+    `Boolean(document.querySelector(".lab-artifact details[open]"))`,
+    "artifact disclosure",
+  );
+  await clickElement(client, ".assembled-lab__tabs [data-scene-id=actions]");
+  await waitForValue(
+    client,
+    `document.querySelector(".lab-action-result").textContent.includes("changes.diff")`,
+    "persistent action state",
+  );
+  return `${scenario.mobile ? "Mobile" : "Desktop"} search, preferences, clipboard, source, composer, navigation, and artifact flows passed`;
+}
+
+async function captureContactSheets(client, receipts, name) {
+  const sheets = [];
+  for (let offset = 0; offset < receipts.length; offset += 8) {
+    const images = [];
+    for (const receipt of receipts.slice(offset, offset + 8)) {
+      const image = await readFile(path.join(outputDir, receipt.screenshot));
+      images.push({
+        label: receipt.id,
+        source: `data:image/png;base64,${image.toString("base64")}`,
+      });
+    }
+    const data = await evaluateValue(
+      client,
+      `(async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1120;
+      canvas.height = 1760;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#211a2b";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const images = ${JSON.stringify(images)};
+      for (let index = 0; index < images.length; index++) {
+        const image = new Image();
+        image.src = images[index].source;
+        await image.decode();
+        const scale = Math.min(544 / image.width, 400 / image.height);
+        const x = (index % 2) * 560 + 8;
+        const y = Math.floor(index / 2) * 440;
+        context.fillStyle = "#f7f3fa";
+        context.font = "16px monospace";
+        context.fillText(images[index].label, x, y + 24);
+        context.drawImage(image, x, y + 32, image.width * scale, image.height * scale);
+      }
+      return canvas.toDataURL("image/png").split(",")[1];
+    })()`,
+      true,
+    );
+    const filename = `${name}-sheet-${offset / 8 + 1}.png`;
+    await writeFile(
+      path.join(outputDir, filename),
+      Buffer.from(data, "base64"),
+    );
+    sheets.push(filename);
+  }
+  return sheets;
+}
+
+async function auditInventory(client, scenario) {
+  const items = await evaluateValue(
+    client,
+    `[...document.querySelectorAll(".specimen-card")].map(card => ({ id: card.id, kind: card.dataset.kind }))`,
+  );
+  const receipts = [];
+  for (const item of items) {
+    const result = await evaluateValue(
+      client,
+      `(async () => {
+      const card = document.getElementById(${JSON.stringify(item.id)});
+      card.scrollIntoView({ block: "center" });
+      const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await frame();
+      const stage = card.querySelector(".specimen-stage");
+      const before = { page: document.documentElement.scrollHeight, card: card.getBoundingClientRect().height, scroll: scrollY };
+      const sourceTab = [...card.querySelectorAll(".specimen-view-tabs [role=tab]")].find(tab => tab.textContent.trim() === "Source");
+      sourceTab.focus({ preventScroll: true });
+      sourceTab.click();
+      await frame();
+      const overlay = card.querySelector(".specimen-source-overlay");
+      const canvas = card.querySelector(".specimen-preview__canvas");
+      const source = overlay.querySelector("code").textContent;
+      const codeViewport = overlay.querySelector("pre");
+      const codeStyle = getComputedStyle(codeViewport);
+      const result = {
+        source,
+        visibleCodeLines: (codeViewport.clientHeight - parseFloat(codeStyle.paddingTop) - parseFloat(codeStyle.paddingBottom)) / parseFloat(codeStyle.lineHeight),
+        permalink: card.querySelector(".specimen-permalink")?.getAttribute("href") === "#" + card.id,
+        stable: Math.abs(before.page - document.documentElement.scrollHeight) < 1 &&
+          Math.abs(before.card - card.getBoundingClientRect().height) < 1 && Math.abs(before.scroll - scrollY) < 1,
+        covers: Math.abs(overlay.getBoundingClientRect().height - canvas.clientHeight) < 1 &&
+          card.querySelector(".specimen-live-panel").inert,
+        overflow: Math.max(card.scrollWidth - card.clientWidth, stage.scrollWidth - stage.clientWidth),
+      };
+      const previewTab = [...card.querySelectorAll(".specimen-view-tabs [role=tab]")].find(tab => tab.textContent.trim() === "Preview");
+      previewTab.focus({ preventScroll: true });
+      previewTab.click();
+      await frame();
+      return result;
+    })()`,
+      true,
+    );
+    const expected = await readFile(
+      `packages/ui/src/${item.kind}/${item.id}.tsx`,
+      "utf8",
+    );
+    if (
+      !result.stable ||
+      !result.covers ||
+      !result.permalink ||
+      !Number.isFinite(result.visibleCodeLines) ||
+      result.visibleCodeLines < 2 ||
+      result.overflow > 1 ||
+      result.source !== expected
+    ) {
+      throw new Error(
+        `${scenario.name}/${item.id}: inventory mismatch ${JSON.stringify({ ...result, source: result.source.length })}`,
+      );
+    }
+    const screenshot = `${scenario.name}-${item.id}.png`;
+    const clip = await evaluateValue(
+      client,
+      `(() => {
+      const rect = document.getElementById(${JSON.stringify(item.id)}).getBoundingClientRect();
+      return { x: rect.left + scrollX, y: rect.top + scrollY, width: rect.width, height: rect.height, scale: 1 };
+    })()`,
+    );
+    const image = await client.send("Page.captureScreenshot", {
+      format: "png",
+      fromSurface: true,
+      captureBeyondViewport: true,
+      clip,
+    });
+    await writeFile(
+      path.join(outputDir, screenshot),
+      Buffer.from(image.data, "base64"),
+    );
+    receipts.push({
+      id: item.id,
+      screenshot,
+      stable: result.stable,
+      overflow: result.overflow,
+      visibleCodeLines: result.visibleCodeLines,
+    });
+  }
+  return {
+    receipts,
+    sheets: await captureContactSheets(client, receipts, scenario.name),
+  };
+}
+
 const scenarios = [
+  ...[1920, 1281, 1280, 1024, 881, 880].map((width) => ({
+    name: `library-layout-${width}`,
+    pathname: "/",
+    width,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: width <= 880,
+    expected: "library",
+  })),
   {
     name: "library-dark-desktop",
+    auditInventory: true,
+    auditInteractions: true,
     pathname: "/",
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "library",
   },
   {
     name: "library-dark-mobile",
+    auditInventory: true,
+    auditInteractions: true,
     pathname: "/",
     width: 390,
     height: 844,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: true,
     expected: "library",
   },
   {
-    name: "library-light-desktop",
+    name: "library-cli-desktop",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    revealCodeTab: "Install",
+    codeTargetId: "mode-switch",
+    expectedCode:
+      'pnpm dlx shadcn@latest add "https://ui.opencoven.ai/r/mode-switch.json"',
+    expectedSyntaxRoles: [
+      "hljs-built_in",
+      "hljs-keyword",
+      "hljs-title",
+      "hljs-string",
+    ],
+  },
+  {
+    name: "library-react-api-desktop",
     pathname: "/",
     width: 1440,
     height: 1000,
     scheme: "light",
-    density: "compact",
+    legacyDensity: "compact",
+    mobile: false,
+    expected: "library",
+    revealCodeTab: "Import",
+    codeTargetId: "session-header",
+    expectedCode:
+      'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
+    expectedSyntaxRoles: ["hljs-keyword", "hljs-string"],
+  },
+  {
+    name: "library-react-api-mobile-text-200",
+    pathname: "/",
+    width: 320,
+    height: 900,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: true,
+    expected: "library",
+    textScale: 2,
+    revealCodeTab: "Import",
+    codeTargetId: "session-header",
+    expectedCode:
+      'import { SessionHeader } from "@opencoven/ui/blocks/session-header";',
+    expectedSyntaxRoles: ["hljs-keyword", "hljs-string"],
+  },
+  {
+    name: "library-light-desktop",
+    auditInventory: true,
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+    legacyDensity: "compact",
     mobile: false,
     expected: "library",
   },
   {
+    name: "library-forced-colors-desktop",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    forcedColors: true,
+  },
+  {
+    name: "library-composer-preview",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    previewTargetId: "composer",
+    codeTargetId: "composer",
+  },
+  {
+    name: "library-run-rail-preview",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    previewTargetId: "run-rail",
+    codeTargetId: "run-rail",
+    expectedRunRailColumns: 2,
+  },
+  {
+    name: "library-composer-source",
+    pathname: "/",
+    width: 1440,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    revealSource: true,
+    codeTargetId: "composer",
+    expectedCode: (
+      await readFile("packages/ui/src/blocks/composer.tsx", "utf8")
+    ).trim(),
+    expectedSyntaxRoles: ["hljs-keyword", "hljs-string", "hljs-name"],
+  },
+  {
+    name: "library-source-mobile",
+    pathname: "/",
+    width: 390,
+    height: 844,
+    scheme: "light",
+    legacyDensity: "default",
+    mobile: true,
+    expected: "library",
+    revealSource: true,
+    codeTargetId: "mode-switch",
+    expectedCode: (
+      await readFile("packages/ui/src/components/mode-switch.tsx", "utf8")
+    ).trim(),
+    expectedSyntaxRoles: ["hljs-keyword", "hljs-string", "hljs-name"],
+  },
+  {
+    name: "library-dark-desktop-text-200",
+    pathname: "/",
+    width: 1280,
+    height: 1000,
+    scheme: "dark",
+    legacyDensity: "default",
+    mobile: false,
+    expected: "library",
+    textScale: 2,
+  },
+  {
     name: "assembled-dark-desktop",
+    auditScenes: true,
     pathname: "/lab",
     width: 1440,
     height: 1000,
     scheme: "dark",
-    density: "default",
+    legacyDensity: "default",
     mobile: false,
     expected: "lab",
+    selectedScene: "run-rail",
   },
   {
     name: "assembled-dark-mobile",
+    auditScenes: true,
     pathname: "/lab",
     width: 390,
     height: 844,
     scheme: "dark",
-    density: "compact",
+    legacyDensity: "compact",
     mobile: true,
     expected: "lab",
   },
+  ...[
+    {
+      width: 320,
+      height: 700,
+      scheme: "dark",
+      legacyDensity: "default",
+      mobile: true,
+    },
+    {
+      width: 390,
+      height: 844,
+      scheme: "light",
+      legacyDensity: "default",
+      mobile: true,
+    },
+    {
+      width: 1280,
+      height: 720,
+      scheme: "light",
+      legacyDensity: "default",
+      mobile: false,
+    },
+    {
+      width: 844,
+      height: 390,
+      scheme: "dark",
+      legacyDensity: "compact",
+      mobile: true,
+    },
+    {
+      width: 1280,
+      height: 900,
+      scheme: "dark",
+      legacyDensity: "default",
+      mobile: false,
+      textScale: 2,
+    },
+  ].map((scenario) => ({
+    ...scenario,
+    name: `assembled-${scenario.scheme}-${scenario.width}x${scenario.height}${scenario.textScale ? "-zoom" : ""}`,
+    pathname: "/lab",
+    expected: "lab",
+  })),
 ];
 
 await mkdir(outputDir, { recursive: true });
@@ -271,16 +1033,18 @@ chrome.stderr.on("data", (chunk) => chromeOutput.push(String(chunk)));
 
 let client;
 const results = [];
+const selectedScenarios = process.env.VISUAL_SCENARIO
+  ? scenarios.filter((scenario) =>
+      scenario.name.includes(process.env.VISUAL_SCENARIO),
+    )
+  : scenarios;
+if (selectedScenarios.length === 0)
+  throw new Error("No matching visual-review scenario");
 
 try {
-  const targets = await waitForJson(
+  const page = await waitForPageTarget(
     `http://127.0.0.1:${debuggingPort}/json/list`,
   );
-  const page = targets.find((target) => target.type === "page");
-
-  if (!page?.webSocketDebuggerUrl) {
-    throw new Error("Chrome did not expose a page debugging target");
-  }
 
   client = new CdpClient(page.webSocketDebuggerUrl);
   await client.connect();
@@ -290,7 +1054,16 @@ try {
     features: [{ name: "prefers-reduced-motion", value: "reduce" }],
   });
 
-  for (const scenario of scenarios) {
+  for (const scenario of selectedScenarios) {
+    await client.send("Emulation.setEmulatedMedia", {
+      features: [
+        { name: "prefers-reduced-motion", value: "reduce" },
+        {
+          name: "forced-colors",
+          value: scenario.forcedColors ? "active" : "none",
+        },
+      ],
+    });
     const runtimeErrors = [];
     const removeExceptionListener = client.on(
       "Runtime.exceptionThrown",
@@ -323,6 +1096,10 @@ try {
       screenWidth: scenario.width,
       screenHeight: scenario.height,
     });
+    await client.send("Emulation.setTouchEmulationEnabled", {
+      enabled: scenario.mobile,
+      maxTouchPoints: 1,
+    });
 
     await navigate(client, new URL("/", baseUrl).href);
     await evaluateValue(
@@ -330,11 +1107,17 @@ try {
       `localStorage.setItem("coven-ui:scheme", ${JSON.stringify(
         scenario.scheme,
       )}); localStorage.setItem("coven-ui:density", ${JSON.stringify(
-        scenario.density,
+        scenario.legacyDensity,
       )});`,
     );
     await navigate(client, new URL(scenario.pathname, baseUrl).href);
     await waitForRender(client, "#specimen-main");
+    await evaluateValue(
+      client,
+      `document.documentElement.style.fontSize = ${JSON.stringify(
+        scenario.textScale ? `${scenario.textScale * 100}%` : "",
+      )};`,
+    );
     await evaluateValue(
       client,
       `(async () => {
@@ -346,6 +1129,65 @@ try {
       })()`,
       true,
     );
+    let sourceLayoutBefore;
+    if (scenario.revealSource) {
+      sourceLayoutBefore = await evaluateValue(
+        client,
+        `(async () => {
+        const card = document.getElementById(${JSON.stringify(scenario.codeTargetId)});
+        card.scrollIntoView({ block: "center" });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const before = {
+          pageHeight: document.documentElement.scrollHeight,
+          cardHeight: card.getBoundingClientRect().height,
+          scrollY,
+        };
+        [...card.querySelectorAll(".specimen-view-tabs [role=tab]")].find(tab => tab.textContent.trim() === "Source").click();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return before;
+      })()`,
+        true,
+      );
+    } else if (scenario.revealCodeTab) {
+      await evaluateValue(
+        client,
+        `(async () => {
+          const card = document.getElementById(${JSON.stringify(
+            scenario.codeTargetId,
+          )});
+          const codeTab = card
+            ? [...card.querySelectorAll('[role="tab"]')].find(
+                (tab) =>
+                  tab.textContent?.trim() === ${JSON.stringify(
+                    scenario.revealCodeTab,
+                  )},
+              )
+            : null;
+          if (!codeTab) throw new Error("Requested code tab is missing");
+          const tabList = codeTab.closest('[data-slot="tabs-list"]');
+          if (${Boolean(scenario.expectScrollableCodeTabs)} && tabList) {
+            codeTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+          }
+          codeTab.click();
+          card.scrollIntoView({ block: "center" });
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+          return true;
+        })()`,
+        true,
+      );
+    } else if (scenario.previewTargetId) {
+      await evaluateValue(
+        client,
+        `(async () => {
+          document.getElementById(${JSON.stringify(scenario.previewTargetId)}).scrollIntoView({ block: "center" });
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })()`,
+        true,
+      );
+    }
 
     const layout = await evaluateValue(
       client,
@@ -354,6 +1196,32 @@ try {
         const topbar = document.querySelector(".specimen-topbar");
         const rail = document.querySelector(".specimen-rail");
         const main = document.querySelector("#specimen-main");
+        const hero = document.querySelector(".specimen-hero");
+        const firstContent = document.querySelector(
+          ".specimen-card, .assembled-lab",
+        );
+        const topbarControls = [
+          ...document.querySelectorAll(
+            ".specimen-brand, .surface-switcher, .specimen-search, .scheme-control",
+          ),
+        ];
+        const codeCard = document.getElementById(${JSON.stringify(
+          scenario.codeTargetId ?? "mode-switch",
+        )});
+        const codeScope = ${Boolean(scenario.revealSource)} ? codeCard?.querySelector(".specimen-source-overlay") : codeCard;
+        const codeSnippets = codeScope
+          ? [...codeScope.querySelectorAll(".specimen-code-snippet")]
+          : [];
+        const codeCommands = codeScope
+          ? [...codeScope.querySelectorAll(".specimen-command")]
+          : [];
+        const syntaxTokens = codeScope
+          ? [...codeScope.querySelectorAll('[class^="hljs-"]')]
+          : [];
+        const codeTabList = codeCard?.querySelector('.specimen-code-tabs');
+        const activeCodeTab = codeTabList?.querySelector(
+          '[role="tab"][aria-selected="true"]',
+        );
         const cards = [...document.querySelectorAll(".specimen-card")];
         const groups = [...document.querySelectorAll(".catalog-group")];
         const lab = document.querySelector(".assembled-lab");
@@ -386,6 +1254,38 @@ try {
             rect.height > 0
           );
         };
+        const bounds = (element) => element?.getBoundingClientRect();
+        const intersects = (left, right) =>
+          left.left < right.right &&
+          left.right > right.left &&
+          left.top < right.bottom &&
+          left.bottom > right.top;
+        const topbarBounds = bounds(topbar);
+        const railBounds = bounds(rail);
+        const heroBounds = bounds(hero);
+        const contentBounds = bounds(firstContent);
+        const visibleTopbarControls = topbarControls
+          .filter(isVisible)
+          .map((element) => ({
+            label: element.className,
+            bounds: element.getBoundingClientRect(),
+          }));
+        const topbarOverlaps = visibleTopbarControls.flatMap(
+          (control, index) =>
+            visibleTopbarControls
+              .slice(index + 1)
+              .filter((candidate) =>
+                intersects(control.bounds, candidate.bounds),
+              )
+              .map(
+                (candidate) => control.label + " / " + candidate.label,
+              ),
+        );
+        const visibleCodeSnippets = codeSnippets.filter(isVisible);
+        const visibleCodeCommands = codeCommands.filter(isVisible);
+        const visibleSyntaxTokens = syntaxTokens.filter(isVisible);
+        const codeTabListBounds = bounds(codeTabList);
+        const activeCodeTabBounds = bounds(activeCodeTab);
 
         return {
           pathname: location.pathname,
@@ -393,27 +1293,517 @@ try {
           viewportWidth: root.clientWidth,
           scrollWidth: root.scrollWidth,
           horizontalOverflow: Math.max(0, root.scrollWidth - root.clientWidth),
+          verticalOverflow: Math.max(0, root.scrollHeight - innerHeight),
+          pageHeight: root.scrollHeight,
+          sourceCardHeight: codeCard?.getBoundingClientRect().height,
+          scrollY,
+          sourceCoversPreview: (() => {
+            const overlay = codeCard?.querySelector(".specimen-source-overlay");
+            const canvas = codeCard?.querySelector(".specimen-preview__canvas");
+            if (!overlay || !canvas) return false;
+            const a = overlay.getBoundingClientRect();
+            const b = canvas.getBoundingClientRect();
+            const live = codeCard.querySelector(".specimen-live-panel");
+            const samplePoints = [
+              [a.left + 8, a.top + 8], [a.right - 8, a.top + 8],
+              [a.left + 8, a.bottom - 8], [a.right - 8, a.bottom - 8],
+              [a.left + a.width / 2, a.top + a.height / 2],
+            ];
+            const interior = {
+              top: b.top + canvas.clientTop, left: b.left + canvas.clientLeft,
+              width: canvas.clientWidth, height: canvas.clientHeight,
+            };
+            return ["top","left","width","height"].every(key => Math.abs(a[key] - interior[key]) < 1) &&
+              live.inert && live.getAttribute("aria-hidden") === "true" &&
+              samplePoints.every(([x, y]) => overlay.contains(document.elementFromPoint(x, y)));
+          })(),
+          sourceDimensions: (() => {
+            const overlay = codeCard?.querySelector(".specimen-source-overlay");
+            const canvas = codeCard?.querySelector(".specimen-preview__canvas");
+            const live = codeCard?.querySelector(".specimen-live-panel");
+            return overlay && canvas ? {
+              overlay: overlay.getBoundingClientRect().toJSON(),
+              canvas: canvas.getBoundingClientRect().toJSON(),
+              visibility: getComputedStyle(live).visibility,
+              inert: live.inert,
+              ariaHidden: live.getAttribute("aria-hidden"),
+              inlineStyle: live.getAttribute("style"),
+            } : null;
+          })(),
+          previewVisible: isVisible(codeCard?.querySelector(".specimen-preview")),
+          logoMask: getComputedStyle(document.querySelector(".specimen-brand__mark > span")).maskImage,
           topbarVisible: isVisible(topbar),
+          headerPresentation: (() => {
+            const search = document.querySelector(".specimen-search");
+            const header = document.querySelector(".specimen-topbar__inner");
+            const searchBox = bounds(search);
+            const headerBox = bounds(header);
+            const theme = document.querySelector(".scheme-control");
+            return {
+              searchCenterOffset: searchBox
+                ? Math.abs(searchBox.left + searchBox.width / 2 - (headerBox.left + headerBox.width / 2))
+                : null,
+              height: bounds(topbar).height,
+              searchHeight: searchBox?.height ?? null,
+              themeText: theme.textContent.trim(),
+              titleSize: parseFloat(getComputedStyle(document.querySelector("h1")).fontSize),
+            };
+          })(),
           railVisible: isVisible(rail),
+          catalogLayout: (() => {
+            const inner = document.querySelector(".specimen-main__inner");
+            const style = getComputedStyle(inner);
+            const links = [...document.querySelectorAll(".specimen-rail__nav a")];
+            const options = [...document.querySelectorAll("#component-picker option")];
+            return {
+              shellWidth: bounds(document.querySelector(".specimen-shell"))?.width,
+              topbarWidth: bounds(document.querySelector(".specimen-topbar__inner"))?.width,
+              railWidth: railBounds?.width,
+              mainWidth: bounds(main)?.width,
+              contentWidth: bounds(inner)?.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+              tocWidth: bounds(document.querySelector(".specimen-toc"))?.width,
+              desktopNavVisible: isVisible(document.querySelector(".specimen-rail__nav")),
+              pickerVisible: isVisible(document.querySelector("#component-picker")),
+              links: links.map(link => link.getAttribute("href").slice(1)),
+              options: options.map(option => option.value),
+              expectedIds: ["library-overview", ...cards.map(card => card.id)],
+              validTargets: [...links, ...document.querySelectorAll(".specimen-toc a")].every(link => document.getElementById(link.getAttribute("href").slice(1))),
+            };
+          })(),
           mainVisible: isVisible(main),
+          topbarHeight: topbarBounds?.height ?? null,
+          mobileChromeBottom: Math.max(
+            topbarBounds?.bottom ?? 0,
+            railBounds?.bottom ?? 0,
+          ),
+          heroHeight: heroBounds?.height ?? null,
+          contentTop: contentBounds?.top ?? null,
           cardCount: cards.length,
+          smallPreviewHeight: bounds(document.querySelector("#mode-switch .specimen-stage"))?.height,
+          previewPresentation: (() => {
+            const card = document.querySelector("#mode-switch");
+            if (!card) return null;
+            const preview = card.querySelector(".specimen-preview");
+            const canvas = card.querySelector(".specimen-preview__canvas");
+            const tabs = card.querySelector(".specimen-view-tabs");
+            return {
+              top: bounds(preview).top,
+              bottom: bounds(preview).bottom,
+              articleBorder: parseFloat(getComputedStyle(card).borderTopWidth),
+              previewBorder: parseFloat(getComputedStyle(preview).borderTopWidth),
+              canvasBorder: parseFloat(getComputedStyle(canvas).borderTopWidth),
+              tabsAboveCanvas: bounds(tabs).bottom <= bounds(canvas).top,
+              textOnlyTabs: tabs.querySelectorAll("svg").length === 0,
+              neutralCanvas: getComputedStyle(canvas).backgroundColor === getComputedStyle(document.body).backgroundColor,
+              stageWidth: bounds(card.querySelector(".specimen-stage")).width,
+              controlWidth: bounds(card.querySelector('[data-slot="mode-switch"]')).width,
+              codeSize: parseFloat(getComputedStyle(card.querySelector(".specimen-command")).fontSize),
+            };
+          })(),
+          stateFooterCount: document.querySelectorAll(".specimen-states").length,
+          libraryColumns: [...document.querySelectorAll(".specimen-grid")].map(grid => getComputedStyle(grid).gridTemplateColumns.split(" ").length),
+          runRailColumns: (() => {
+            const rail = codeCard?.querySelector('.specimen-stage > [data-slot="run-rail"]');
+            return rail ? getComputedStyle(rail).gridTemplateColumns.split(" ").length : null;
+          })(),
+          statesTabCount: [...document.querySelectorAll(".specimen-card [role=tab]")].filter(tab => tab.textContent.trim() === "States").length,
+          brandAction: getComputedStyle(root).getPropertyValue("--oc-action").trim(),
+          backgroundColors: ["body", ".specimen-topbar", ".specimen-rail", ".specimen-card", ".specimen-preview__canvas", ".assembled-lab__stage"]
+            .flatMap(selector => {
+              let element = document.querySelector(selector);
+              if (!element) return [];
+              let color = getComputedStyle(element).backgroundColor;
+              while (color === "rgba(0, 0, 0, 0)" && element.parentElement) {
+                element = element.parentElement;
+                color = getComputedStyle(element).backgroundColor;
+              }
+              return [{ selector, color }];
+            }),
+          presentation: root.dataset.presentation,
+          presentationBackground: getComputedStyle(root).getPropertyValue("--oc-bg").trim(),
+          neutralHeading: getComputedStyle(document.querySelector("h1")).color === getComputedStyle(document.body).color,
+          documentationChrome: {
+            unifiedSurfaces: [topbar, rail].filter(Boolean).every(element =>
+              getComputedStyle(element).backgroundColor === getComputedStyle(document.body).backgroundColor),
+            sansSectionHeadings: [...document.querySelectorAll(".catalog-group h2")].every(element =>
+              getComputedStyle(element).fontFamily.includes("Inter")),
+            sidebarBorder: rail ? parseFloat(getComputedStyle(rail).borderInlineEndWidth) : 0,
+            decorativeLabels: document.querySelectorAll(".catalog-group__eyebrow, .catalog-group__count, .specimen-rail__nav small, .specimen-brand small").length,
+          },
+          presentationContrast: (() => {
+            const style = getComputedStyle(root);
+            const value = name => style.getPropertyValue(name).trim();
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 1;
+            const context = canvas.getContext("2d");
+            const luminance = rgb => {
+              const linear = [...rgb].slice(0, 3).map(channel => {
+                const value = channel / 255;
+                return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+              });
+              return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+            };
+            const pairs = [
+              ["text", "--foreground", "--background", 4.5],
+              ["muted text", "--muted-foreground", "--background", 4.5],
+              ["preview captions", "--muted-foreground", "--oc-surface-2", 4.5],
+              ["primary action", "--primary-foreground", "--primary", 4.5],
+              ["selected controls", "--presence", "--oc-surface-2", 4.5],
+              ["focus ring", "--ring", "--background", 3],
+              ["input boundary", "--input", "--card", 3],
+              ["success", "--success", "--card", 4.5],
+              ["success surface", "--success", "--oc-success-bg", 4.5],
+              ["warning", "--warning", "--card", 4.5],
+              ["warning surface", "--warning", "--oc-pending-bg", 4.5],
+              ["error", "--destructive", "--card", 4.5],
+              ["information", "--information", "--card", 4.5],
+            ];
+            const resolvedPairs = pairs.map(([name, foreground, background, minimum]) =>
+              [name, value(foreground), value(background), minimum]
+            );
+            const count = document.querySelector(".specimen-rail__nav small");
+            if (count) {
+              resolvedPairs.push(["navigation count", getComputedStyle(count).color, getComputedStyle(document.body).backgroundColor, 4.5]);
+            }
+            for (const token of visibleSyntaxTokens) {
+              const command = token.closest(".specimen-command");
+              if (command) {
+                resolvedPairs.push([token.className, getComputedStyle(token).color, getComputedStyle(command).backgroundColor, 4.5]);
+              }
+            }
+            return resolvedPairs.map(([name, foreground, background, minimum]) => {
+              context.clearRect(0, 0, 1, 1);
+              context.fillStyle = background;
+              context.fillRect(0, 0, 1, 1);
+              const back = luminance(context.getImageData(0, 0, 1, 1).data);
+              context.fillStyle = foreground;
+              context.fillRect(0, 0, 1, 1);
+              const front = luminance(context.getImageData(0, 0, 1, 1).data);
+              return { name, minimum, ratio: (Math.max(front, back) + 0.05) / (Math.min(front, back) + 0.05) };
+            });
+          })(),
+          brandSpacing: getComputedStyle(root).getPropertyValue("--oc-space-6").trim(),
+          displayFont: getComputedStyle(document.querySelector("h1")).fontFamily,
+          interfaceFont: getComputedStyle(document.body).fontFamily,
+          loadedFonts: [...document.fonts].filter(face => face.status === "loaded").map(face => face.family),
+          forcedSelectionVisible: (() => {
+            const tab = document.querySelector(".specimen-view-tabs [aria-selected=true]");
+            if (!tab) return false;
+            const style = getComputedStyle(tab);
+            return style.outlineStyle === "solid" && parseFloat(style.outlineWidth) >= 2;
+          })(),
           groupCount: groups.length,
           labVisible: isVisible(lab),
           tabCount: tabs.length,
           scheme: root.classList.contains("dark") ? "dark" : "light",
           density: root.dataset.density,
+          densityControls: document.querySelectorAll('.density-control, [aria-label="Display density"]').length,
+          densityLabels: [...document.querySelectorAll(".specimen-stats dt")].some(label => /densit|compact|cozy/i.test(label.textContent)),
+          codeSnippetCount: visibleCodeSnippets.length,
+          codeCommandTexts: visibleCodeCommands.map((command) =>
+            command.textContent?.trim(),
+          ),
+          maxCodeCommandOverflow: Math.max(
+            0,
+            ...visibleCodeCommands.map((command) =>
+              Math.max(0, command.scrollWidth - command.clientWidth),
+            ),
+          ),
+          syntaxRoles: [
+            ...new Set(
+              visibleSyntaxTokens.flatMap((token) =>
+                [...token.classList].filter((name) =>
+                  name.startsWith("hljs-"),
+                ),
+              ),
+            ),
+          ].sort(),
+          syntaxTokenCount: visibleSyntaxTokens.length,
+          codeTabListOverflow: codeTabList
+            ? Math.max(0, codeTabList.scrollWidth - codeTabList.clientWidth)
+            : null,
+          activeCodeTabFullyVisible:
+            codeTabListBounds && activeCodeTabBounds
+              ? activeCodeTabBounds.left >= codeTabListBounds.left - 1 &&
+                activeCodeTabBounds.right <= codeTabListBounds.right + 1
+              : null,
+          topbarOverlaps,
           internallyClipped,
         };
       })()`,
     );
+    layout.stickyRailClearance = await evaluateValue(
+      client,
+      `(async () => {
+        const topbar = document.querySelector(".specimen-topbar");
+        const rail = document.querySelector(".specimen-rail");
+        const initialScrollY = scrollY;
+        scrollTo(0, Math.min(500, document.documentElement.scrollHeight - innerHeight));
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        const clearance =
+          rail && topbar
+            ? rail.getBoundingClientRect().top -
+              topbar.getBoundingClientRect().bottom
+            : null;
+        scrollTo(0, initialScrollY);
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        return clearance;
+      })()`,
+      true,
+    );
 
     const failures = [];
-    if (!layout.topbarVisible || !layout.railVisible || !layout.mainVisible) {
+    const header = layout.headerPresentation;
+    if (
+      (header.searchCenterOffset !== null && header.searchCenterOffset > 1) ||
+      header.themeText !== "" ||
+      (!scenario.textScale &&
+        scenario.width > 1088 &&
+        (header.height > 53 ||
+          header.titleSize > 28 ||
+          (header.searchHeight !== null && header.searchHeight > 36)))
+    ) {
+      failures.push(
+        `centered slim header regressed: ${JSON.stringify(header)}`,
+      );
+    }
+    if (layout.previewPresentation) {
+      const preview = layout.previewPresentation;
+      if (
+        preview.articleBorder !== 0 ||
+        preview.previewBorder !== 0 ||
+        preview.canvasBorder !== 1 ||
+        !preview.tabsAboveCanvas ||
+        !preview.textOnlyTabs ||
+        !preview.neutralCanvas ||
+        preview.codeSize < 12
+      ) {
+        failures.push(
+          `preview hierarchy or source readability regressed: ${JSON.stringify(preview)}`,
+        );
+      }
+      if (
+        !layout.documentationChrome.unifiedSurfaces ||
+        !layout.documentationChrome.sansSectionHeadings ||
+        layout.documentationChrome.sidebarBorder !== 0 ||
+        layout.documentationChrome.decorativeLabels !== 0
+      ) {
+        failures.push(
+          `documentation chrome regressed: ${JSON.stringify(layout.documentationChrome)}`,
+        );
+      }
+      if (!scenario.textScale) {
+        if (preview.controlWidth > preview.stageWidth - 64) {
+          failures.push("small controls are stretched across their preview");
+        }
+        if (layout.scrollY < 1 && scenario.height >= 800) {
+          const maximumTop =
+            layout.viewportWidth > 880
+              ? layout.topbarHeight + 340
+              : layout.mobileChromeBottom + 380;
+          if (preview.top > maximumTop || preview.bottom > scenario.height) {
+            failures.push(
+              `first preview is too far below the fold: ${preview.top}-${preview.bottom}`,
+            );
+          }
+        }
+      }
+    }
+    for (const pair of layout.presentationContrast) {
+      if (!Number.isFinite(pair.ratio) || pair.ratio < pair.minimum) {
+        failures.push(
+          `${pair.name} contrast ${pair.ratio.toFixed(2)} is below ${pair.minimum}`,
+        );
+      }
+    }
+    if (
+      scenario.expected === "library" &&
+      !scenario.textScale &&
+      layout.smallPreviewHeight > 161
+    ) {
+      failures.push(
+        `small preview has excessive empty space: ${layout.smallPreviewHeight}px`,
+      );
+    }
+    if (scenario.expected === "library") {
+      const nav = layout.catalogLayout;
+      const desktop = layout.viewportWidth > 880;
+      const context = layout.viewportWidth > 1280;
+      const shellWidth = Math.min(layout.viewportWidth, 1680);
+      const railWidth = context ? 248 : desktop ? 232 : shellWidth;
+      const mainWidth = desktop
+        ? shellWidth - railWidth - (context ? 216 : 0)
+        : shellWidth;
+      const contentWidth =
+        mainWidth - 2 * Math.min(72, Math.max(24, scenario.width * 0.05));
+      if (
+        Math.abs(nav.shellWidth - shellWidth) > 1 ||
+        Math.abs(nav.topbarWidth - shellWidth) > 1 ||
+        Math.abs(nav.railWidth - railWidth) > 1 ||
+        Math.abs(nav.mainWidth - mainWidth) > 1 ||
+        (desktop && Math.abs(nav.contentWidth - contentWidth) > 1) ||
+        nav.tocWidth !== (context ? 216 : 0)
+      ) {
+        failures.push(`original layout mismatch: ${JSON.stringify(nav)}`);
+      }
+      if (
+        nav.desktopNavVisible !== desktop ||
+        nav.pickerVisible === desktop ||
+        !nav.validTargets ||
+        JSON.stringify(nav.links) !== JSON.stringify(nav.expectedIds) ||
+        JSON.stringify(nav.options) !== JSON.stringify(nav.expectedIds)
+      ) {
+        failures.push(
+          `incomplete or inconsistent component navigation: ${JSON.stringify(nav)}`,
+        );
+      }
+    }
+    if (scenario.forcedColors && !layout.forcedSelectionVisible) {
+      failures.push("selected preview tab loses its forced-colors indicator");
+    }
+    if (
+      scenario.expectedRunRailColumns &&
+      layout.runRailColumns !== scenario.expectedRunRailColumns
+    ) {
+      failures.push("run rail does not use the available preview width");
+    }
+    if (!scenario.forcedColors) {
+      for (const surface of layout.backgroundColors) {
+        const channels = surface.color
+          .match(/^rgb\(([\d.]+),\s*([\d.]+),\s*([\d.]+)\)$/)
+          ?.slice(1)
+          .map(Number);
+        if (!channels || Math.max(...channels) - Math.min(...channels) > 1) {
+          failures.push(
+            `non-neutral background at ${surface.selector}: ${surface.color}`,
+          );
+        }
+      }
+    }
+    if (
+      layout.brandAction !==
+        (scenario.scheme === "dark" ? "#9386d0" : "#6859ac") ||
+      layout.presentation !== "coven" ||
+      layout.presentationBackground !==
+        (scenario.scheme === "dark" ? "#121212" : "#f5f5f5") ||
+      !layout.neutralHeading ||
+      layout.brandSpacing !== "1.5rem" ||
+      !layout.displayFont.includes("Inter") ||
+      !layout.interfaceFont.includes("Inter")
+    ) {
+      failures.push(
+        `Coven presentation mismatch: ${layout.brandAction}, ${layout.presentationBackground}, ${layout.brandSpacing}, ${layout.displayFont}`,
+      );
+    }
+    const requiredFonts = ["Inter"];
+    if (layout.codeSnippetCount > 0) requiredFonts.push("JetBrains Mono");
+    for (const family of requiredFonts) {
+      if (!layout.loadedFonts.some((loaded) => loaded.includes(family))) {
+        failures.push(
+          `visible content has not loaded the bundled ${family} font`,
+        );
+      }
+    }
+    if (
+      !layout.topbarVisible ||
+      (scenario.expected !== "lab" && !layout.railVisible) ||
+      !layout.mainVisible
+    ) {
       failures.push("required shell landmarks are not visible");
     }
     if (layout.horizontalOverflow > 1) {
       failures.push(
         `horizontal overflow is ${layout.horizontalOverflow}px at ${scenario.width}px`,
+      );
+    }
+    if (layout.topbarOverlaps.length > 0) {
+      failures.push(
+        `overlapping topbar controls: ${layout.topbarOverlaps.join(", ")}`,
+      );
+    }
+    if (
+      (scenario.revealCodeTab || scenario.revealSource) &&
+      (layout.codeSnippetCount !== 1 ||
+        layout.syntaxTokenCount < 3 ||
+        !layout.previewVisible ||
+        layout.maxCodeCommandOverflow > 1 ||
+        !layout.codeCommandTexts.includes(scenario.expectedCode) ||
+        !scenario.expectedSyntaxRoles.every((role) =>
+          layout.syntaxRoles.includes(role),
+        ) ||
+        (scenario.expectScrollableCodeTabs &&
+          (layout.codeTabListOverflow === null ||
+            layout.codeTabListOverflow <= 1 ||
+            !layout.activeCodeTabFullyVisible)))
+    ) {
+      failures.push(
+        `code panel=${scenario.revealCodeTab} snippets=${layout.codeSnippetCount} syntaxTokens=${layout.syntaxTokenCount} commandOverflow=${layout.maxCodeCommandOverflow}px tabOverflow=${layout.codeTabListOverflow}px activeTabVisible=${layout.activeCodeTabFullyVisible} commands=${layout.codeCommandTexts.join(" | ")} roles=${layout.syntaxRoles.join(",")}`,
+      );
+    }
+    if (
+      sourceLayoutBefore &&
+      (Math.abs(layout.pageHeight - sourceLayoutBefore.pageHeight) > 1 ||
+        Math.abs(layout.sourceCardHeight - sourceLayoutBefore.cardHeight) > 1 ||
+        Math.abs(layout.scrollY - sourceLayoutBefore.scrollY) > 1 ||
+        !layout.sourceCoversPreview)
+    ) {
+      failures.push(
+        `source changed layout: before=${JSON.stringify(sourceLayoutBefore)} after=${JSON.stringify(
+          {
+            pageHeight: layout.pageHeight,
+            cardHeight: layout.sourceCardHeight,
+            scrollY: layout.scrollY,
+            coversPreview: layout.sourceCoversPreview,
+            dimensions: layout.sourceDimensions,
+          },
+        )}`,
+      );
+    }
+    if (
+      scenario.expected !== "lab" &&
+      layout.viewportWidth > 880 &&
+      (layout.stickyRailClearance === null || layout.stickyRailClearance < -1)
+    ) {
+      failures.push(
+        `sticky rail clearance is ${layout.stickyRailClearance ?? "missing"}px`,
+      );
+    }
+    if (
+      scenario.mobile &&
+      !scenario.textScale &&
+      layout.mobileChromeBottom > 200
+    ) {
+      failures.push(
+        `mobile shell chrome ends at ${Math.round(layout.mobileChromeBottom)}px`,
+      );
+    }
+    if (
+      !scenario.textScale &&
+      (layout.heroHeight === null ||
+        layout.heroHeight > (scenario.mobile ? 330 : 310))
+    ) {
+      failures.push(
+        `hero height is ${layout.heroHeight === null ? "missing" : `${Math.round(layout.heroHeight)}px`}`,
+      );
+    }
+    const contentTopLimit =
+      scenario.expected === "lab"
+        ? scenario.mobile
+          ? 540
+          : 480
+        : scenario.width <= 1088
+          ? 640
+          : 520;
+    if (
+      !scenario.textScale &&
+      (layout.contentTop === null || layout.contentTop > contentTopLimit)
+    ) {
+      failures.push(
+        `primary content starts at ${layout.contentTop === null ? "missing" : `${Math.round(layout.contentTop)}px`} (limit ${contentTopLimit}px)`,
       );
     }
     if (layout.internallyClipped.length > 0) {
@@ -428,14 +1818,22 @@ try {
         `expected ${scenario.scheme} scheme, received ${layout.scheme}`,
       );
     }
-    if (layout.density !== scenario.density) {
+    if (
+      layout.density !== "compact" ||
+      layout.densityControls ||
+      layout.densityLabels
+    ) {
       failures.push(
-        `expected ${scenario.density} density, received ${layout.density}`,
+        `expected fixed compact sizing without controls or labels, received ${layout.density}`,
       );
     }
     if (
       scenario.expected === "library" &&
-      (layout.cardCount !== 16 || layout.groupCount !== 3)
+      (layout.cardCount !== 16 ||
+        layout.groupCount !== 3 ||
+        layout.stateFooterCount !== 16 ||
+        layout.statesTabCount !== 0 ||
+        layout.libraryColumns.some((count) => count !== 1))
     ) {
       failures.push(
         `library rendered ${layout.cardCount} cards across ${layout.groupCount} groups`,
@@ -443,11 +1841,131 @@ try {
     }
     if (
       scenario.expected === "lab" &&
-      (!layout.labVisible || layout.tabCount !== 5)
+      (!layout.labVisible ||
+        layout.tabCount !== 6 ||
+        layout.verticalOverflow > 1)
     ) {
       failures.push(
-        `assembled lab rendered visible=${layout.labVisible} tabs=${layout.tabCount}`,
+        `assembled lab rendered visible=${layout.labVisible} tabs=${layout.tabCount} page overflow=${layout.verticalOverflow}px`,
       );
+    }
+    if (!layout.logoMask.includes("opencoven-mark.svg")) {
+      failures.push("canonical OpenCoven mark is missing");
+    }
+    if (scenario.expected === "lab") {
+      const sceneResults = await evaluateValue(
+        client,
+        `(async () => {
+        const results = [];
+        const tabs = [...document.querySelectorAll(".assembled-lab__tabs [role=tab]")];
+        for (const tab of tabs) {
+          tab.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const panels = [...document.querySelectorAll(".lab-scene-panel:not([hidden])")];
+          const panel = panels[0];
+          const nav = document.querySelector(".assembled-lab__nav").getBoundingClientRect();
+          const bounds = panel?.getBoundingClientRect();
+          results.push({
+            scene: tab.textContent.trim(),
+            panels: panels.length,
+            selected: tab.getAttribute("aria-selected"),
+            pageOverflow: document.documentElement.scrollHeight - innerHeight,
+            horizontalOverflow: panel ? panel.scrollWidth - panel.clientWidth : -1,
+            panelHeight: bounds?.height ?? 0,
+            panelOverflow: panel ? panel.scrollHeight - panel.clientHeight : -1,
+            navVisible: nav.top >= 0 && nav.bottom <= innerHeight,
+          });
+        }
+        tabs.find(tab => tab.getAttribute("data-scene-id") === ${JSON.stringify(scenario.selectedScene ?? "composer")})?.click();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return results;
+      })()`,
+        true,
+      );
+      layout.scenes = sceneResults;
+      if (scenario.auditScenes) {
+        const receipts = [];
+        for (const scene of sceneResults) {
+          await evaluateValue(
+            client,
+            `(async () => {
+            [...document.querySelectorAll(".assembled-lab__tabs [role=tab]")]
+              .find(tab => tab.textContent.trim() === ${JSON.stringify(scene.scene)}).click();
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          })()`,
+            true,
+          );
+          const screenshot = `${scenario.name}-${scene.scene.toLowerCase().replaceAll(" ", "-")}.png`;
+          const image = await client.send("Page.captureScreenshot", {
+            format: "png",
+            fromSurface: true,
+            captureBeyondViewport: false,
+          });
+          await writeFile(
+            path.join(outputDir, screenshot),
+            Buffer.from(image.data, "base64"),
+          );
+          receipts.push({ id: scene.scene, screenshot });
+        }
+        layout.sceneSheets = await captureContactSheets(
+          client,
+          receipts,
+          scenario.name,
+        );
+        await evaluateValue(
+          client,
+          `document.querySelector('.assembled-lab__tabs [data-scene-id="${scenario.selectedScene ?? "composer"}"]').click()`,
+        );
+      }
+      for (const scene of sceneResults) {
+        if (
+          scene.panels !== 1 ||
+          scene.selected !== "true" ||
+          scene.pageOverflow > 1 ||
+          scene.horizontalOverflow > 1 ||
+          scene.panelHeight < 80 ||
+          !scene.navVisible ||
+          (!scenario.mobile && !scenario.textScale && scene.panelOverflow > 1)
+        ) {
+          failures.push(`scene layout: ${JSON.stringify(scene)}`);
+        }
+      }
+      if (scenario.width === 390 && scenario.scheme === "dark") {
+        const swipeTarget = await evaluateValue(
+          client,
+          `(() => {
+            const viewport = document.querySelector(".lab-carousel__viewport").getBoundingClientRect();
+            return { x: viewport.right - 30, y: viewport.top + 15 };
+          })()`,
+        );
+        await client.send("Input.dispatchTouchEvent", {
+          type: "touchStart",
+          touchPoints: [swipeTarget],
+        });
+        await client.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: swipeTarget.x - 120, y: swipeTarget.y }],
+        });
+        await client.send("Input.dispatchTouchEvent", {
+          type: "touchEnd",
+          touchPoints: [],
+        });
+        await evaluateValue(
+          client,
+          `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`,
+          true,
+        );
+        const swipedScene = await evaluateValue(
+          client,
+          `document.querySelector(".assembled-lab__tabs [aria-selected=true]")?.textContent.trim()`,
+        );
+        if (swipedScene !== "Run rail")
+          failures.push(`touch swipe selected ${swipedScene}`);
+        await evaluateValue(
+          client,
+          `document.querySelector(".assembled-lab__tabs [data-scene-id=composer]").click()`,
+        );
+      }
     }
     if (runtimeErrors.length > 0) {
       failures.push(`runtime errors: ${runtimeErrors.join(" | ")}`);
@@ -460,6 +1978,22 @@ try {
     });
     const screenshotPath = path.join(outputDir, `${scenario.name}.png`);
     await writeFile(screenshotPath, Buffer.from(screenshot.data, "base64"));
+
+    if (scenario.auditInventory) {
+      layout.inventory = await auditInventory(client, scenario);
+    }
+    if (scenario.expected === "library" && scenario.textScale) {
+      layout.searchRecovery = await auditSearchRecovery(client, scenario);
+    }
+    if (scenario.auditInteractions) {
+      layout.interactions = await auditInteractions(client, scenario);
+    }
+    if (
+      runtimeErrors.length > 0 &&
+      failures.every((failure) => !failure.startsWith("runtime errors:"))
+    ) {
+      failures.push(`runtime errors: ${runtimeErrors.join(" | ")}`);
+    }
 
     results.push({
       ...scenario,
@@ -495,7 +2029,7 @@ try {
       "|---|---:|---|---|---:|---|",
       ...results.map(
         (result) =>
-          `| ${result.name} | ${result.width}×${result.height} | ${result.scheme} | ${result.density} | ${result.layout.horizontalOverflow}px | ${
+          `| ${result.name} | ${result.width}×${result.height} | ${result.scheme} | ${result.layout.density} | ${result.layout.horizontalOverflow}px | ${
             result.failures.length === 0 ? "PASS" : result.failures.join("; ")
           } |`,
       ),

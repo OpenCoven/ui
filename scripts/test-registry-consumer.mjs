@@ -145,12 +145,15 @@ function run(command, args) {
 }
 
 try {
-  const itemUrl = `http://127.0.0.1:${address.port}/composer.json`;
+  const items = ["composer", "run-rail"];
+  const itemUrls = items.map(
+    (item) => `http://127.0.0.1:${address.port}/${item}.json`,
+  );
   await run("pnpm", [
     "exec",
     "shadcn",
     "add",
-    itemUrl,
+    ...itemUrls,
     "--cwd",
     consumer,
     "--yes",
@@ -158,15 +161,21 @@ try {
   await run("pnpm", ["--dir", consumer, "install", "--ignore-workspace"]);
   await run("pnpm", ["--dir", consumer, "exec", "tsc", "--noEmit"]);
 
-  const composer = await readFile(
-    path.join(consumer, "src", "components", "blocks", "composer.tsx"),
-    "utf8",
-  );
-  if (composer.includes("@opencoven/ui")) {
-    throw new Error("Installed source retained package-internal aliases");
+  for (const item of items) {
+    const source = await readFile(
+      path.join(consumer, "src", "components", "blocks", `${item}.tsx`),
+      "utf8",
+    );
+    if (source.includes("@opencoven/ui")) {
+      throw new Error(
+        `Installed ${item} source retained package-internal aliases`,
+      );
+    }
   }
 
-  console.log(`Clean consumer installed and type-checked ${itemUrl}.`);
+  console.log(
+    `Clean consumer installed and type-checked ${items.join(" and ")}.`,
+  );
 } finally {
   await new Promise((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve())),

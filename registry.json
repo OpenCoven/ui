@@ -24,7 +24,7 @@
       "name": "coven-theme",
       "type": "registry:theme",
       "title": "Coven semantic theme",
-      "description": "Nova density, Zinc-seeded structure, lavender presence, and canonical tool-class tokens.",
+      "description": "OpenCoven web profile v1.0.0 palette, typography, spacing, explicit density, and canonical tool-class tokens.",
       "files": [
         {
           "path": "packages/ui/src/styles/globals.css",
@@ -577,7 +577,10 @@
       "name": "composer",
       "type": "registry:block",
       "title": "Composer",
-      "description": "Intent-taking surface with draft, attachments, mode, model, and send state.",
+      "description": "Intent-taking surface with draft, attachments, tools, mode guidance, model, and send state.",
+      "dependencies": [
+        "lucide-react"
+      ],
       "registryDependencies": [
         "@opencoven/attachment-chip",
         "@opencoven/mode-switch",
@@ -608,12 +611,17 @@
       "name": "run-rail",
       "type": "registry:block",
       "title": "Run rail",
-      "description": "Live metrics, activity, context-window use, and budget.",
+      "description": "Live metrics, optional plan and changed files, activity, context-window use, and budget.",
+      "dependencies": [
+        "lucide-react"
+      ],
       "registryDependencies": [
         "@opencoven/activity-item",
         "@opencoven/budget-pill",
         "@opencoven/context-meter",
         "@opencoven/metric-display",
+        "@opencoven/plan-row",
+        "@opencoven/resource-row",
         "@opencoven/card"
       ],
       "files": [

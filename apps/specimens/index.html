@@ -1,13 +1,42 @@
 <!doctype html>
-<html lang="en" class="dark" data-density="default">
+<html lang="en" class="dark bg-background" data-density="compact" data-presentation="coven">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/opencoven-mark.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="/fonts/inter/inter-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/jetbrains-mono/jetbrains-mono-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <meta
       name="description"
-      content="OpenCoven UI component library, blocks, and shadcn registry specimens."
+      content="Thoughtful, accessible components for agent interfaces. Explore the OpenCoven UI library, live examples, and shadcn-compatible source registry."
     />
-    <title>OpenCoven UI — component registry</title>
+    <meta name="theme-color" content="#121212" />
+    <script>
+      try {
+        document.documentElement.classList.toggle(
+          "dark",
+          localStorage.getItem("coven-ui:scheme") !== "light",
+        );
+      } catch (error) {
+        // Storage-disabled browsers keep the default dark scheme.
+        if (!(error instanceof DOMException) || error.name !== "SecurityError") {
+          throw error;
+        }
+      }
+    </script>
+    <title>OpenCoven UI — Built for agents. Made for humans.</title>
   </head>
   <body>
     <div id="root"></div>
