@@ -124,7 +124,7 @@ jobs:
                 ".catalog-group__grid {\\n    grid-template-columns: minmax(0, 1fr);",
               ),
           ],
-'''
+          '''
           if "responsive grids allow intrinsic shrinking" not in text:
               if marker not in text:
                   raise SystemExit("Could not locate contract insertion point")
