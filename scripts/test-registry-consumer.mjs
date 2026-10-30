@@ -145,28 +145,35 @@ function run(command, args) {
 }
 
 try {
-  const itemUrl = `http://127.0.0.1:${address.port}/composer.json`;
-  await run("pnpm", [
-    "exec",
-    "shadcn",
-    "add",
-    itemUrl,
-    "--cwd",
-    consumer,
-    "--yes",
-  ]);
+  const items = ["composer", "developer-surface"];
+  for (const item of items) {
+    await run("pnpm", [
+      "exec",
+      "shadcn",
+      "add",
+      `http://127.0.0.1:${address.port}/${item}.json`,
+      "--cwd",
+      consumer,
+      "--yes",
+    ]);
+  }
+
   await run("pnpm", ["--dir", consumer, "install", "--ignore-workspace"]);
   await run("pnpm", ["--dir", consumer, "exec", "tsc", "--noEmit"]);
 
-  const composer = await readFile(
-    path.join(consumer, "src", "components", "blocks", "composer.tsx"),
-    "utf8",
-  );
-  if (composer.includes("@opencoven/ui")) {
-    throw new Error("Installed source retained package-internal aliases");
+  for (const [relativePath, label] of [
+    ["src/components/blocks/composer.tsx", "composer"],
+    ["src/components/blocks/developer-surface.tsx", "developer surface"],
+  ]) {
+    const source = await readFile(path.join(consumer, relativePath), "utf8");
+    if (source.includes("@opencoven/ui")) {
+      throw new Error(`${label} retained package-internal aliases`);
+    }
   }
 
-  console.log(`Clean consumer installed and type-checked ${itemUrl}.`);
+  console.log(
+    `Clean consumer installed and type-checked ${items.join(", ")} from the generated registry.`,
+  );
 } finally {
   await new Promise((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve())),
