@@ -6,7 +6,10 @@ on:
       - ".github/workflows/visual-review.yml"
       - "apps/specimens/**"
       - "packages/ui/**"
+      - "registry/**"
+      - "scripts/compose-registry.mjs"
       - "scripts/visual-review.mjs"
+      - "scripts/developer-visual-review.mjs"
       - "scripts/mobile-quality-review.mjs"
   workflow_dispatch:
 
@@ -21,7 +24,7 @@ jobs:
   specimens:
     name: Specimen browser
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -43,8 +46,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build package and specimen app
-        run: pnpm build
+      - name: Build registry, package, and specimen app
+        run: pnpm registry:build && pnpm build
 
       - name: Set up Chrome for Testing
         id: chrome
@@ -89,14 +92,16 @@ jobs:
 
           set +e
           node scripts/visual-review.mjs
-          visual_status=$?
+          browser_status=$?
+          node scripts/developer-visual-review.mjs
+          developer_status=$?
           node scripts/mobile-quality-review.mjs
           mobile_status=$?
           set -e
 
           cp "$preview_log" artifacts/visual-review/preview.log
 
-          if [[ "$visual_status" -ne 0 || "$mobile_status" -ne 0 ]]; then
+          if [[ "$browser_status" -ne 0 || "$developer_status" -ne 0 || "$mobile_status" -ne 0 ]]; then
             exit 1
           fi
 
