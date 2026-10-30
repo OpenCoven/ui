@@ -1,0 +1,114 @@
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter/inter-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/eb-garamond/eb-garamond-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono/jetbrains-mono-latin.woff2") format("woff2");
+}
+
+/* Cave's Coven default typography/accents, with the docs UI's neutral surfaces. */
+:root[data-presentation="coven"] {
+  --oc-bg: #f5f5f5;
+  --oc-surface-1: #f1f1f1;
+  --oc-surface-2: #ededed;
+  --oc-surface-3: #e3e3e3;
+  --coven-panel: var(--oc-surface-1);
+  --oc-text: #0a0a0a;
+  --oc-text-muted: oklch(0.42 0.009 291);
+  --oc-text-subtle: color-mix(in oklch, var(--oc-text) 76%, transparent);
+  --oc-border: color-mix(in oklch, var(--oc-text) 12%, transparent);
+  --oc-border-strong: color-mix(in oklch, var(--oc-text) 60%, transparent);
+  --oc-presence: #6859ac;
+  --oc-on-presence: var(--oc-bg);
+  --oc-action: var(--oc-presence);
+  --oc-action-hover: color-mix(in oklch, var(--oc-presence) 88%, black);
+  --oc-on-action: var(--oc-on-presence);
+  --oc-focus: var(--oc-presence);
+  /* Strengthen Cave's light-mode state ink for small labels on docs panels. */
+  --oc-success-text: color-mix(
+    in oklch,
+    oklch(0.52 0.16 158) 88%,
+    var(--oc-text)
+  );
+  --oc-pending-text: color-mix(
+    in oklch,
+    oklch(0.58 0.16 78) 80%,
+    var(--oc-text)
+  );
+  --oc-blocked-text: oklch(0.52 0.2 24);
+  --oc-evidence-text: var(--oc-presence);
+  --oc-success-bg: color-mix(
+    in oklch,
+    var(--oc-success-text) 8%,
+    var(--oc-surface-1)
+  );
+  --oc-pending-bg: color-mix(
+    in oklch,
+    var(--oc-pending-text) 8%,
+    var(--oc-surface-1)
+  );
+  --oc-blocked-bg: color-mix(
+    in oklch,
+    var(--oc-blocked-text) 8%,
+    var(--oc-surface-1)
+  );
+  --oc-evidence-bg: color-mix(
+    in oklch,
+    var(--oc-presence) 8%,
+    var(--oc-surface-1)
+  );
+  --oc-font-display: Inter, "SF Pro Display", system-ui, sans-serif;
+  --oc-font-reading: Inter, "SF Pro Text", system-ui, sans-serif;
+  --oc-font-mono:
+    "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas,
+    monospace;
+  --oc-leading-heading: 1.05;
+  --oc-shadow-1: none;
+  --oc-shadow-2: 0 8px 24px
+    color-mix(in oklch, oklch(0.45 0.01 291) 40%, transparent);
+
+  --font-editorial: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  --popover: #fafafa;
+  --accent: var(--oc-surface-2);
+  --input: var(--oc-border-strong);
+  --tool-read: var(--oc-evidence-text);
+  --tool-write: var(--oc-success-text);
+  --tool-exec: var(--oc-pending-text);
+  --tool-net: var(--oc-blocked-text);
+  --overlay: color-mix(in oklch, var(--oc-bg) 96%, transparent);
+}
+
+:root[data-presentation="coven"].dark {
+  --oc-bg: #121212;
+  --oc-surface-1: #191919;
+  --oc-surface-2: #212121;
+  --oc-surface-3: #2c2c2c;
+  --oc-text: #ebebeb;
+  --oc-text-muted: oklch(0.66 0.01 291);
+  --oc-text-subtle: color-mix(in oklch, var(--oc-text) 72%, transparent);
+  --oc-border-strong: color-mix(in oklch, var(--oc-text) 48%, transparent);
+  --oc-presence: #9386d0;
+  --oc-on-presence: oklch(0.16 0.008 291);
+  --oc-action-hover: color-mix(in oklch, var(--oc-presence) 88%, white);
+  --oc-success-text: oklch(0.78 0.14 158);
+  --oc-pending-text: oklch(0.83 0.13 78);
+  --oc-blocked-text: oklch(0.74 0.18 24);
+  --oc-shadow-2: 0 8px 24px rgb(0 0 0 / 40%);
+  --popover: #1e1e1e;
+}

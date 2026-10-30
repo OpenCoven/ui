@@ -1,0 +1,41 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "command-receipt",
+  "title": "Command receipt",
+  "description": "Presentation-safe CLI, SDK, daemon, or runtime invocation evidence with explicit lifecycle state.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@opencoven/cn",
+    "@opencoven/coven-theme"
+  ],
+  "files": [
+    {
+      "path": "packages/ui/src/components/command-receipt.tsx",
+      "content": "import {\n  Ban,\n  CheckCircle2,\n  CircleDashed,\n  Clock3,\n  TerminalSquare,\n  TriangleAlert,\n} from \"lucide-react\";\n\nimport { cn } from \"@/lib/utils\";\n\ntype InvocationChannel = \"cli\" | \"sdk\" | \"daemon\" | \"runtime\";\ntype InvocationStatus =\n  | \"accepted\"\n  | \"running\"\n  | \"succeeded\"\n  | \"failed\"\n  | \"blocked\"\n  | \"unknown\"\n  | \"recovery-required\";\n\ntype CommandReceiptProps = {\n  channel: InvocationChannel;\n  /** A presentation-safe, pre-redacted command or operation label. */\n  displayCommand: string;\n  status: InvocationStatus;\n  /** A non-secret receipt or evidence reference supplied by the canonical producer. */\n  receiptId?: string;\n  summary?: string;\n  duration?: string;\n  exitCode?: number;\n  /** An ISO 8601 timestamp supplied by the host, when available. */\n  timestamp?: string;\n  className?: string;\n};\n\nconst statusDetails: Record<\n  InvocationStatus,\n  { label: string; icon: typeof CheckCircle2; className: string }\n> = {\n  accepted: {\n    label: \"Accepted\",\n    icon: CheckCircle2,\n    className: \"text-information\",\n  },\n  running: {\n    label: \"Running\",\n    icon: CircleDashed,\n    className: \"text-information\",\n  },\n  succeeded: {\n    label: \"Succeeded\",\n    icon: CheckCircle2,\n    className: \"text-success\",\n  },\n  failed: {\n    label: \"Failed\",\n    icon: TriangleAlert,\n    className: \"text-destructive\",\n  },\n  blocked: {\n    label: \"Blocked\",\n    icon: Ban,\n    className: \"text-warning\",\n  },\n  unknown: {\n    label: \"Unknown\",\n    icon: Clock3,\n    className: \"text-warning\",\n  },\n  \"recovery-required\": {\n    label: \"Recovery required\",\n    icon: TriangleAlert,\n    className: \"text-warning\",\n  },\n};\n\nfunction CommandReceipt({\n  channel,\n  displayCommand,\n  status,\n  receiptId,\n  summary,\n  duration,\n  exitCode,\n  timestamp,\n  className,\n}: CommandReceiptProps) {\n  const statusDetail = statusDetails[status];\n  const StatusIcon = statusDetail.icon;\n\n  return (\n    <article\n      data-slot=\"command-receipt\"\n      data-channel={channel}\n      data-status={status}\n      aria-label={`${channel.toUpperCase()} invocation: ${statusDetail.label}`}\n      className={cn(\n        \"grid w-full min-w-0 max-w-full gap-3 border-b border-border px-4 py-3 last:border-b-0\",\n        className,\n      )}\n    >\n      <div className=\"grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3\">\n        <span className=\"mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border border-border bg-muted text-muted-foreground\">\n          <TerminalSquare aria-hidden=\"true\" className=\"size-3.5\" />\n        </span>\n        <span className=\"min-w-0\">\n          <span className=\"flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1\">\n            <span className=\"numeric max-w-full text-[0.625rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase break-words [overflow-wrap:anywhere]\">\n              {channel}\n            </span>\n            <span\n              className={cn(\n                \"inline-flex max-w-full flex-wrap items-center gap-1 text-[0.6875rem] font-semibold\",\n                statusDetail.className,\n              )}\n            >\n              <StatusIcon aria-hidden=\"true\" className=\"size-3 shrink-0\" />\n              {statusDetail.label}\n            </span>\n          </span>\n          <code className=\"numeric mt-1.5 block min-w-0 max-w-full text-xs leading-5 break-words whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]\">\n            {displayCommand}\n          </code>\n          {summary ? (\n            <p className=\"mt-1.5 mb-0 min-w-0 max-w-full text-xs leading-5 break-words text-muted-foreground [overflow-wrap:anywhere]\">\n              {summary}\n            </p>\n          ) : null}\n        </span>\n      </div>\n\n      {receiptId || duration || exitCode !== undefined || timestamp ? (\n        <footer className=\"numeric flex w-full min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1 text-[0.625rem] text-muted-foreground sm:ps-10\">\n          {receiptId ? (\n            <span\n              className=\"min-w-0 max-w-full break-all [overflow-wrap:anywhere]\"\n              title={receiptId}\n            >\n              receipt {receiptId}\n            </span>\n          ) : null}\n          {duration ? (\n            <span className=\"inline-flex max-w-full items-center gap-1\">\n              <Clock3 aria-hidden=\"true\" className=\"size-3 shrink-0\" />\n              {duration}\n            </span>\n          ) : null}\n          {exitCode !== undefined ? <span>exit {exitCode}</span> : null}\n          {timestamp ? (\n            <time\n              className=\"max-w-full break-all [overflow-wrap:anywhere]\"\n              dateTime={timestamp}\n            >\n              {timestamp}\n            </time>\n          ) : null}\n        </footer>\n      ) : null}\n    </article>\n  );\n}\n\nexport {\n  CommandReceipt,\n  type CommandReceiptProps,\n  type InvocationChannel,\n  type InvocationStatus,\n};\n",
+      "type": "registry:component",
+      "target": "@components/command-receipt.tsx"
+    }
+  ],
+  "meta": {
+    "channels": [
+      "cli",
+      "sdk",
+      "daemon",
+      "runtime"
+    ],
+    "states": [
+      "accepted",
+      "running",
+      "succeeded",
+      "failed",
+      "blocked",
+      "unknown",
+      "recovery-required"
+    ],
+    "commandField": "displayCommand",
+    "protectedData": "pre-redacted-and-bounded"
+  },
+  "type": "registry:component"
+}

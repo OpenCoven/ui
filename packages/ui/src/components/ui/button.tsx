@@ -11,7 +11,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground hover:bg-primary/85 active:translate-y-px",
+          "bg-primary text-primary-foreground hover:bg-[var(--oc-action-hover)] active:translate-y-px",
         presence:
           "bg-presence text-presence-foreground hover:bg-presence/85 active:translate-y-px",
         outline:

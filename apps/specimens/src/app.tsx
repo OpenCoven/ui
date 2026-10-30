@@ -1,24 +1,19 @@
+/// <reference types="vite/client" />
+
 import {
   ActivityItem,
   AttachmentChip,
-  Badge,
   BudgetPill,
   Button,
+  buttonVariants,
   Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CompletionPalette,
-  Composer,
+  cn,
   ContextMeter,
-  FailureSurface,
   MetricDisplay,
   ModeSwitch,
   PlanRow,
   ResourceRow,
-  RunRail,
   SearchField,
-  SendControl,
   SessionHeader,
   Tabs,
   TabsContent,
@@ -29,10 +24,32 @@ import {
   TranscriptTurn,
   type ComposerMode,
 } from "@opencoven/ui";
-import { ArrowRight, Moon, Sparkles, Sun } from "lucide-react";
+import { ArrowUpRight, Link2, Moon, SearchX, Sun, X } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-type Density = "default" | "compact";
+import { ComposerDemo, RunRailDemo } from "./block-demos";
+import { repository } from "./catalog";
+import { CodeSnippet } from "./code-snippet";
+import { ComponentPreview } from "./component-preview";
+import { Lab } from "./lab";
+import { labScenes } from "./lab-scenes";
+import {
+  CompletionPaletteExample,
+  FailureSurfaceExample,
+  SendControlExample,
+} from "./examples";
+
+const density = "compact";
+
+// lucide-react 1.x no longer ships brand marks, so the GitHub mark is inlined.
+function GitHubMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57v-2.02c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22v3.29c0 .32.21.7.82.58A12 12 0 0 0 12 .3" />
+    </svg>
+  );
+}
+
 type Scheme = "light" | "dark";
 type SpecimenGroup = "Composer" | "Run rail" | "Blocks";
 
@@ -40,13 +57,24 @@ type Specimen = {
   id: string;
   title: string;
   group: SpecimenGroup;
-  primitive: string;
   description: string;
   states: string;
   preview: ReactNode;
 };
 
+function preference(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const groupOrder: SpecimenGroup[] = ["Composer", "Run rail", "Blocks"];
+const componentSources = import.meta.glob<string>(
+  "../../../packages/ui/src/{components,blocks}/*.tsx",
+  { query: "?raw", import: "default", eager: true },
+);
 
 const groupDetails: Record<SpecimenGroup, { id: string; description: string }> =
   {
@@ -60,83 +88,109 @@ const groupDetails: Record<SpecimenGroup, { id: string; description: string }> =
     },
     Blocks: {
       id: "group-blocks",
-      description: "Complete surfaces assembled from the public component API.",
+      description: "Public components assembled into reusable agent workflows.",
     },
   };
 
-function SpecimenCard({
-  specimen,
-  index,
-}: {
-  specimen: Specimen;
-  index: number;
-}) {
+function SpecimenCard({ specimen }: { specimen: Specimen }) {
   const sourceKind = specimen.group === "Blocks" ? "blocks" : "components";
   const headingId = `${specimen.id}-title`;
+  const exportName = specimen.id
+    .split("-")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join("");
+  const registryUrl = `https://ui.opencoven.ai/r/${specimen.id}.json`;
+  const packagePath = `@opencoven/ui/${sourceKind}/${specimen.id}`;
+  const importCode = `import { ${exportName} } from "${packagePath}";`;
+  const labScene = labScenes.find((scene) => scene.source === specimen.id);
+  const source =
+    componentSources[
+      `../../../packages/ui/src/${sourceKind}/${specimen.id}.tsx`
+    ];
 
   return (
     <article
       className="specimen-card"
       id={specimen.id}
       aria-labelledby={headingId}
+      data-kind={sourceKind}
+      tabIndex={-1}
     >
       <header className="specimen-card__header">
         <div className="specimen-card__meta">
-          <span className="specimen-card__index numeric">
-            {String(index + 1).padStart(2, "0")}
+          <h3 className="specimen-card__title" id={headingId}>
+            <a
+              className="specimen-permalink"
+              href={`#${specimen.id}`}
+              title={`Link to ${specimen.title}`}
+            >
+              <span>{specimen.title}</span>
+              <Link2 aria-hidden="true" />
+            </a>
+          </h3>
+          <span className="specimen-card__kind numeric">
+            {sourceKind === "blocks" ? "Block" : "Component"}
           </span>
-          <Badge>{specimen.primitive}</Badge>
         </div>
-        <h3 className="specimen-card__title" id={headingId}>
-          {specimen.title}
-        </h3>
+        {labScene ? (
+          <a className="specimen-lab-link" href={`/lab#${labScene.id}`}>
+            Open in Lab <ArrowUpRight aria-hidden="true" />
+          </a>
+        ) : null}
         <p className="specimen-card__description">{specimen.description}</p>
       </header>
-      <Tabs defaultValue="preview">
-        <TabsList variant="line" className="mx-4 mt-3">
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-          <TabsTrigger value="api">API</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
+      <ComponentPreview
+        source={source}
+        title={specimen.title}
+        filename={`${specimen.id}.tsx`}
+      >
+        {specimen.preview}
+      </ComponentPreview>
+      <Tabs defaultValue="cli">
+        <TabsList
+          variant="line"
+          className="specimen-code-tabs"
+          aria-label={`${specimen.title} code`}
+        >
+          <TabsTrigger value="cli">Install</TabsTrigger>
+          <TabsTrigger value="react-api">Import</TabsTrigger>
         </TabsList>
-        <TabsContent value="preview">
-          <div className="specimen-stage">{specimen.preview}</div>
+        <TabsContent value="cli" className="specimen-documentation">
+          <CodeSnippet
+            code={`pnpm dlx shadcn@latest add "${registryUrl}"`}
+            language="bash"
+            label={`Install ${specimen.title}`}
+          />
         </TabsContent>
-        <TabsContent value="api" className="specimen-documentation">
-          <code className="specimen-command numeric">
-            {`pnpm dlx shadcn@latest add https://ui.opencoven.ai/r/${specimen.id}.json`}
-          </code>
-          <p>
-            Import from{" "}
-            <code className="numeric text-presence">
-              @opencoven/ui/{sourceKind}/{specimen.id}
-            </code>
-            .
-          </p>
-          <p className="text-muted-foreground">States: {specimen.states}.</p>
-        </TabsContent>
-        <TabsContent value="usage" className="specimen-documentation">
-          <p className="text-muted-foreground">
-            Uses semantic tokens, visible focus, non-color state cues, logical
-            properties, and reduced-motion-safe feedback. Compact density is an
-            explicit prop, never a global compression shortcut.
-          </p>
+        <TabsContent value="react-api" className="specimen-documentation">
+          <CodeSnippet
+            code={importCode}
+            language="typescript"
+            label={`Import ${specimen.title}`}
+          />
         </TabsContent>
       </Tabs>
+      <footer className="specimen-states">
+        <span>Supported states</span>
+        <ul aria-label={`${specimen.title} supported states`}>
+          {specimen.states.split(", ").map((state) => (
+            <li key={state}>{state}</li>
+          ))}
+        </ul>
+      </footer>
     </article>
   );
 }
 
-function Library({ density, query }: { density: Density; query: string }) {
+function useSpecimens() {
   const [mode, setMode] = useState<ComposerMode>("do");
-  const [message, setMessage] = useState("Review the changed files");
 
-  const specimens = useMemo<Specimen[]>(
+  return useMemo<Specimen[]>(
     () => [
       {
         id: "mode-switch",
         title: "Mode switch",
         group: "Composer",
-        primitive: "native",
         description:
           "A pressed-state control for Chat, Do, and Plan authority.",
         states: "default, selected, focus, disabled",
@@ -148,55 +202,24 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "send-control",
         title: "Send control",
         group: "Composer",
-        primitive: "Base UI",
         description:
           "The surface's one filled action, with a stable stop state.",
         states: "ready, running, disabled",
-        preview: (
-          <div className="flex flex-wrap gap-3">
-            <SendControl density={density} />
-            <SendControl density={density} running />
-          </div>
-        ),
+        preview: <SendControlExample density={density} />,
       },
       {
         id: "completion-palette",
         title: "Completion palette",
         group: "Composer",
-        primitive: "Base UI Menu",
         description:
           "Keyboard-ready slash commands in a collision-aware overlay.",
         states: "closed, open, focused, disabled",
-        preview: (
-          <CompletionPalette
-            trigger={<Button variant="outline">Open slash commands</Button>}
-            onSelect={() => undefined}
-            commands={[
-              {
-                id: "plan",
-                label: "/plan",
-                description: "Draft a plan before acting",
-                shortcut: "↵",
-              },
-              {
-                id: "handoff",
-                label: "/handoff",
-                description: "Write a continuation handoff",
-              },
-              {
-                id: "research",
-                label: "/research",
-                description: "Start a bounded research mission",
-              },
-            ]}
-          />
-        ),
+        preview: <CompletionPaletteExample />,
       },
       {
         id: "attachment-chip",
         title: "Attachment chip",
         group: "Composer",
-        primitive: "native",
         description: "A file attachment with explicit operational state.",
         states: "ready, uploading, failed",
         preview: (
@@ -215,7 +238,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "metric-display",
         title: "Metric display",
         group: "Run rail",
-        primitive: "native",
         description:
           "Comparable run figures in stable tabular numeric typography.",
         states: "neutral, success, warning, information",
@@ -231,7 +253,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "plan-row",
         title: "Plan row",
         group: "Run rail",
-        primitive: "native",
         description:
           "A task step whose icon, text treatment, and label carry state.",
         states: "pending, active, complete, blocked",
@@ -251,7 +272,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "activity-item",
         title: "Activity item",
         group: "Run rail",
-        primitive: "native",
         description:
           "One append-only tool event using the canonical class mapping.",
         states: "read, write, exec, net, running",
@@ -268,7 +288,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "resource-row",
         title: "Resource row",
         group: "Run rail",
-        primitive: "native",
         description:
           "A direction-aware path row with operation and diff evidence.",
         states: "modified, added, deleted, renamed",
@@ -293,7 +312,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "tool-mix",
         title: "Tool mix",
         group: "Run rail",
-        primitive: "native",
         description:
           "A readable summary with one fixed read/exec/write/net order.",
         states: "populated, empty",
@@ -312,24 +330,15 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "failure-surface",
         title: "Failure surface",
         group: "Run rail",
-        primitive: "Base UI Button",
         description:
           "A durable failure receipt with quiet output and explicit next moves.",
         states: "failed, retried",
-        preview: (
-          <FailureSurface
-            command="pnpm vitest run tokenizer"
-            exitCode={1}
-            output="AssertionError: expected 3 cells, got 4"
-            actions={[{ label: "Retry", onSelect: () => undefined }]}
-          />
-        ),
+        preview: <FailureSurfaceExample />,
       },
       {
         id: "context-meter",
         title: "Context meter",
         group: "Run rail",
-        primitive: "native progress",
         description:
           "Window consumption with a fixed threshold and stable numbers.",
         states: "normal, warning, full",
@@ -344,7 +353,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "budget-pill",
         title: "Budget pill",
         group: "Run rail",
-        primitive: "native",
         description:
           "Spend against a limit with icon, text weight, and semantic tone.",
         states: "normal, warning, over",
@@ -360,51 +368,24 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "composer",
         title: "Composer block",
         group: "Blocks",
-        primitive: "composition",
         description:
           "The full intent-taking surface, built only from public modules.",
         states: "empty, ready, running, disabled",
-        preview: (
-          <Composer
-            value={message}
-            onValueChange={setMessage}
-            mode={mode}
-            onModeChange={setMode}
-            density={density}
-            attachments={[{ id: "spec", name: "spec.md", meta: "4.2 KB" }]}
-          />
-        ),
+        preview: <ComposerDemo density={density} />,
       },
       {
         id: "run-rail",
         title: "Run rail block",
         group: "Blocks",
-        primitive: "composition",
         description:
           "Metrics, activity, context, and budget as one operational report.",
         states: "populated, loading, empty, error",
-        preview: (
-          <RunRail
-            density={density}
-            metrics={[
-              { value: "12.4", unit: "k", label: "Tokens" },
-              { value: 8, label: "Files", tone: "success" },
-              { value: "2:14", label: "Elapsed" },
-            ]}
-            activity={[
-              { tool: "read", target: "src/parser.ts", duration: "0.3s" },
-              { tool: "exec", target: "pnpm test", running: true },
-            ]}
-            context={{ used: 82_000, total: 200_000 }}
-            budget={{ used: 0.41, limit: 5 }}
-          />
-        ),
+        preview: <RunRailDemo density={density} />,
       },
       {
         id: "transcript-turn",
         title: "Transcript turn",
         group: "Blocks",
-        primitive: "composition",
         description:
           "Familiar identity and provenance lead an editorial response.",
         states: "streaming, complete, with artifacts",
@@ -434,7 +415,6 @@ function Library({ density, query }: { density: Density; query: string }) {
         id: "session-header",
         title: "Session header",
         group: "Blocks",
-        primitive: "composition",
         description:
           "The session task, branch, execution state, and spend in one line.",
         states: "pending, active, complete, blocked",
@@ -448,34 +428,31 @@ function Library({ density, query }: { density: Density; query: string }) {
         ),
       },
     ],
-    [density, message, mode],
+    [mode],
   );
+}
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const filtered = specimens.filter((specimen) =>
-    `${specimen.title} ${specimen.group} ${specimen.description}`
-      .toLowerCase()
-      .includes(normalizedQuery),
-  );
-
-  if (filtered.length === 0) {
+function Library({ specimens }: { specimens: Specimen[] }) {
+  if (specimens.length === 0) {
     return (
-      <section className="catalog-empty" aria-live="polite">
+      <section className="catalog-empty" id="component-catalog">
         <span className="catalog-empty__mark" aria-hidden="true">
-          <Sparkles />
+          <SearchX />
         </span>
-        <h2>No matching specimens</h2>
-        <p>Try a component name, block, state, or operational concept.</p>
+        <h2>No matches found</h2>
+        <p>Try a component like Composer, or a state like running.</p>
       </section>
     );
   }
 
-  let specimenIndex = 0;
-
   return (
-    <div className="catalog" aria-label="Component catalog">
+    <div
+      className="catalog"
+      id="component-catalog"
+      aria-label="Component catalog"
+    >
       {groupOrder.map((group) => {
-        const groupedSpecimens = filtered.filter(
+        const groupedSpecimens = specimens.filter(
           (specimen) => specimen.group === group,
         );
 
@@ -489,27 +466,14 @@ function Library({ density, query }: { density: Density; query: string }) {
           <section className="catalog-group" id={detail.id} key={group}>
             <header className="catalog-group__header">
               <div>
-                <p className="catalog-group__eyebrow numeric">{group}</p>
-                <h2>{detail.description}</h2>
+                <h2>{group}</h2>
+                <p className="catalog-group__summary">{detail.description}</p>
               </div>
-              <span className="catalog-group__count numeric">
-                {groupedSpecimens.length}{" "}
-                {groupedSpecimens.length === 1 ? "specimen" : "specimens"}
-              </span>
             </header>
             <div className="specimen-grid">
-              {groupedSpecimens.map((specimen) => {
-                const currentIndex = specimenIndex;
-                specimenIndex += 1;
-
-                return (
-                  <SpecimenCard
-                    key={specimen.id}
-                    specimen={specimen}
-                    index={currentIndex}
-                  />
-                );
-              })}
+              {groupedSpecimens.map((specimen) => (
+                <SpecimenCard key={specimen.id} specimen={specimen} />
+              ))}
             </div>
           </section>
         );
@@ -518,209 +482,226 @@ function Library({ density, query }: { density: Density; query: string }) {
   );
 }
 
-function Lab({ density }: { density: Density }) {
-  const [view, setView] = useState("composer");
-  const [mode, setMode] = useState<ComposerMode>("do");
-  const [message, setMessage] = useState(
-    "Ask Cody to review the changed files",
-  );
+function useCatalogLocation(specimens: Specimen[], enabled: boolean) {
+  const [activeId, setActiveId] = useState("library-overview");
+  const initialHash = useRef<string | null>(window.location.hash.slice(1));
 
-  const views: Record<string, ReactNode> = {
-    composer: (
-      <div className="lab-composer">
-        <TranscriptTurn
-          familiar="Cody"
-          initials="CO"
-          role="Code Familiar"
-          model="GPT-5.6 Sol"
-          timestamp="now"
-        >
-          <p>
-            I found two visual regressions in the specimen shell and kept the
-            package boundary intact.
-          </p>
-        </TranscriptTurn>
-        <Composer
-          value={message}
-          onValueChange={setMessage}
-          mode={mode}
-          onModeChange={setMode}
-          density={density}
-          attachments={[
-            { id: "diff", name: "specimen-shell.diff", meta: "8.1 KB" },
-          ]}
-        />
-      </div>
-    ),
-    messages: (
-      <div className="lab-message-stack">
-        <TranscriptTurn
-          familiar="Cody"
-          initials="CO"
-          role="Code Familiar"
-          model="GPT-5.6 Sol"
-          timestamp="now"
-          utilities={
-            <>
-              <span>Reply</span>
-              <span>Copy</span>
-              <span className="numeric">1.2K tokens</span>
-            </>
+  useEffect(() => {
+    if (!enabled) return;
+
+    let frame = 0;
+    const onHashChange = () => {
+      const id = window.location.hash.slice(1);
+      const target = document.getElementById(id);
+      if (id && !target) {
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${window.location.pathname}${window.location.search}`,
+        );
+      }
+      setActiveId(
+        target?.matches("#library-overview, .catalog-group, .specimen-card")
+          ? id
+          : "library-overview",
+      );
+    };
+    const updateLocation = () => {
+      frame = 0;
+      const top =
+        (parseFloat(
+          getComputedStyle(document.documentElement).scrollPaddingTop,
+        ) || 0) + 4;
+      const targets = [
+        ...document.querySelectorAll<HTMLElement>(
+          "#library-overview, .catalog-group, .specimen-card",
+        ),
+      ].filter((target) => target.getBoundingClientRect().height > 0);
+      if (targets.length === 0) return;
+      let current = "library-overview";
+      for (const target of targets) {
+        if (target.getBoundingClientRect().top <= top) current = target.id;
+      }
+      const root = document.documentElement;
+      if (
+        root.scrollHeight > window.innerHeight &&
+        window.scrollY + window.innerHeight >= root.scrollHeight - 1
+      ) {
+        current = targets.at(-1)?.id ?? current;
+      }
+      setActiveId(current);
+    };
+    const onScroll = () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(() => {
+          // The initial fragment can arrive before React creates its target.
+          if (initialHash.current !== null) {
+            const id = initialHash.current;
+            initialHash.current = null;
+            if (id && window.location.hash.slice(1) === id) {
+              const target = document.getElementById(id);
+              target?.scrollIntoView({ block: "start" });
+              target?.focus({ preventScroll: true });
+            }
           }
-        >
-          <p>
-            Model selection, linked context, and send readiness remain visible
-            without interrupting the writing flow.
-          </p>
-        </TranscriptTurn>
-        <TranscriptTurn
-          familiar="Charm"
-          initials="CH"
-          role="Community Familiar"
-          timestamp="2m"
-        >
-          <p>
-            The same primitives can carry a different familiar identity without
-            changing their authority or accessibility contract.
-          </p>
-        </TranscriptTurn>
-      </div>
-    ),
-    context: (
-      <Card>
-        <ResourceRow
-          path="OpenCoven/coven-cave"
-          meta="main · src/components/chat-view.tsx · read + write"
-        />
-        <ResourceRow path="Composer polish" meta="Issue #4621 · linked task" />
-        <ResourceRow
-          path="OpenCoven/ui"
-          meta="fix/specimen-browser-shell · proposal"
-        />
-      </Card>
-    ),
-    actions: (
-      <Card className="grid gap-1 p-2">
-        <Button variant="ghost" className="h-auto justify-start py-3">
-          <span className="grid text-start">
-            <strong>Attach changed files</strong>
-            <small className="text-muted-foreground">
-              Include the current git diff as context
-            </small>
-          </span>
-        </Button>
-        <Button variant="ghost" className="h-auto justify-start py-3">
-          <span className="grid text-start">
-            <strong>Enhance prompt</strong>
-            <small className="text-muted-foreground">
-              Clarify intent without changing scope
-            </small>
-          </span>
-        </Button>
-      </Card>
-    ),
-    cards: (
-      <div className="lab-card-grid">
-        {[
-          ["Pull request", "Recover attachment ingestion", "Checks 12 / 12"],
-          ["Proposal", "Merge #4764 · squash", "Awaiting your tap"],
-          ["Attachment", "Components-preview.png", "384 KB · added by Cody"],
-          ["Handoff", "Vercel deployment ledger", "7 sections"],
-        ].map(([kind, title, meta]) => (
-          <Card key={kind}>
-            <CardHeader>
-              <Badge variant={kind === "Proposal" ? "presence" : "neutral"}>
-                {kind}
-              </Badge>
-            </CardHeader>
-            <CardContent>
-              <strong>{title}</strong>
-              <p className="mt-1 text-xs text-muted-foreground">{meta}</p>
-            </CardContent>
-            <CardFooter className="justify-end text-xs text-muted-foreground">
-              Open in reader <ArrowRight className="size-3" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    ),
-  };
+          updateLocation();
+        });
+      }
+    };
 
-  return (
-    <section className="assembled-lab" id="assembled-lab">
-      <SessionHeader
-        title="Restore the OpenCoven UI specimen browser"
-        branch="fix/specimen-browser-shell"
-        status="active"
-        budget={{ used: 0.41, limit: 5 }}
-      />
-      <Tabs value={view} onValueChange={(next) => setView(String(next))}>
-        <div className="assembled-lab__nav">
-          <TabsList className="assembled-lab__tabs">
-            {Object.keys(views).map((name) => (
-              <TabsTrigger key={name} value={name} className="capitalize">
-                {name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        {Object.entries(views).map(([name, content]) => (
-          <TabsContent key={name} value={name}>
-            <div className="assembled-lab__stage">{content}</div>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </section>
-  );
+    onHashChange();
+    onScroll();
+    window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [enabled, specimens]);
+
+  return activeId;
 }
 
-function DensityControl({
-  density,
-  onDensityChange,
+function CatalogNavigation({
+  specimens,
+  activeId,
 }: {
-  density: Density;
-  onDensityChange: (density: Density) => void;
+  specimens: Specimen[];
+  activeId: string;
 }) {
+  const groups = groupOrder.map((group) => ({
+    group,
+    items: specimens.filter((specimen) => specimen.group === group),
+  }));
+
   return (
-    <div className="density-control" role="group" aria-label="Display density">
-      <button
-        type="button"
-        aria-pressed={density === "default"}
-        onClick={() => onDensityChange("default")}
-      >
-        Cozy
-      </button>
-      <button
-        type="button"
-        aria-pressed={density === "compact"}
-        onClick={() => onDensityChange("compact")}
-      >
-        Compact
-      </button>
-    </div>
+    <>
+      <nav className="specimen-rail__nav" aria-label="Component navigation">
+        <div className="specimen-rail__group">
+          <h2>Getting started</h2>
+          <a
+            href="#library-overview"
+            aria-current={
+              activeId === "library-overview" ? "location" : undefined
+            }
+          >
+            Overview
+          </a>
+        </div>
+        {groups.map(({ group, items }) =>
+          items.length ? (
+            <div
+              className="specimen-rail__group"
+              data-group={group}
+              key={group}
+            >
+              <h2>{group}</h2>
+              <ul aria-label={group}>
+                {items.map((specimen) => (
+                  <li key={specimen.id}>
+                    <a
+                      href={`#${specimen.id}`}
+                      aria-current={
+                        activeId === specimen.id ? "location" : undefined
+                      }
+                    >
+                      {specimen.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null,
+        )}
+      </nav>
+      <div className="specimen-mobile-nav">
+        <label className="sr-only" htmlFor="component-picker">
+          Jump to component
+        </label>
+        <select
+          id="component-picker"
+          value={
+            specimens.some((specimen) => specimen.id === activeId)
+              ? activeId
+              : "library-overview"
+          }
+          onChange={(event) => {
+            window.location.hash = event.target.value;
+          }}
+        >
+          <option value="library-overview">Overview</option>
+          {groups.map(({ group, items }) =>
+            items.length ? (
+              <optgroup label={group} key={group}>
+                {items.map((specimen) => (
+                  <option value={specimen.id} key={specimen.id}>
+                    {specimen.title}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null,
+          )}
+        </select>
+      </div>
+      <div className="specimen-rail__package">
+        <span className="specimen-kicker numeric">Install</span>
+        <code className="numeric">@opencoven/ui</code>
+      </div>
+    </>
   );
 }
 
 function App() {
   const [scheme, setScheme] = useState<Scheme>(() =>
-    localStorage.getItem("coven-ui:scheme") === "light" ? "light" : "dark",
-  );
-  const [density, setDensity] = useState<Density>(() =>
-    localStorage.getItem("coven-ui:density") === "compact"
-      ? "compact"
-      : "default",
+    preference("coven-ui:scheme", "dark") === "light" ? "light" : "dark",
   );
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const topbarRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isLab = normalizedPath === "/lab";
+  const specimens = useSpecimens();
+  const normalizedQuery = query.trim().toLowerCase();
+  const isSearching = normalizedQuery.length > 0;
+  const filteredSpecimens = useMemo(() => {
+    return specimens.filter((specimen) =>
+      `${specimen.title} ${specimen.group} ${specimen.description} ${specimen.states}`
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [normalizedQuery, specimens]);
+  const activeId = useCatalogLocation(filteredSpecimens, !isLab);
+  const activeGroup = filteredSpecimens.find(
+    (specimen) => specimen.id === activeId,
+  )?.group;
+
+  function clearSearch() {
+    setQuery("");
+    searchRef.current?.focus();
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", scheme === "dark");
     document.documentElement.dataset.density = density;
-    localStorage.setItem("coven-ui:scheme", scheme);
-    localStorage.setItem("coven-ui:density", density);
-  }, [density, scheme]);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute(
+        "content",
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--oc-bg")
+          .trim(),
+      );
+    try {
+      localStorage.setItem("coven-ui:scheme", scheme);
+      localStorage.removeItem("coven-ui:density");
+    } catch {
+      /* Preferences remain session-local when browser storage is blocked. */
+    }
+  }, [scheme]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -734,140 +715,222 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const topbar = topbarRef.current;
+    if (!topbar) return;
+
+    const updateTopbarHeight = () => {
+      document.documentElement.style.setProperty(
+        "--specimen-topbar-height",
+        `${Math.ceil(topbar.getBoundingClientRect().height)}px`,
+      );
+    };
+    const observer = new ResizeObserver(updateTopbarHeight);
+
+    updateTopbarHeight();
+    observer.observe(topbar);
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--specimen-topbar-height");
+    };
+  }, []);
+
   return (
     <TooltipProvider>
-      <a className="skip-link" href="#specimen-main">
-        Skip to specimens
-      </a>
-      <header className="specimen-topbar">
-        <div className="specimen-topbar__inner">
-          <a href="/" className="specimen-brand" aria-label="OpenCoven UI home">
-            <span className="specimen-brand__mark" aria-hidden="true">
-              <Sparkles />
-            </span>
-            <span>
-              OpenCoven UI
-              <small>Reference lab</small>
-            </span>
-          </a>
-          <nav className="surface-switcher" aria-label="Specimen surfaces">
-            <a href="/" aria-current={!isLab ? "page" : undefined}>
-              Library
-            </a>
-            <a href="/lab" aria-current={isLab ? "page" : undefined}>
-              Assembled
-            </a>
-          </nav>
-          <div className="specimen-topbar__actions">
-            {!isLab ? (
-              <SearchField
-                ref={searchRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search components…"
-                shortcut="⌘K"
-                className="specimen-search"
-              />
-            ) : null}
-            <DensityControl density={density} onDensityChange={setDensity} />
-            <Button
-              variant="outline"
-              className="scheme-control"
-              aria-label={`Use ${scheme === "dark" ? "light" : "dark"} scheme`}
-              onClick={() =>
-                setScheme((current) => (current === "dark" ? "light" : "dark"))
-              }
-            >
-              {scheme === "dark" ? <Sun /> : <Moon />}
-              <span>{scheme === "dark" ? "Light" : "Dark"}</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-      <div className="specimen-shell">
-        <aside className="specimen-rail">
-          <div className="specimen-rail__context">
-            <p className="specimen-kicker numeric">
-              {isLab ? "Assembled states" : "Component catalog"}
-            </p>
-            <h2>{isLab ? "Operational scenes" : "Public UI inventory"}</h2>
-            <p>
-              {isLab
-                ? "Five focused compositions using only exported OpenCoven modules."
-                : "Registry-backed primitives and blocks grouped by the job they perform."}
-            </p>
-          </div>
-          <nav className="specimen-rail__nav" aria-label="On this page">
-            {isLab ? (
-              <a href="#assembled-lab">
-                <span>Workbench</span>
-                <small className="numeric">05</small>
+      <div className={`specimen-app${isLab ? " specimen-app--lab" : ""}`}>
+        <a
+          className="skip-link"
+          href="#specimen-main"
+          onClick={(event) => {
+            if (isLab) {
+              event.preventDefault();
+              mainRef.current?.focus({ preventScroll: true });
+            }
+          }}
+        >
+          Skip to specimens
+        </a>
+        <header className="specimen-topbar" ref={topbarRef}>
+          <div className="specimen-topbar__inner">
+            <div className="specimen-topbar__leading">
+              <a
+                href="/"
+                className="specimen-brand"
+                aria-label="OpenCoven UI home"
+              >
+                <span className="specimen-brand__mark" aria-hidden="true">
+                  <span />
+                </span>
+                <span>OpenCoven UI</span>
               </a>
-            ) : (
-              groupOrder.map((group) => (
-                <a href={`#${groupDetails[group].id}`} key={group}>
-                  <span>{group}</span>
-                  <small className="numeric">
-                    {group === "Composer"
-                      ? "04"
-                      : group === "Run rail"
-                        ? "08"
-                        : "04"}
-                  </small>
+              <nav className="surface-switcher" aria-label="Specimen surfaces">
+                <a href="/" aria-current={!isLab ? "page" : undefined}>
+                  Library
                 </a>
-              ))
-            )}
-          </nav>
-          <div className="specimen-rail__package">
-            <span className="specimen-kicker numeric">Install</span>
-            <code className="numeric">@opencoven/ui</code>
-            <p>
-              Semantic source, package exports, and registry remain aligned.
-            </p>
-          </div>
-        </aside>
-        <main className="specimen-main" id="specimen-main">
-          <div className="specimen-main__inner">
-            <header className="specimen-hero">
-              <div className="specimen-hero__copy">
-                <p className="specimen-kicker numeric">
-                  {isLab
-                    ? "Five assembled states"
-                    : "Registry-backed components"}
-                </p>
-                <h1>
-                  {isLab
-                    ? "The agent surface, assembled."
-                    : "Quiet tools for active runs."}
-                </h1>
-                <p>
-                  Greys carry structure. Color carries operational meaning.
-                  Every preview imports the same public modules consumers
-                  install.
-                </p>
+                <a href="/lab" aria-current={isLab ? "page" : undefined}>
+                  Lab
+                </a>
+              </nav>
+            </div>
+            {!isLab ? (
+              <div
+                role="search"
+                aria-label="Component search"
+                className="specimen-search"
+              >
+                <SearchField
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Escape" &&
+                      !event.nativeEvent.isComposing &&
+                      query
+                    ) {
+                      event.preventDefault();
+                      clearSearch();
+                    }
+                  }}
+                  aria-label="Search components"
+                  aria-controls="component-catalog"
+                  aria-keyshortcuts="Control+K Meta+K"
+                  placeholder="Search components…"
+                  shortcut={query ? undefined : "⌘K"}
+                />
+                {query ? (
+                  <Button
+                    variant="ghost"
+                    className="catalog-clear-search"
+                    aria-label="Clear search"
+                    title="Clear search"
+                    onClick={clearSearch}
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                ) : null}
               </div>
-              <dl className="specimen-stats" aria-label="Library summary">
-                <div>
-                  <dt>{isLab ? "Views" : "Specimens"}</dt>
-                  <dd className="numeric">{isLab ? "05" : "16"}</dd>
-                </div>
-                <div>
-                  <dt>Schemes</dt>
-                  <dd className="numeric">02</dd>
-                </div>
-                <div>
-                  <dt>Densities</dt>
-                  <dd className="numeric">02</dd>
-                </div>
-              </dl>
-            </header>
-            {isLab ? (
-              <Lab density={density} />
-            ) : (
-              <Library density={density} query={query} />
-            )}
+            ) : null}
+            <div className="specimen-topbar__actions">
+              <a
+                href={repository}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "repository-control",
+                )}
+                aria-label="OpenCoven UI on GitHub"
+                title="OpenCoven UI on GitHub"
+              >
+                <GitHubMark />
+              </a>
+              <Button
+                variant="ghost"
+                className="scheme-control"
+                aria-label={`Use ${scheme === "dark" ? "light" : "dark"} scheme`}
+                title={`Use ${scheme === "dark" ? "light" : "dark"} scheme`}
+                onClick={() =>
+                  setScheme((current) =>
+                    current === "dark" ? "light" : "dark",
+                  )
+                }
+              >
+                {scheme === "dark" ? <Sun /> : <Moon />}
+              </Button>
+            </div>
           </div>
-        </main>
+        </header>
+        <div className="specimen-shell">
+          {!isLab ? (
+            <aside className="specimen-rail">
+              <CatalogNavigation
+                specimens={filteredSpecimens}
+                activeId={activeId}
+              />
+            </aside>
+          ) : null}
+          <main
+            ref={mainRef}
+            className="specimen-main"
+            id="specimen-main"
+            tabIndex={-1}
+          >
+            <div className="specimen-main__inner">
+              <header
+                className="specimen-hero"
+                id={!isLab ? "library-overview" : undefined}
+                tabIndex={-1}
+              >
+                <div className="specimen-hero__copy">
+                  <h1>{isLab ? "Component lab" : "Component library"}</h1>
+                  <p>
+                    {isLab
+                      ? `${labScenes.length} interactive scenes, built from the library.`
+                      : `${specimens.length} components and blocks. Preview, inspect, and reuse.`}
+                  </p>
+                </div>
+              </header>
+              {isLab ? (
+                <Lab density={density} />
+              ) : (
+                <>
+                  <div
+                    className="catalog-results"
+                    data-active={isSearching || undefined}
+                  >
+                    <p
+                      role="status"
+                      aria-label="Search results"
+                      className={
+                        isSearching ? "catalog-results__count" : "sr-only"
+                      }
+                    >
+                      {isSearching
+                        ? `${filteredSpecimens.length} ${filteredSpecimens.length === 1 ? "result" : "results"}`
+                        : `All ${specimens.length} components`}
+                    </p>
+                  </div>
+                  <Library specimens={filteredSpecimens} />
+                </>
+              )}
+            </div>
+          </main>
+          {!isLab ? (
+            <aside className="specimen-toc">
+              <nav aria-label="On this page">
+                <p className="specimen-kicker numeric">On this page</p>
+                <a
+                  href="#library-overview"
+                  aria-current={
+                    activeId === "library-overview" ? "location" : undefined
+                  }
+                >
+                  Overview
+                </a>
+                {groupOrder.map((group) =>
+                  filteredSpecimens.some(
+                    (specimen) => specimen.group === group,
+                  ) ? (
+                    <a
+                      key={group}
+                      href={`#${groupDetails[group].id}`}
+                      aria-current={
+                        activeGroup === group ||
+                        activeId === groupDetails[group].id
+                          ? "location"
+                          : undefined
+                      }
+                    >
+                      {group}
+                    </a>
+                  ) : null,
+                )}
+              </nav>
+            </aside>
+          ) : null}
+        </div>
       </div>
     </TooltipProvider>
   );

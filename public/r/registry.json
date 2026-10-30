@@ -24,7 +24,7 @@
       "name": "coven-theme",
       "type": "registry:theme",
       "title": "Coven semantic theme",
-      "description": "Nova density, Zinc-seeded structure, lavender presence, and canonical tool-class tokens.",
+      "description": "OpenCoven web profile v1.0.0 palette, typography, spacing, explicit density, and canonical tool-class tokens.",
       "files": [
         {
           "path": "packages/ui/src/styles/globals.css",
@@ -577,7 +577,10 @@
       "name": "composer",
       "type": "registry:block",
       "title": "Composer",
-      "description": "Intent-taking surface with draft, attachments, mode, model, and send state.",
+      "description": "Intent-taking surface with draft, attachments, tools, mode guidance, model, and send state.",
+      "dependencies": [
+        "lucide-react"
+      ],
       "registryDependencies": [
         "@opencoven/attachment-chip",
         "@opencoven/mode-switch",
@@ -608,12 +611,17 @@
       "name": "run-rail",
       "type": "registry:block",
       "title": "Run rail",
-      "description": "Live metrics, activity, context-window use, and budget.",
+      "description": "Live metrics, optional plan and changed files, activity, context-window use, and budget.",
+      "dependencies": [
+        "lucide-react"
+      ],
       "registryDependencies": [
         "@opencoven/activity-item",
         "@opencoven/budget-pill",
         "@opencoven/context-meter",
         "@opencoven/metric-display",
+        "@opencoven/plan-row",
+        "@opencoven/resource-row",
         "@opencoven/card"
       ],
       "files": [
@@ -681,6 +689,113 @@
           "target": "@components/blocks/session-header.tsx"
         }
       ]
+    },
+    {
+      "name": "connection-status",
+      "type": "registry:component",
+      "title": "Connection status",
+      "description": "Integration health and host-supplied authority state for SDK, CLI, daemon, runtime, and project sources.",
+      "dependencies": [
+        "lucide-react"
+      ],
+      "registryDependencies": [
+        "@opencoven/cn",
+        "@opencoven/coven-theme"
+      ],
+      "files": [
+        {
+          "path": "packages/ui/src/components/connection-status.tsx",
+          "type": "registry:component",
+          "target": "@components/connection-status.tsx"
+        }
+      ],
+      "meta": {
+        "states": [
+          "connected",
+          "pending",
+          "degraded",
+          "disconnected",
+          "unavailable"
+        ],
+        "authority": [
+          "read-only",
+          "proposal",
+          "mutating",
+          "local-authority"
+        ],
+        "authoritySource": "host-supplied"
+      }
+    },
+    {
+      "name": "command-receipt",
+      "type": "registry:component",
+      "title": "Command receipt",
+      "description": "Presentation-safe CLI, SDK, daemon, or runtime invocation evidence with explicit lifecycle state.",
+      "dependencies": [
+        "lucide-react"
+      ],
+      "registryDependencies": [
+        "@opencoven/cn",
+        "@opencoven/coven-theme"
+      ],
+      "files": [
+        {
+          "path": "packages/ui/src/components/command-receipt.tsx",
+          "type": "registry:component",
+          "target": "@components/command-receipt.tsx"
+        }
+      ],
+      "meta": {
+        "channels": [
+          "cli",
+          "sdk",
+          "daemon",
+          "runtime"
+        ],
+        "states": [
+          "accepted",
+          "running",
+          "succeeded",
+          "failed",
+          "blocked",
+          "unknown",
+          "recovery-required"
+        ],
+        "commandField": "displayCommand",
+        "protectedData": "pre-redacted-and-bounded"
+      }
+    },
+    {
+      "name": "developer-surface",
+      "type": "registry:block",
+      "title": "Developer surface",
+      "description": "Project context, integration health, authority cues, and invocation evidence in one reusable development cockpit.",
+      "dependencies": [
+        "lucide-react"
+      ],
+      "registryDependencies": [
+        "@opencoven/connection-status",
+        "@opencoven/command-receipt",
+        "@opencoven/cn"
+      ],
+      "files": [
+        {
+          "path": "packages/ui/src/blocks/developer-surface.tsx",
+          "type": "registry:block",
+          "target": "@components/blocks/developer-surface.tsx"
+        }
+      ],
+      "meta": {
+        "integrationSources": [
+          "sdk",
+          "cli",
+          "daemon",
+          "runtime",
+          "project"
+        ],
+        "authority": "presentation-only",
+        "stableItemIds": true
+      }
     }
   ]
 }
